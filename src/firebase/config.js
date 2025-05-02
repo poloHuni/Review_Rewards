@@ -1,29 +1,27 @@
 // src/firebase/config.js
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth';
-import 'firebase/compat/firestore';
-import 'firebase/compat/storage';
+import { initializeApp } from 'firebase/app';
+import { getAuth } from 'firebase/auth';
+import { getFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
+import { getAnalytics } from 'firebase/analytics';
 
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
-  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || "review-system-2000",
-  privateKey: process.env.REACT_APP_FIREBASE_PRIVATE_KEY,
-  clientEmail: process.env.REACT_APP_FIREBASE_CLIENT_EMAIL,
-  clientId: process.env.REACT_APP_FIREBASE_CLIENT_ID,
-  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || "review-ai-storage",
-  apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.REACT_APP_FIREBASE_APP_ID,
+  apiKey: "AIzaSyCVBJx9gtlSsme4tfb7hb-bl12aNf4SW7g",
+  authDomain: "review-system-2000.firebaseapp.com",
+  projectId: "review-system-2000",
+  storageBucket: "review-system-2000.firebasestorage.app",
+  messagingSenderId: "579451043474",
+  appId: "1:579451043474:web:d7c6a8a6dc1a58c4b6304b",
+  measurementId: "G-0TGE0NLKT5"
 };
 
 // Initialize Firebase
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+const app = initializeApp(firebaseConfig);
+export const analytics = getAnalytics(app);
+export const auth = getAuth(app);
+export const db = getFirestore(app);
+export const storage = getStorage(app);
 
-// Export Firebase services
-export const auth = firebase.auth();
-export const db = firebase.firestore();
-export const storage = firebase.storage();
-
-export default firebase;
+export default app;

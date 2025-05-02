@@ -1,6 +1,18 @@
 // src/services/reviewService.js
+import { 
+  collection, 
+  addDoc, 
+  getDocs, 
+  query, 
+  where, 
+  orderBy, 
+  limit, 
+  doc, 
+  getDoc, 
+  serverTimestamp 
+} from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../firebase/config';
-import firebase from 'firebase/compat/app';
 import { v4 as uuidv4 } from 'uuid';
 
 // Save a review to Firestore
@@ -13,7 +25,7 @@ export const saveReview = async (reviewData, customerId, customerInfo) => {
     const enhancedReviewData = {
       ...reviewData,
       review_id: reviewId,
-      timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      timestamp: serverTimestamp(),
       customer_id: customerId,
       customer_name: customerInfo.name || 'Anonymous',
       customer_email: customerInfo.email || '',
@@ -28,7 +40,8 @@ export const saveReview = async (reviewData, customerId, customerInfo) => {
     }
     
     // Save to Firestore
-    await db.collection('reviews').add(enhancedReviewData);
+    const reviewsCollection = collection(db, 'reviews');
+    await addDoc(reviewsCollection, enhancedReviewData);
     
     return reviewId;
   } catch (error) {
@@ -40,15 +53,18 @@ export const saveReview = async (reviewData, customerId, customerInfo) => {
 // Get reviews for a specific restaurant
 export const getReviewsByRestaurant = async (restaurantId, reviewLimit = null) => {
   try {
-    let reviewsQuery = db.collection('reviews')
-      .where('restaurant_id', '==', restaurantId)
-      .orderBy('timestamp', 'desc');
+    const reviewsCollection = collection(db, 'reviews');
+    let reviewsQuery = query(
+      reviewsCollection,
+      where('restaurant_id', '==', restaurantId),
+      orderBy('timestamp', 'desc')
+    );
     
     if (reviewLimit) {
-      reviewsQuery = reviewsQuery.limit(reviewLimit);
+      reviewsQuery = query(reviewsQuery, limit(reviewLimit));
     }
     
-    const querySnapshot = await reviewsQuery.get();
+    const querySnapshot = await getDocs(reviewsQuery);
     
     const reviews = [];
     querySnapshot.forEach((doc) => {
@@ -65,24 +81,29 @@ export const getReviewsByRestaurant = async (restaurantId, reviewLimit = null) =
 // Get reviews by a specific user
 export const getReviewsByUser = async (userId, restaurantId = null, reviewLimit = null) => {
   try {
+    const reviewsCollection = collection(db, 'reviews');
     let reviewsQuery;
     
     if (restaurantId) {
-      reviewsQuery = db.collection('reviews')
-        .where('customer_id', '==', userId)
-        .where('restaurant_id', '==', restaurantId)
-        .orderBy('timestamp', 'desc');
+      reviewsQuery = query(
+        reviewsCollection,
+        where('customer_id', '==', userId),
+        where('restaurant_id', '==', restaurantId),
+        orderBy('timestamp', 'desc')
+      );
     } else {
-      reviewsQuery = db.collection('reviews')
-        .where('customer_id', '==', userId)
-        .orderBy('timestamp', 'desc');
+      reviewsQuery = query(
+        reviewsCollection,
+        where('customer_id', '==', userId),
+        orderBy('timestamp', 'desc')
+      );
     }
     
     if (reviewLimit) {
-      reviewsQuery = reviewsQuery.limit(reviewLimit);
+      reviewsQuery = query(reviewsQuery, limit(reviewLimit));
     }
     
-    const querySnapshot = await reviewsQuery.get();
+    const querySnapshot = await getDocs(reviewsQuery);
     
     const reviews = [];
     querySnapshot.forEach((doc) => {
@@ -99,9 +120,9 @@ export const getReviewsByUser = async (userId, restaurantId = null, reviewLimit 
 // Save audio file to Firebase Storage
 export const saveAudioToStorage = async (audioBlob, filename) => {
   try {
-    const storageRef = storage.ref(`audio_recordings/${filename}`);
-    const uploadTask = await storageRef.put(audioBlob);
-    const downloadUrl = await uploadTask.ref.getDownloadURL();
+    const storageRef = ref(storage, `audio_recordings/${filename}`);
+    const uploadResult = await uploadBytes(storageRef, audioBlob);
+    const downloadUrl = await getDownloadURL(uploadResult.ref);
     
     return downloadUrl;
   } catch (error) {

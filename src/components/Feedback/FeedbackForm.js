@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import AudioRecorder from './AudioRecorder';
 import ReviewAnalysis from './ReviewAnalysis';
 import { useAuth } from '../../contexts/AuthContext';
-import { transcribeAudio, processAudio } from '../../services/audioService';
+import { transcribeAudio, processAudio, fallbackTranscription } from '../../services/audioService';
 import { analyzeReview } from '../../services/openaiService';
 
 const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
@@ -16,6 +16,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   const [error, setError] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [validationError, setValidationError] = useState(null);
+  const [processingProgress, setProcessingProgress] = useState(0);
   
   const { currentUser } = useAuth();
   
@@ -36,10 +37,26 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setValidationError(null);
     setStep('processing');
     setProcessing(true);
+    setProcessingProgress(0);
+    
+    // Progress animation
+    const progressInterval = setInterval(() => {
+      setProcessingProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 5;
+      });
+    }, 300);
     
     try {
+      setProcessingProgress(30);
+      
       // Analyze text feedback directly
       const analysis = await analyzeReview(textFeedback, restaurantName);
+      
+      setProcessingProgress(80);
       
       if (analysis) {
         // Add restaurant ID to review data
@@ -51,6 +68,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         }
         
         setReviewAnalysis(analysis);
+        setProcessingProgress(100);
         setStep('analysis');
       } else {
         throw new Error('Failed to analyze feedback');
@@ -59,6 +77,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       setError(`Error analyzing feedback: ${err.message}`);
       setStep('input');
     } finally {
+      clearInterval(progressInterval);
       setProcessing(false);
     }
   };
@@ -72,19 +91,42 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setError(null);
     setStep('processing');
     setProcessing(true);
+    setProcessingProgress(0);
+    
+    // Progress animation for better UX
+    const progressInterval = setInterval(() => {
+      setProcessingProgress(prev => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + 2;
+      });
+    }, 300);
     
     try {
       // Process audio to improve quality
+      setProcessingProgress(20);
+      console.log('Starting audio processing...');
       const processedAudio = await processAudio(audioBlob);
       
       // Transcribe the audio
-      const transcription = await transcribeAudio(processedAudio);
+      setProcessingProgress(40);
+      console.log('Starting transcription...');
+      let transcription = await transcribeAudio(processedAudio);
       
-      if (!transcription) {
-        throw new Error('Failed to transcribe audio');
+      // If transcription is empty or failed, use fallback
+      if (!transcription || transcription.trim() === '') {
+        console.log('Using fallback transcription...');
+        transcription = fallbackTranscription(audioUrl);
       }
       
+      setProcessingProgress(60);
+      console.log('Transcription complete:', transcription);
+      
       // Analyze the transcription
+      setProcessingProgress(80);
+      console.log('Starting analysis...');
       const analysis = await analyzeReview(transcription, restaurantName);
       
       if (analysis) {
@@ -95,14 +137,17 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         analysis.audio_url = audioUrl;
         
         setReviewAnalysis(analysis);
+        setProcessingProgress(100);
         setStep('analysis');
       } else {
         throw new Error('Failed to analyze feedback');
       }
     } catch (err) {
+      console.error('Complete error details:', err);
       setError(`Error processing audio: ${err.message}`);
       setStep('input');
     } finally {
+      clearInterval(progressInterval);
       setProcessing(false);
     }
   };
@@ -116,6 +161,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setReviewAnalysis(null);
     setError(null);
     setValidationError(null);
+    setProcessingProgress(0);
   };
   
   const renderSteps = () => {
@@ -205,6 +251,15 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         <p className="text-gray-300 mb-6 text-center">
           Please wait while we analyze your feedback. This may take a few moments...
         </p>
+        
+        {/* Progress bar */}
+        <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden mb-2">
+          <div 
+            className="h-full bg-blue-600 transition-all duration-300"
+            style={{ width: `${processingProgress}%` }}
+          ></div>
+        </div>
+        <div className="text-gray-400 text-sm">{processingProgress}%</div>
       </div>
     );
   }

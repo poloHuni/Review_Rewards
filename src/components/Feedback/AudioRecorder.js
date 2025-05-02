@@ -1,7 +1,9 @@
 // src/components/Feedback/AudioRecorder.js
 import React, { useState, useRef, useEffect } from 'react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { storage } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
+import { v4 as uuidv4 } from 'uuid';
 
 const AudioRecorder = ({ onAudioSaved, restaurantId }) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -105,15 +107,15 @@ const AudioRecorder = ({ onAudioSaved, restaurantId }) => {
     try {
       // Generate a unique filename with restaurant ID and timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      const userId = currentUser.user_id || currentUser.uid;
+      const userId = currentUser?.uid || currentUser?.user_id || 'anonymous';
       const filename = `review_${restaurantId}_${userId}_${timestamp}.wav`;
       
-      // Upload to Firebase Storage
-      const storageRef = storage.ref(`audio_recordings/${filename}`);
-      const uploadTask = await storageRef.put(audioBlob);
-      const downloadUrl = await uploadTask.ref.getDownloadURL();
+      // Upload to Firebase Storage using v9 syntax
+      const storageRef = ref(storage, `audio_recordings/${filename}`);
+      const uploadResult = await uploadBytes(storageRef, audioBlob);
+      const downloadUrl = await getDownloadURL(uploadResult.ref);
       
-      // Call the parent component's callback with the download URL
+      // Call the parent component's callback with the blob and download URL
       onAudioSaved(audioBlob, downloadUrl);
     } catch (err) {
       setError(`Failed to process recording: ${err.message}`);

@@ -41,6 +41,11 @@ const Login = () => {
       return;
     }
     
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+    
     try {
       setError('');
       setLoading(true);
@@ -58,6 +63,11 @@ const Login = () => {
     
     if (!email) {
       setError('Email is required');
+      return;
+    }
+    
+    if (!password) {
+      setError('Password is required');
       return;
     }
     

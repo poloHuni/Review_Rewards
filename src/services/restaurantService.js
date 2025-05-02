@@ -1,14 +1,25 @@
 // src/services/restaurantService.js
+import { 
+  collection, 
+  doc, 
+  setDoc, 
+  getDoc, 
+  getDocs, 
+  deleteDoc, 
+  serverTimestamp,
+  query,
+  where
+} from 'firebase/firestore';
 import { db } from '../firebase/config';
-import firebase from 'firebase/compat/app';
 import { v4 as uuidv4 } from 'uuid';
 
 // Get all restaurants
 export const getAllRestaurants = async () => {
   try {
-    const querySnapshot = await db.collection('restaurants').get();
-    const restaurants = [];
+    const restaurantsCollection = collection(db, 'restaurants');
+    const querySnapshot = await getDocs(restaurantsCollection);
     
+    const restaurants = [];
     querySnapshot.forEach((doc) => {
       restaurants.push({ id: doc.id, ...doc.data() });
     });
@@ -23,10 +34,10 @@ export const getAllRestaurants = async () => {
 // Get restaurants by owner ID
 export const getRestaurantsByOwner = async (ownerId) => {
   try {
-    const querySnapshot = await db.collection('restaurants')
-      .where('owner_id', '==', ownerId)
-      .get();
+    const restaurantsCollection = collection(db, 'restaurants');
+    const restaurantsQuery = query(restaurantsCollection, where('owner_id', '==', ownerId));
     
+    const querySnapshot = await getDocs(restaurantsQuery);
     const restaurants = [];
     
     querySnapshot.forEach((doc) => {
@@ -43,9 +54,10 @@ export const getRestaurantsByOwner = async (ownerId) => {
 // Get a restaurant by ID
 export const getRestaurantById = async (restaurantId) => {
   try {
-    const restaurantDoc = await db.collection('restaurants').doc(restaurantId).get();
+    const restaurantRef = doc(db, 'restaurants', restaurantId);
+    const restaurantDoc = await getDoc(restaurantRef);
     
-    if (restaurantDoc.exists) {
+    if (restaurantDoc.exists()) {
       return { id: restaurantDoc.id, ...restaurantDoc.data() };
     } else {
       return null;
@@ -66,17 +78,18 @@ export const saveRestaurant = async (restaurantData, ownerId) => {
     const enhancedData = {
       ...restaurantData,
       restaurant_id: restaurantId,
-      updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+      updated_at: serverTimestamp(),
       owner_id: ownerId
     };
     
     // If it's a new restaurant, add created_at timestamp
     if (!restaurantData.restaurant_id) {
-      enhancedData.created_at = firebase.firestore.FieldValue.serverTimestamp();
+      enhancedData.created_at = serverTimestamp();
     }
     
     // Save to Firestore
-    await db.collection('restaurants').doc(restaurantId).set(enhancedData);
+    const restaurantRef = doc(db, 'restaurants', restaurantId);
+    await setDoc(restaurantRef, enhancedData);
     
     return restaurantId;
   } catch (error) {
@@ -88,7 +101,8 @@ export const saveRestaurant = async (restaurantData, ownerId) => {
 // Delete a restaurant
 export const deleteRestaurant = async (restaurantId) => {
   try {
-    await db.collection('restaurants').doc(restaurantId).delete();
+    const restaurantRef = doc(db, 'restaurants', restaurantId);
+    await deleteDoc(restaurantRef);
     return true;
   } catch (error) {
     console.error('Error deleting restaurant:', error);
@@ -107,10 +121,10 @@ export const verifyOwnerPassword = (password) => {
 export const getRestaurantAnalytics = async (restaurantId) => {
   try {
     // Get all reviews for this restaurant
-    const querySnapshot = await db.collection('reviews')
-      .where('restaurant_id', '==', restaurantId)
-      .get();
+    const reviewsCollection = collection(db, 'reviews');
+    const reviewsQuery = query(reviewsCollection, where('restaurant_id', '==', restaurantId));
     
+    const querySnapshot = await getDocs(reviewsQuery);
     const reviews = [];
     
     querySnapshot.forEach((doc) => {
