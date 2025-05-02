@@ -1,16 +1,7 @@
 // src/contexts/AuthContext.js
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword, 
-  onAuthStateChanged, 
-  signOut, 
-  GoogleAuthProvider, 
-  signInWithPopup,
-  updateProfile 
-} from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import firebase from 'firebase/compat/app';
 
 const AuthContext = createContext();
 
@@ -26,25 +17,25 @@ export function AuthProvider({ children }) {
   const [error, setError] = useState('');
   const [isOwner, setIsOwner] = useState(false);
 
-  async function register(name, email, phone, restaurantId = 'default_restaurant') {
+  async function register(name, email, password, phone, restaurantId = 'default_restaurant') {
     try {
       setError('');
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await auth.createUserWithEmailAndPassword(email, password);
       const user = userCredential.user;
       
       // Update profile with display name
-      await updateProfile(user, { displayName: name });
+      await user.updateProfile({ displayName: name });
       
       // Create user document in Firestore
       const userId = user.uid;
-      await setDoc(doc(db, 'users', userId), {
+      await db.collection('users').doc(userId).set({
         user_id: userId,
         username: email.split('@')[0],
         email: email.toLowerCase(),
         phone: phone || '',
         name: name,
-        last_login: serverTimestamp(),
-        registration_date: serverTimestamp(),
+        last_login: firebase.firestore.FieldValue.serverTimestamp(),
+        registration_date: firebase.firestore.FieldValue.serverTimestamp(),
         restaurant_id: restaurantId
       });
       
@@ -58,12 +49,12 @@ export function AuthProvider({ children }) {
   async function login(email, password) {
     try {
       setError('');
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const userCredential = await auth.signInWithEmailAndPassword(email, password);
       const user = userCredential.user;
       
       // Update last login time
-      await setDoc(doc(db, 'users', user.uid), {
-        last_login: serverTimestamp()
+      await db.collection('users').doc(user.uid).set({
+        last_login: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
       
       return user;
@@ -76,32 +67,31 @@ export function AuthProvider({ children }) {
   async function googleSignIn(restaurantId = 'default_restaurant') {
     try {
       setError('');
-      const provider = new GoogleAuthProvider();
-      const result = await signInWithPopup(auth, provider);
+      const provider = new firebase.auth.GoogleAuthProvider();
+      const result = await auth.signInWithPopup(provider);
       const user = result.user;
       
       // Check if user exists in Firestore
-      const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
+      const userDoc = await db.collection('users').doc(user.uid).get();
       
-      if (!userSnap.exists()) {
+      if (!userDoc.exists) {
         // Create new user document
-        await setDoc(userRef, {
+        await db.collection('users').doc(user.uid).set({
           user_id: user.uid,
           username: user.email.split('@')[0],
           email: user.email.toLowerCase(),
           phone: '',
           name: user.displayName || '',
-          last_login: serverTimestamp(),
-          registration_date: serverTimestamp(),
+          last_login: firebase.firestore.FieldValue.serverTimestamp(),
+          registration_date: firebase.firestore.FieldValue.serverTimestamp(),
           google_id: user.uid,
           picture: user.photoURL || '',
           restaurant_id: restaurantId
         });
       } else {
         // Update last login time
-        await setDoc(userRef, {
-          last_login: serverTimestamp(),
+        await db.collection('users').doc(user.uid).set({
+          last_login: firebase.firestore.FieldValue.serverTimestamp(),
           restaurant_id: restaurantId
         }, { merge: true });
       }
@@ -114,18 +104,17 @@ export function AuthProvider({ children }) {
   }
 
   function logout() {
-    return signOut(auth);
+    return auth.signOut();
   }
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user) {
         // Get user data from Firestore
-        const userRef = doc(db, 'users', user.uid);
-        const userSnap = await getDoc(userRef);
+        const userDoc = await db.collection('users').doc(user.uid).get();
         
-        if (userSnap.exists()) {
-          const userData = userSnap.data();
+        if (userDoc.exists) {
+          const userData = userDoc.data();
           // Check if user is the owner
           setIsOwner(userData.email && userData.email.toLowerCase() === OWNER_EMAIL.toLowerCase());
           setCurrentUser({ ...user, ...userData });
