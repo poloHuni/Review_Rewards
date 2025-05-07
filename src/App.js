@@ -74,11 +74,20 @@ function AppContent() {
             <Route path="/login" element={<Login />} />
             
             {/* Protected routes */}
+            {/* Add new route with restaurant name parameter */}
+            <Route path="/feedback/:restaurantName" element={
+              <ProtectedRoute>
+                <RecordFeedback />
+              </ProtectedRoute>
+            } />
+            
+            {/* Keep original route for backward compatibility */}
             <Route path="/feedback" element={
               <ProtectedRoute>
                 <RecordFeedback />
               </ProtectedRoute>
             } />
+            
             <Route path="/my-reviews" element={
               <ProtectedRoute>
                 <MyReviews />

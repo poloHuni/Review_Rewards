@@ -1,11 +1,13 @@
 // src/pages/RecordFeedback.js
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
-import { getRestaurantById } from '../services/restaurantService';
+import { useParams, useSearchParams } from 'react-router-dom';
+import { getRestaurantById, getRestaurantByNameOrSlug } from '../services/restaurantService';
 import { useAuth } from '../contexts/AuthContext';
 import FeedbackForm from '../components/Feedback/FeedbackForm';
+import { slugToReadable } from '../utils/stringUtils';
 
 const RecordFeedback = () => {
+  const { restaurantName } = useParams(); // Get restaurant name from URL path
   const [searchParams] = useSearchParams();
   const [restaurant, setRestaurant] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -16,16 +18,27 @@ const RecordFeedback = () => {
   useEffect(() => {
     const fetchRestaurantData = async () => {
       try {
-        // Get restaurant ID from URL parameters
-        const restaurantId = searchParams.get('restaurant_id') || 'default_restaurant';
+        setLoading(true);
+        let restaurantData = null;
         
-        // Fetch restaurant data
-        const restaurantData = await getRestaurantById(restaurantId);
+        if (restaurantName) {
+          // If restaurant name is in the URL path, find by name/slug
+          restaurantData = await getRestaurantByNameOrSlug(restaurantName);
+        } else {
+          // Fallback to getting by ID from query params if no name in path
+          const restaurantId = searchParams.get('restaurant_id') || 'default_restaurant';
+          restaurantData = await getRestaurantById(restaurantId);
+        }
         
         if (restaurantData) {
           setRestaurant(restaurantData);
         } else {
-          setError('Restaurant not found. Please select a restaurant from the home page.');
+          // If restaurant not found and we had a name, show a friendly error
+          if (restaurantName) {
+            setError(`Restaurant "${slugToReadable(restaurantName)}" not found. Please check the name or select a restaurant from the home page.`);
+          } else {
+            setError('Restaurant not found. Please select a restaurant from the home page.');
+          }
         }
       } catch (err) {
         console.error('Error fetching restaurant:', err);
@@ -36,7 +49,7 @@ const RecordFeedback = () => {
     };
     
     fetchRestaurantData();
-  }, [searchParams]);
+  }, [restaurantName, searchParams]);
   
   // If still loading, display a loading spinner
   if (loading) {
@@ -72,7 +85,7 @@ const RecordFeedback = () => {
           Please log in to submit feedback. Your feedback is associated with your account.
         </p>
         <a 
-          href={`/login?restaurant_id=${restaurant?.restaurant_id || 'default_restaurant'}`}
+          href={`/login?redirect=${window.location.pathname}`}
           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium"
         >
           Log In
@@ -81,14 +94,13 @@ const RecordFeedback = () => {
     );
   }
   
-  // Use restaurant name from URL or from fetched data
-  const restaurantName = searchParams.get('restaurant_name') || restaurant?.name || 'Restaurant';
+  const restaurantDisplayName = restaurant?.name || slugToReadable(restaurantName) || 'Restaurant';
   
   return (
     <div className="max-w-4xl mx-auto">
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-white mb-2">
-          Feedback for {restaurantName}
+          Feedback for {restaurantDisplayName}
         </h1>
         <p className="text-gray-400">
           Please share your dining experience to help us improve our service.
@@ -97,7 +109,7 @@ const RecordFeedback = () => {
       
       <FeedbackForm 
         restaurantId={restaurant?.restaurant_id || 'default_restaurant'} 
-        restaurantName={restaurantName}
+        restaurantName={restaurantDisplayName}
         placeId={restaurant?.google_place_id}
       />
     </div>

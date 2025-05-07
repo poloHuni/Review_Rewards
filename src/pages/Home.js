@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllRestaurants } from '../services/restaurantService';
 import { useAuth } from '../contexts/AuthContext';
+import { createSlug } from '../utils/stringUtils';
 
 const Home = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -173,7 +174,7 @@ const Home = () => {
                   <div className="mt-4 flex justify-end">
                     {currentUser ? (
                       <Link
-                        to={`/feedback?restaurant_id=${restaurant.restaurant_id}&restaurant_name=${encodeURIComponent(restaurant.name)}`}
+                        to={`/feedback/${createSlug(restaurant.name)}`}
                         className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm font-medium"
                       >
                         Leave Feedback

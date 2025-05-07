@@ -12,6 +12,43 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { v4 as uuidv4 } from 'uuid';
+import { createSlug } from '../utils/stringUtils';
+
+// Get a restaurant by name or slug
+export const getRestaurantByNameOrSlug = async (nameOrSlug) => {
+  try {
+    // Normalize the input
+    const slug = createSlug(nameOrSlug);
+    
+    // Get all restaurants
+    const restaurantsCollection = collection(db, 'restaurants');
+    const querySnapshot = await getDocs(restaurantsCollection);
+    
+    let foundRestaurant = null;
+    
+    // Look for a restaurant with a matching name or slug
+    querySnapshot.forEach((doc) => {
+      const restaurant = doc.data();
+      
+      // Check if the name matches when converted to a slug
+      if (restaurant.name) {
+        const restaurantSlug = createSlug(restaurant.name);
+        if (restaurantSlug === slug) {
+          foundRestaurant = { 
+            id: doc.id, 
+            ...restaurant 
+          };
+        }
+      }
+    });
+    
+    return foundRestaurant;
+  } catch (error) {
+    console.error('Error getting restaurant by name:', error);
+    throw new Error(`Failed to get restaurant by name: ${error.message}`);
+  }
+};
+
 
 // Get all restaurants
 export const getAllRestaurants = async () => {
