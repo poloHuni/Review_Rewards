@@ -5,7 +5,7 @@ import { storage } from '../../firebase/config';
 import { useAuth } from '../../contexts/AuthContext';
 import { v4 as uuidv4 } from 'uuid';
 
-const AudioRecorder = ({ onAudioSaved, restaurantId }) => {
+const AudioRecorder = ({ onAudioSaved, restaurantId, onProcessingStart }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [recordingComplete, setRecordingComplete] = useState(false);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -83,7 +83,6 @@ const AudioRecorder = ({ onAudioSaved, restaurantId }) => {
       setIsRecording(true);
     } catch (err) {
       setError(`Microphone access error: ${err.message}. Please check your browser permissions.`);
-      console.error('Error accessing microphone:', err);
     }
   };
 
@@ -101,25 +100,34 @@ const AudioRecorder = ({ onAudioSaved, restaurantId }) => {
   };
 
   const processRecording = async () => {
-    if (!audioBlob) return;
+    if (!audioBlob) {
+      setError('No audio recording found');
+      return;
+    }
     
     setProcessing(true);
+    
     try {
       // Generate a unique filename with restaurant ID and timestamp
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
       const userId = currentUser?.uid || currentUser?.user_id || 'anonymous';
       const filename = `review_${restaurantId}_${userId}_${timestamp}.wav`;
       
-      // Upload to Firebase Storage using v9 syntax
+      // First, pass the audio blob to the parent component
+      onAudioSaved(audioBlob, audioUrl);
+      
+      // Upload to Firebase Storage
       const storageRef = ref(storage, `audio_recordings/${filename}`);
       const uploadResult = await uploadBytes(storageRef, audioBlob);
       const downloadUrl = await getDownloadURL(uploadResult.ref);
       
-      // Call the parent component's callback with the blob and download URL
-      onAudioSaved(audioBlob, downloadUrl);
+      // Immediately start the processing flow after upload
+      if (onProcessingStart) {
+        // This signals the parent to start processing the audio
+        onProcessingStart();
+      }
     } catch (err) {
       setError(`Failed to process recording: ${err.message}`);
-      console.error('Error processing recording:', err);
     } finally {
       setProcessing(false);
     }
@@ -203,7 +211,7 @@ const AudioRecorder = ({ onAudioSaved, restaurantId }) => {
               <span className="text-2xl mr-3">✅</span>
               <div>
                 <p className="text-gray-200 font-medium">Recording completed!</p>
-                <p className="text-gray-400 text-sm mt-1">Ready for next steps.</p>
+                <p className="text-gray-400 text-sm mt-1">Review your recording below.</p>
               </div>
             </div>
             

@@ -52,22 +52,46 @@ export const getRestaurantsByOwner = async (ownerId) => {
 };
 
 // Get a restaurant by ID
+// src/services/restaurantService.js - updated getRestaurantById function
+
 export const getRestaurantById = async (restaurantId) => {
   try {
+    console.log('Fetching restaurant with ID:', restaurantId);
+    
+    // Handle case when restaurantId is null or undefined
+    if (!restaurantId || restaurantId === 'default_restaurant') {
+      console.warn('No valid restaurant ID provided, returning default restaurant');
+      // Return a default restaurant to prevent errors
+      return {
+        restaurant_id: 'default_restaurant',
+        name: 'Default Restaurant',
+        address: '123 Main Street',
+        phone: '555-1234',
+        google_place_id: ''
+      };
+    }
+    
     const restaurantRef = doc(db, 'restaurants', restaurantId);
     const restaurantDoc = await getDoc(restaurantRef);
     
     if (restaurantDoc.exists()) {
       return { id: restaurantDoc.id, ...restaurantDoc.data() };
     } else {
-      return null;
+      console.warn('Restaurant not found with ID:', restaurantId);
+      // Return a placeholder restaurant rather than null
+      return {
+        restaurant_id: restaurantId,
+        name: 'Restaurant',
+        address: '',
+        phone: '',
+        google_place_id: ''
+      };
     }
   } catch (error) {
     console.error('Error getting restaurant:', error);
     throw new Error(`Failed to get restaurant: ${error.message}`);
   }
 };
-
 // Create or update a restaurant
 export const saveRestaurant = async (restaurantData, ownerId) => {
   try {

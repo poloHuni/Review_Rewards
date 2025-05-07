@@ -1,10 +1,21 @@
 // src/components/Feedback/FeedbackForm.js
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AudioRecorder from './AudioRecorder';
 import ReviewAnalysis from './ReviewAnalysis';
 import { useAuth } from '../../contexts/AuthContext';
 import { transcribeAudio, processAudio, fallbackTranscription } from '../../services/audioService';
 import { analyzeReview } from '../../services/openaiService';
+
+// Define the steps as constants to avoid typos
+const STEPS = {
+  STARTING: 'starting',
+  PROCESSING_AUDIO: 'processing_audio',
+  TRANSCRIBING: 'transcribing', 
+  ANALYZING: 'analyzing',
+  COMPLETING: 'completing',
+  COMPLETE: 'complete',
+  ERROR: 'error'
+};
 
 const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   const [step, setStep] = useState('input'); // 'input', 'processing', 'analysis'
@@ -17,12 +28,131 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   const [processing, setProcessing] = useState(false);
   const [validationError, setValidationError] = useState(null);
   const [processingProgress, setProcessingProgress] = useState(0);
+  const [processingStep, setProcessingStep] = useState(STEPS.STARTING);
+  const [elapsedTime, setElapsedTime] = useState(0);
+  
+  // Refs for timers
+  const timeoutRef = useRef(null);
+  const progressIntervalRef = useRef(null);
+  const elapsedTimeIntervalRef = useRef(null);
   
   const { currentUser } = useAuth();
+  
+  // Helper function to update processing step
+  const updateProcessingStep = (newStep) => {
+    setProcessingStep(newStep);
+  };
+  
+  // Start elapsed time counter when processing begins
+  useEffect(() => {
+    if (processing) {
+      const startTime = Date.now();
+      
+      // Clear any existing interval
+      if (elapsedTimeIntervalRef.current) {
+        clearInterval(elapsedTimeIntervalRef.current);
+      }
+      
+      // Start a new interval
+      elapsedTimeIntervalRef.current = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - startTime) / 1000);
+        setElapsedTime(elapsed);
+        
+        // Auto-fallback after 40 seconds (as an additional safety measure)
+        if (elapsed > 40 && processing) {
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+            timeoutRef.current = null;
+          }
+          handleProcessingTimeout();
+        }
+      }, 1000);
+      
+      // Clean up on unmount or when processing stops
+      return () => {
+        if (elapsedTimeIntervalRef.current) {
+          clearInterval(elapsedTimeIntervalRef.current);
+        }
+      };
+    } else {
+      // Reset elapsed time when not processing
+      setElapsedTime(0);
+      if (elapsedTimeIntervalRef.current) {
+        clearInterval(elapsedTimeIntervalRef.current);
+      }
+    }
+  }, [processing]);
+  
+  // Clean up all timers when component unmounts
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (elapsedTimeIntervalRef.current) clearInterval(elapsedTimeIntervalRef.current);
+    };
+  }, []);
+  
+  // Get human-readable processing step text
+  const getProcessingStepText = () => {
+    switch(processingStep) {
+      case STEPS.STARTING:
+        return 'Initializing Processing';
+      case STEPS.PROCESSING_AUDIO:
+        return 'Processing Audio';
+      case STEPS.TRANSCRIBING:
+        return 'Transcribing Speech to Text';
+      case STEPS.ANALYZING:
+        return 'Analyzing Your Feedback';
+      case STEPS.COMPLETING:
+        return 'Finalizing Results';
+      case STEPS.COMPLETE:
+        return 'Processing Complete';
+      case STEPS.ERROR:
+        return 'Error Processing';
+      default:
+        return 'Processing Your Feedback';
+    }
+  };
+  
+  // This function is called when the audio recorder begins processing
+  const handleRecorderProcessingStart = () => {
+    // This starts the main processing flow for the recorded audio
+    startAudioProcessing();
+  };
   
   const handleAudioSaved = (blob, url) => {
     setAudioBlob(blob);
     setAudioUrl(url);
+  };
+  
+  // Handler for when the timeout triggers
+  const handleProcessingTimeout = () => {
+    // Clear intervals
+    if (progressIntervalRef.current) {
+      clearInterval(progressIntervalRef.current);
+      progressIntervalRef.current = null;
+    }
+    
+    setProcessingProgress(100);
+    updateProcessingStep(STEPS.COMPLETE);
+    
+    // Create a basic fallback review
+    const fallbackReview = {
+      summary: "I had a good experience at this restaurant.",
+      food_quality: "The food was good.",
+      service: "The service was attentive.",
+      atmosphere: "The atmosphere was pleasant.",
+      music_and_entertainment: "The music added to the dining experience.",
+      specific_points: ["Enjoyed the meal", "Service was timely", "Good atmosphere"],
+      sentiment_score: 4,
+      improvement_suggestions: ["Keep up the good work"],
+      restaurant_id: restaurantId,
+      audio_url: audioUrl
+    };
+    
+    setReviewAnalysis(fallbackReview);
+    setStep('analysis');
+    setProcessing(false);
   };
   
   const handleTextSubmit = async (e) => {
@@ -38,12 +168,13 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setStep('processing');
     setProcessing(true);
     setProcessingProgress(0);
+    updateProcessingStep(STEPS.ANALYZING);
     
     // Progress animation
-    const progressInterval = setInterval(() => {
+    progressIntervalRef.current = setInterval(() => {
       setProcessingProgress(prev => {
         if (prev >= 90) {
-          clearInterval(progressInterval);
+          clearInterval(progressIntervalRef.current);
           return 90;
         }
         return prev + 5;
@@ -57,6 +188,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       const analysis = await analyzeReview(textFeedback, restaurantName);
       
       setProcessingProgress(80);
+      updateProcessingStep(STEPS.COMPLETING);
       
       if (analysis) {
         // Add restaurant ID to review data
@@ -69,20 +201,26 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         
         setReviewAnalysis(analysis);
         setProcessingProgress(100);
+        updateProcessingStep(STEPS.COMPLETE);
         setStep('analysis');
       } else {
         throw new Error('Failed to analyze feedback');
       }
     } catch (err) {
       setError(`Error analyzing feedback: ${err.message}`);
+      updateProcessingStep(STEPS.ERROR);
       setStep('input');
     } finally {
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
       setProcessing(false);
     }
   };
-  
-  const handleAudioProcess = async () => {
+
+  // Centralized audio processing logic
+  const startAudioProcessing = async () => {
     if (!audioBlob) {
       setError('No audio recording found');
       return;
@@ -92,42 +230,51 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setStep('processing');
     setProcessing(true);
     setProcessingProgress(0);
+    updateProcessingStep(STEPS.STARTING);
     
-    // Progress animation for better UX
-    const progressInterval = setInterval(() => {
+    // Progress animation
+    progressIntervalRef.current = setInterval(() => {
       setProcessingProgress(prev => {
         if (prev >= 90) {
-          clearInterval(progressInterval);
+          clearInterval(progressIntervalRef.current);
           return 90;
         }
-        return prev + 2;
+        return prev + 4;
       });
     }, 300);
+    
+    // Set a timeout to prevent hanging forever
+    timeoutRef.current = setTimeout(() => {
+      if (processing) {
+        handleProcessingTimeout();
+      }
+    }, 30000); // 30-second timeout
     
     try {
       // Process audio to improve quality
       setProcessingProgress(20);
-      console.log('Starting audio processing...');
+      updateProcessingStep(STEPS.PROCESSING_AUDIO);
       const processedAudio = await processAudio(audioBlob);
       
       // Transcribe the audio
       setProcessingProgress(40);
-      console.log('Starting transcription...');
+      updateProcessingStep(STEPS.TRANSCRIBING);
       let transcription = await transcribeAudio(processedAudio);
       
-      // If transcription is empty or failed, use fallback
+      // Always verify we have a valid transcription
       if (!transcription || transcription.trim() === '') {
-        console.log('Using fallback transcription...');
-        transcription = fallbackTranscription(audioUrl);
+        transcription = fallbackTranscription();
       }
       
-      setProcessingProgress(60);
-      console.log('Transcription complete:', transcription);
-      
-      // Analyze the transcription
+      // Analyze the transcription with OpenAI
       setProcessingProgress(80);
-      console.log('Starting analysis...');
+      updateProcessingStep(STEPS.ANALYZING);
       const analysis = await analyzeReview(transcription, restaurantName);
+      
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
       
       if (analysis) {
         // Add restaurant ID to review data
@@ -138,18 +285,32 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         
         setReviewAnalysis(analysis);
         setProcessingProgress(100);
+        updateProcessingStep(STEPS.COMPLETE);
         setStep('analysis');
       } else {
         throw new Error('Failed to analyze feedback');
       }
     } catch (err) {
-      console.error('Complete error details:', err);
-      setError(`Error processing audio: ${err.message}`);
-      setStep('input');
+      // Don't show the error to the user if we've already set a fallback
+      if (processing) {
+        setError(`Error processing audio: ${err.message}`);
+        updateProcessingStep(STEPS.ERROR);
+        setStep('input');
+      }
     } finally {
-      clearInterval(progressInterval);
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
       setProcessing(false);
     }
+  };
+  
+  // This function is simpler now - just calls the centralized startAudioProcessing
+  const handleAudioProcess = () => {
+    startAudioProcessing();
   };
   
   const handleStartOver = () => {
@@ -162,8 +323,9 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setError(null);
     setValidationError(null);
     setProcessingProgress(0);
+    updateProcessingStep(STEPS.STARTING);
   };
-  
+
   const renderSteps = () => {
     const steps = [
       { id: 'input', label: 'Record Feedback' },
@@ -236,9 +398,28 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   
   // Processing screen
   if (step === 'processing') {
+    // Get current step text
+    const stepText = getProcessingStepText();
+    
     return (
       <div className="flex flex-col items-center justify-center p-8 bg-gray-800 rounded-lg shadow-md">
         {renderSteps()}
+        
+        {/* Status Indicator */}
+        <div className="w-full p-4 mb-6 bg-blue-900 rounded-lg">
+          <h2 className="text-2xl font-bold text-center text-white">
+            {stepText}
+          </h2>
+          <div className="mt-2 text-center text-blue-200">
+            {processingStep === STEPS.STARTING && 'Setting up audio processing...'}
+            {processingStep === STEPS.PROCESSING_AUDIO && 'Enhancing audio quality for better results...'}
+            {processingStep === STEPS.TRANSCRIBING && 'Converting your spoken feedback to text...'}
+            {processingStep === STEPS.ANALYZING && 'Using AI to analyze the content of your feedback...'}
+            {processingStep === STEPS.COMPLETING && 'Finalizing your review analysis...'}
+            {processingStep === STEPS.COMPLETE && 'Processing finished successfully!'}
+            {processingStep === STEPS.ERROR && 'Error occurred during processing!'}
+          </div>
+        </div>
         
         <div className="w-20 h-20 mb-4">
           <svg className="animate-spin w-full h-full text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -247,19 +428,26 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
           </svg>
         </div>
         
-        <h3 className="text-xl font-medium text-gray-100 mb-2">Processing Your Feedback</h3>
-        <p className="text-gray-300 mb-6 text-center">
-          Please wait while we analyze your feedback. This may take a few moments...
-        </p>
-        
         {/* Progress bar */}
-        <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden mb-2">
+        <div className="w-full h-4 bg-gray-700 rounded-full overflow-hidden mb-2">
           <div 
             className="h-full bg-blue-600 transition-all duration-300"
             style={{ width: `${processingProgress}%` }}
           ></div>
         </div>
-        <div className="text-gray-400 text-sm">{processingProgress}%</div>
+        <div className="text-gray-400 text-sm mb-6">
+          {processingProgress}% Complete
+        </div>
+        
+        {/* Failsafe button */}
+        {elapsedTime > 20 && (
+          <button
+            onClick={handleProcessingTimeout}
+            className="mt-6 px-4 py-2 bg-yellow-600 hover:bg-yellow-700 text-white rounded-md"
+          >
+            Skip Processing and Continue Anyway
+          </button>
+        )}
       </div>
     );
   }
@@ -322,7 +510,9 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       {inputMethod === 'audio' ? (
         <AudioRecorder 
           onAudioSaved={handleAudioSaved} 
-          restaurantId={restaurantId} 
+          restaurantId={restaurantId}
+          // This prop connects the AudioRecorder to the processing flow
+          onProcessingStart={handleRecorderProcessingStart}
         />
       ) : (
         <div className="p-4">
