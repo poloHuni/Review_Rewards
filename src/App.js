@@ -10,6 +10,8 @@ import Login from './pages/Login';
 import MyReviews from './pages/MyReviews';
 import OwnerDashboard from './pages/OwnerDashboard';
 import RecordFeedback from './pages/RecordFeedback';
+import { FeedbackForm } from './components/Feedback/FeedbackForm';
+
 
 // Protected route component
 const ProtectedRoute = ({ children }) => {
