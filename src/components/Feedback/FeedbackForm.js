@@ -823,15 +823,16 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
                       />
                     </motion.div>
                     
-                    {/* Optional rating */}
+                    {/* Rating */}
                     <motion.div 
                       className="mb-6"
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 24 }}
                     >
-                      <label className="block text-white font-medium mb-2">Overall rating (optional)</label>
+                      <label className="block text-white font-medium mb-2">Overall rating</label>
                       <div className="flex items-center gap-1">
+                        // Star buttons below
                         {[1, 2, 3, 4, 5].map((star) => (
                           <motion.button
                             key={star}
