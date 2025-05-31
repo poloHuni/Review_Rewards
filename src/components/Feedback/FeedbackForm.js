@@ -45,9 +45,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   const [audioData, setAudioData] = useState(new Uint8Array(0));
   const [analyzer, setAnalyzer] = useState(null);
   
-  // Rating state
-  const [rating, setRating] = useState(0);
-  
   // Refs
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
@@ -385,11 +382,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         // Add audio URL
         analysis.audio_url = audioUrl;
         
-        // Add optional rating
-        if (rating > 0) {
-          analysis.sentiment_score = rating;
-        }
-        
         setReviewAnalysis(analysis);
         setProcessingProgress(100);
         updateProcessingStep(STEPS.COMPLETE);
@@ -434,7 +426,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       atmosphere: "The atmosphere was pleasant.",
       music_and_entertainment: "The music added to the dining experience.",
       specific_points: ["Enjoyed the meal", "Service was timely", "Good atmosphere"],
-      sentiment_score: rating > 0 ? rating : 4,
+      sentiment_score: 4,
       improvement_suggestions: ["Keep up the good work"],
       restaurant_id: restaurantId,
       audio_url: audioUrl
@@ -488,11 +480,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
           analysis.audio_url = audioUrl;
         }
         
-        // Add optional rating
-        if (rating > 0) {
-          analysis.sentiment_score = rating;
-        }
-        
         setReviewAnalysis(analysis);
         setProcessingProgress(100);
         updateProcessingStep(STEPS.COMPLETE);
@@ -522,7 +509,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setReviewAnalysis(null);
     setError(null);
     setValidationError(null);
-    setRating(0);
     setProcessingProgress(0);
     updateProcessingStep(STEPS.STARTING);
   };
@@ -823,39 +809,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
                       />
                     </motion.div>
                     
-                    {/* Rating */}
-                    <motion.div 
-                      className="mb-6"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.3, type: "spring", stiffness: 300, damping: 24 }}
-                    >
-                      <label className="block text-white font-medium mb-2">Overall rating</label>
-                      <div className="flex items-center gap-1">
-                        // Star buttons below
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <motion.button
-                            key={star}
-                            type="button"
-                            onClick={() => setRating(star)}
-                            className="text-yellow-400 hover:text-yellow-300 p-1"
-                            whileHover={{ scale: 1.2 }}
-                            whileTap={{ scale: 0.9 }}
-                          >
-                            <svg 
-                              xmlns="http://www.w3.org/2000/svg" 
-                              viewBox="0 0 24 24" 
-                              fill={star <= rating ? "currentColor" : "none"}
-                              stroke="currentColor" 
-                              className="w-8 h-8"
-                            >
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                            </svg>
-                          </motion.button>
-                        ))}
-                      </div>
-                    </motion.div>
-                    
                     {/* Action buttons */}
                     <div className="grid grid-cols-2 gap-4">
                       <motion.button
@@ -874,7 +827,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
                           setRecordingComplete(false);
                           setAudioBlob(null);
                           setAudioUrl(null);
-                          setRating(0);
                         }}
                         className="py-3 px-4 bg-gray-700/60 hover:bg-gray-600 text-white rounded-lg font-medium transition-all"
                         whileHover={{ scale: 1.03 }}
@@ -942,33 +894,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
                         </motion.p>
                       )}
                     </AnimatePresence>
-                  </div>
-                  
-                  {/* Feedback rating */}
-                  <div className="mb-6">
-                    <label className="block text-white font-medium mb-2">Overall rating</label>
-                    <div className="flex items-center gap-1">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <motion.button
-                          key={star}
-                          type="button"
-                          onClick={() => setRating(star)}
-                          className="text-yellow-400 hover:text-yellow-300 p-1"
-                          whileHover={{ scale: 1.2 }}
-                          whileTap={{ scale: 0.9 }}
-                        >
-                          <svg 
-                            xmlns="http://www.w3.org/2000/svg" 
-                            viewBox="0 0 24 24" 
-                            fill={star <= rating ? "currentColor" : "none"}
-                            stroke="currentColor" 
-                            className="w-8 h-8"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
-                          </svg>
-                        </motion.button>
-                      ))}
-                    </div>
                   </div>
                   
                   <motion.button
