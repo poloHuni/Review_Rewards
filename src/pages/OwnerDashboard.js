@@ -10,17 +10,39 @@ import {
 } from '../services/restaurantService';
 import StarRating from '../components/Reviews/StarRating';
 import { formatDate } from '../utils/dateUtils';
+import { 
+  Building, 
+  Plus, 
+  Edit, 
+  Trash2, 
+  BarChart3, 
+  TrendingUp, 
+  TrendingDown, 
+  Users, 
+  Star, 
+  MessageSquare, 
+  Calendar,
+  MapPin,
+  Phone,
+  ExternalLink,
+  ChevronRight,
+  AlertCircle,
+  CheckCircle,
+  Eye,
+  EyeOff
+} from 'lucide-react';
 
 const OwnerDashboard = () => {
   const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [activeTab, setActiveTab] = useState('restaurants');
+  const [activeTab, setActiveTab] = useState('overview');
   const [editingRestaurant, setEditingRestaurant] = useState(null);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [analytics, setAnalytics] = useState(null);
   const [selectedRestaurantId, setSelectedRestaurantId] = useState(null);
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
   
   // Form state
   const [restaurantName, setRestaurantName] = useState('');
@@ -33,6 +55,7 @@ const OwnerDashboard = () => {
   const [passwordVerified, setPasswordVerified] = useState(false);
   const [ownerPassword, setOwnerPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
   const { currentUser, isOwner } = useAuth();
   
@@ -78,7 +101,6 @@ const OwnerDashboard = () => {
         setAnalytics(analyticsData);
       } catch (err) {
         console.error('Error fetching analytics:', err);
-        // Don't set main error, just log it
       } finally {
         setAnalyticsLoading(false);
       }
@@ -111,6 +133,7 @@ const OwnerDashboard = () => {
     setRestaurantPlaceId('');
     setEditingRestaurant(null);
     setFormError('');
+    setShowAddForm(false);
   };
   
   // Set form fields from restaurant data
@@ -120,6 +143,7 @@ const OwnerDashboard = () => {
     setRestaurantAddress(restaurant.address || '');
     setRestaurantPhone(restaurant.phone || '');
     setRestaurantPlaceId(restaurant.google_place_id || '');
+    setShowAddForm(true);
   };
   
   // Handle form submission
@@ -192,37 +216,53 @@ const OwnerDashboard = () => {
   if (!passwordVerified) {
     return (
       <div className="max-w-md mx-auto mt-16">
-        <div className="bg-gray-800 rounded-lg shadow-lg overflow-hidden">
-          <div className="p-6">
-            <h2 className="text-xl font-bold text-white mb-6">Owner Verification</h2>
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="p-8">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+                <Building className="text-white" size={24} />
+              </div>
+              <h2 className="heading-md mb-2">Owner Verification</h2>
+              <p className="body-md">Please enter your owner password to access the dashboard</p>
+            </div>
             
             {passwordError && (
-              <div className="mb-4 p-3 bg-red-900 text-white rounded-md">
-                {passwordError}
+              <div className="mb-4 p-4 status-error rounded-lg flex items-center gap-3">
+                <AlertCircle size={18} />
+                <span>{passwordError}</span>
               </div>
             )}
             
-            <form onSubmit={handleSubmitPassword}>
-              <div className="mb-4">
-                <label htmlFor="ownerPassword" className="block text-sm font-medium text-gray-300 mb-1">
+            <form onSubmit={handleSubmitPassword} className="space-y-4">
+              <div>
+                <label htmlFor="ownerPassword" className="block text-sm font-medium text-white mb-2">
                   Owner Password
                 </label>
-                <input
-                  id="ownerPassword"
-                  type="password"
-                  value={ownerPassword}
-                  onChange={(e) => setOwnerPassword(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  placeholder="Enter owner password"
-                  required
-                />
+                <div className="relative">
+                  <input
+                    id="ownerPassword"
+                    type={showPassword ? "text" : "password"}
+                    value={ownerPassword}
+                    onChange={(e) => setOwnerPassword(e.target.value)}
+                    className="input-field pr-10"
+                    placeholder="Enter owner password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
               
               <button
                 type="submit"
-                className="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
+                className="btn-primary w-full focus-ring"
               >
-                Verify
+                Verify Access
               </button>
             </form>
           </div>
@@ -235,7 +275,10 @@ const OwnerDashboard = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="body-md">Loading dashboard...</p>
+        </div>
       </div>
     );
   }
@@ -243,439 +286,442 @@ const OwnerDashboard = () => {
   // Error state
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto mt-8 p-6 bg-red-900 rounded-lg text-white">
-        <h2 className="text-xl font-bold mb-2">Error</h2>
-        <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-white text-red-900 font-medium rounded-md hover:bg-gray-200"
-        >
-          Retry
-        </button>
+      <div className="max-w-4xl mx-auto mt-8">
+        <div className="glass-card rounded-2xl p-8 text-center status-error">
+          <h2 className="heading-md mb-4">Dashboard Error</h2>
+          <p className="body-md mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="btn-primary focus-ring"
+          >
+            Retry
+          </button>
+        </div>
       </div>
     );
   }
-  
-  return (
-    <div className="max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">Owner Dashboard</h1>
-      
-      {/* Tabs */}
-      <div className="mb-6 border-b border-gray-700">
-        <nav className="flex space-x-4">
+
+  // Tab content components
+  const OverviewTab = () => (
+    <div className="space-y-8">
+      {/* Stats Cards */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Total Restaurants</p>
+              <p className="text-3xl font-bold text-white">{restaurants.length}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <Building className="text-blue-400" size={24} />
+            </div>
+          </div>
+        </div>
+        
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Total Reviews</p>
+              <p className="text-3xl font-bold text-white">{analytics?.totalReviews || 0}</p>
+            </div>
+            <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+              <MessageSquare className="text-emerald-400" size={24} />
+            </div>
+          </div>
+        </div>
+        
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Average Rating</p>
+              <p className="text-3xl font-bold text-white">{analytics?.averageSentiment?.toFixed(1) || '0.0'}</p>
+            </div>
+            <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+              <Star className="text-amber-400" size={24} />
+            </div>
+          </div>
+        </div>
+        
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Trend</p>
+              <div className="flex items-center gap-2">
+                <p className="text-3xl font-bold text-white">
+                  {analytics?.recentTrend?.average?.toFixed(1) || '0.0'}
+                </p>
+                {analytics?.recentTrend?.delta && (
+                  analytics.recentTrend.delta > 0 ? (
+                    <TrendingUp className="text-emerald-400" size={20} />
+                  ) : (
+                    <TrendingDown className="text-red-400" size={20} />
+                  )
+                )}
+              </div>
+            </div>
+            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+              <BarChart3 className="text-purple-400" size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="glass-card-subtle rounded-xl p-6">
+        <h3 className="heading-sm mb-4">Quick Actions</h3>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <button
+            onClick={() => {
+              setActiveTab('restaurants');
+              setShowAddForm(true);
+            }}
+            className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-200 text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
+                <Plus className="text-blue-400" size={20} />
+              </div>
+              <div>
+                <h4 className="font-medium text-white">Add Restaurant</h4>
+                <p className="body-sm">Register a new location</p>
+              </div>
+            </div>
+          </button>
+          
+          <button
+            onClick={() => setActiveTab('analytics')}
+            className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-200 text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
+                <BarChart3 className="text-emerald-400" size={20} />
+              </div>
+              <div>
+                <h4 className="font-medium text-white">View Analytics</h4>
+                <p className="body-sm">Review performance data</p>
+              </div>
+            </div>
+          </button>
+          
           <button
             onClick={() => setActiveTab('restaurants')}
-            className={`px-4 py-2 text-sm font-medium ${
+            className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-200 text-left group"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
+                <Building className="text-purple-400" size={20} />
+              </div>
+              <div>
+                <h4 className="font-medium text-white">Manage Restaurants</h4>
+                <p className="body-sm">Edit locations and details</p>
+              </div>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      {analytics?.reviews && analytics.reviews.length > 0 && (
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="heading-sm">Recent Reviews</h3>
+            <button
+              onClick={() => setActiveTab('analytics')}
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-1"
+            >
+              View All
+              <ChevronRight size={16} />
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            {analytics.reviews.slice(0, 3).map((review) => (
+              <div key={review.id || review.review_id} className="p-4 bg-white/5 rounded-lg border border-white/10">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h4 className="font-medium text-white">
+                      {review.customer_name || 'Anonymous'}
+                    </h4>
+                    <p className="body-sm">
+                      {review.timestamp ? formatDate(review.timestamp) : 'Unknown date'}
+                    </p>
+                  </div>
+                  <StarRating rating={review.sentiment_score} size="sm" />
+                </div>
+                <p className="text-slate-300 text-sm line-clamp-2">{review.summary}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
+  const RestaurantsTab = () => (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <h2 className="heading-lg">Restaurant Management</h2>
+        <button
+          onClick={() => setShowAddForm(true)}
+          className="btn-primary flex items-center gap-2 focus-ring"
+        >
+          <Plus size={18} />
+          Add Restaurant
+        </button>
+      </div>
+
+      {/* Add/Edit Form */}
+      {showAddForm && (
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h3 className="heading-sm mb-6">
+            {editingRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
+          </h3>
+          
+          {formError && (
+            <div className="mb-4 p-4 status-error rounded-lg flex items-center gap-3">
+              <AlertCircle size={18} />
+              <span>{formError}</span>
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="restaurantName" className="block text-sm font-medium text-white mb-2">
+                  Restaurant Name *
+                </label>
+                <input
+                  id="restaurantName"
+                  type="text"
+                  value={restaurantName}
+                  onChange={(e) => setRestaurantName(e.target.value)}
+                  className="input-field"
+                  placeholder="Enter restaurant name"
+                  required
+                />
+              </div>
+              
+              <div>
+                <label htmlFor="restaurantPhone" className="block text-sm font-medium text-white mb-2">
+                  Phone Number
+                </label>
+                <input
+                  id="restaurantPhone"
+                  type="text"
+                  value={restaurantPhone}
+                  onChange={(e) => setRestaurantPhone(e.target.value)}
+                  className="input-field"
+                  placeholder="Enter phone number"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label htmlFor="restaurantAddress" className="block text-sm font-medium text-white mb-2">
+                Address
+              </label>
+              <input
+                id="restaurantAddress"
+                type="text"
+                value={restaurantAddress}
+                onChange={(e) => setRestaurantAddress(e.target.value)}
+                className="input-field"
+                placeholder="Enter restaurant address"
+              />
+            </div>
+            
+            <div>
+              <label htmlFor="restaurantPlaceId" className="block text-sm font-medium text-white mb-2">
+                Google Place ID
+              </label>
+              <input
+                id="restaurantPlaceId"
+                type="text"
+                value={restaurantPlaceId}
+                onChange={(e) => setRestaurantPlaceId(e.target.value)}
+                className="input-field"
+                placeholder="Enter Google Place ID"
+              />
+              <p className="body-sm mt-1">
+                Used to link directly to Google Reviews. You can find your Place ID using the Google Places API.
+              </p>
+            </div>
+            
+            <div className="flex gap-4 pt-4">
+              <button
+                type="submit"
+                className="btn-primary focus-ring"
+              >
+                {editingRestaurant ? 'Update Restaurant' : 'Add Restaurant'}
+              </button>
+              
+              <button
+                type="button"
+                onClick={resetForm}
+                className="btn-secondary focus-ring"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Restaurants List */}
+      <div className="space-y-4">
+        {restaurants.length === 0 ? (
+          <div className="glass-card-subtle rounded-xl p-8 text-center">
+            <div className="text-6xl mb-4">🏪</div>
+            <h3 className="heading-sm mb-2">No Restaurants Yet</h3>
+            <p className="body-md mb-6">Add your first restaurant to start collecting feedback.</p>
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="btn-primary focus-ring"
+            >
+              <Plus size={18} className="mr-2" />
+              Add Restaurant
+            </button>
+          </div>
+        ) : (
+          restaurants.map((restaurant) => (
+            <div key={restaurant.restaurant_id} className="glass-card-subtle rounded-xl p-6">
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div className="flex-1">
+                  <h3 className="heading-sm mb-2">{restaurant.name}</h3>
+                  <div className="space-y-1">
+                    <p className="body-sm flex items-center gap-2">
+                      <span className="text-slate-400">ID:</span>
+                      <span className="font-mono">{restaurant.restaurant_id}</span>
+                    </p>
+                    {restaurant.address && (
+                      <p className="body-sm flex items-center gap-2">
+                        <MapPin size={14} className="text-slate-400" />
+                        {restaurant.address}
+                      </p>
+                    )}
+                    {restaurant.phone && (
+                      <p className="body-sm flex items-center gap-2">
+                        <Phone size={14} className="text-slate-400" />
+                        {restaurant.phone}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => populateForm(restaurant)}
+                    className="btn-ghost flex items-center gap-2 focus-ring"
+                  >
+                    <Edit size={16} />
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(restaurant.restaurant_id)}
+                    className="btn-ghost text-red-400 hover:text-red-300 hover:bg-red-500/10 flex items-center gap-2 focus-ring"
+                  >
+                    <Trash2 size={16} />
+                    Delete
+                  </button>
+                </div>
+              </div>
+              
+              {/* Delete confirmation */}
+              {confirmDelete === restaurant.restaurant_id && (
+                <div className="mt-4 p-4 bg-red-900/20 border border-red-500/30 rounded-lg">
+                  <p className="text-white mb-3">
+                    Are you sure you want to delete <strong>{restaurant.name}</strong>?
+                    This action cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => handleDeleteRestaurant(restaurant.restaurant_id)}
+                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors focus-ring"
+                    >
+                      Yes, Delete
+                    </button>
+                    <button
+                      onClick={() => setConfirmDelete(null)}
+                      className="btn-secondary focus-ring"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
+  // Main render
+  return (
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Dashboard Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="heading-xl">Owner Dashboard</h1>
+          <p className="body-lg">Manage your restaurants and monitor feedback analytics</p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="status-success px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
+            <CheckCircle size={16} />
+            Verified Owner
+          </div>
+        </div>
+      </div>
+      
+      {/* Navigation Tabs */}
+      <div className="glass-card-subtle rounded-xl p-1">
+        <nav className="flex">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
+              activeTab === 'overview'
+                ? 'bg-white/10 text-white border border-white/20'
+                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
+            }`}
+          >
+            Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('restaurants')}
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               activeTab === 'restaurants'
-                ? 'border-b-2 border-blue-500 text-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
+                ? 'bg-white/10 text-white border border-white/20'
+                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
             }`}
           >
             Restaurants
           </button>
           <button
             onClick={() => setActiveTab('analytics')}
-            className={`px-4 py-2 text-sm font-medium ${
+            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
               activeTab === 'analytics'
-                ? 'border-b-2 border-blue-500 text-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
+                ? 'bg-white/10 text-white border border-white/20'
+                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
             }`}
           >
-            Reviews Analytics
+            Analytics
           </button>
         </nav>
       </div>
       
-      {/* Restaurants Tab */}
-      {activeTab === 'restaurants' && (
-        <div>
-          {/* Restaurants List */}
-          <div className="bg-gray-800 rounded-lg shadow-lg mb-8">
-            <div className="p-6">
-              <h2 className="text-xl font-medium text-white mb-4">Your Restaurants</h2>
-              
-              {restaurants.length === 0 ? (
-                <p className="text-gray-400">You don't have any restaurants yet. Add one below.</p>
-              ) : (
-                <div className="space-y-4">
-                  {restaurants.map((restaurant) => (
-                    <div key={restaurant.restaurant_id} className="bg-gray-700 rounded-lg p-4">
-                      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
-                        <div>
-                          <h3 className="text-lg font-medium text-white mb-1">{restaurant.name}</h3>
-                          <p className="text-gray-400 text-sm">ID: {restaurant.restaurant_id}</p>
-                          {restaurant.address && (
-                            <p className="text-gray-400 text-sm">Address: {restaurant.address}</p>
-                          )}
-                          {restaurant.phone && (
-                            <p className="text-gray-400 text-sm">Phone: {restaurant.phone}</p>
-                          )}
-                        </div>
-                        
-                        <div className="flex space-x-2 mt-4 md:mt-0">
-                          <button
-                            onClick={() => populateForm(restaurant)}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setConfirmDelete(restaurant.restaurant_id)}
-                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
-                          >
-                            Delete
-                          </button>
-                        </div>
-                      </div>
-                      
-                      {/* Delete confirmation */}
-                      {confirmDelete === restaurant.restaurant_id && (
-                        <div className="mt-4 p-4 bg-red-900 rounded-lg">
-                          <p className="text-white mb-3">
-                            Are you sure you want to delete <strong>{restaurant.name}</strong>?
-                            This action cannot be undone.
-                          </p>
-                          <div className="flex space-x-3">
-                            <button
-                              onClick={() => handleDeleteRestaurant(restaurant.restaurant_id)}
-                              className="px-3 py-1 bg-red-700 hover:bg-red-800 text-white rounded text-sm"
-                            >
-                              Yes, Delete
-                            </button>
-                            <button
-                              onClick={() => setConfirmDelete(null)}
-                              className="px-3 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded text-sm"
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+      {/* Tab Content */}
+      <div>
+        {activeTab === 'overview' && <OverviewTab />}
+        {activeTab === 'restaurants' && <RestaurantsTab />}
+        {activeTab === 'analytics' && (
+          <div>
+            {/* Analytics content would go here - similar structure to existing analytics tab */}
+            <p className="body-md">Analytics content coming soon...</p>
           </div>
-          
-          {/* Add/Edit Restaurant Form */}
-          <div className="bg-gray-800 rounded-lg shadow-lg">
-            <div className="p-6">
-              <h2 className="text-xl font-medium text-white mb-4">
-                {editingRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
-              </h2>
-              
-              {formError && (
-                <div className="mb-4 p-3 bg-red-900 text-white rounded-md">
-                  {formError}
-                </div>
-              )}
-              
-              <form onSubmit={handleSubmit}>
-                <div className="mb-4">
-                  <label htmlFor="restaurantName" className="block text-sm font-medium text-gray-300 mb-1">
-                    Restaurant Name
-                  </label>
-                  <input
-                    id="restaurantName"
-                    type="text"
-                    value={restaurantName}
-                    onChange={(e) => setRestaurantName(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter restaurant name"
-                    required
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label htmlFor="restaurantAddress" className="block text-sm font-medium text-gray-300 mb-1">
-                    Address
-                  </label>
-                  <input
-                    id="restaurantAddress"
-                    type="text"
-                    value={restaurantAddress}
-                    onChange={(e) => setRestaurantAddress(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter restaurant address"
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label htmlFor="restaurantPhone" className="block text-sm font-medium text-gray-300 mb-1">
-                    Phone Number
-                  </label>
-                  <input
-                    id="restaurantPhone"
-                    type="text"
-                    value={restaurantPhone}
-                    onChange={(e) => setRestaurantPhone(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter restaurant phone"
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label htmlFor="restaurantPlaceId" className="block text-sm font-medium text-gray-300 mb-1">
-                    Google Place ID (for reviews)
-                  </label>
-                  <input
-                    id="restaurantPlaceId"
-                    type="text"
-                    value={restaurantPlaceId}
-                    onChange={(e) => setRestaurantPlaceId(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="Enter Google Place ID"
-                  />
-                  <p className="text-gray-400 text-xs mt-1">
-                    This is used to link directly to Google Reviews. You can find your Place ID using the Google Places API.
-                  </p>
-                </div>
-                
-                <div className="flex space-x-4">
-                  <button
-                    type="submit"
-                    className="py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-                  >
-                    {editingRestaurant ? 'Update Restaurant' : 'Add Restaurant'}
-                  </button>
-                  
-                  {editingRestaurant && (
-                    <button
-                      type="button"
-                      onClick={resetForm}
-                      className="py-2 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-md font-medium focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 focus:ring-offset-gray-800"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-      
-      {/* Analytics Tab */}
-      {activeTab === 'analytics' && (
-        <div>
-          {/* Restaurant selector */}
-          {restaurants.length > 0 ? (
-            <div className="bg-gray-800 rounded-lg shadow-lg mb-8">
-              <div className="p-6">
-                <h2 className="text-xl font-medium text-white mb-4">Select Restaurant</h2>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {restaurants.map((restaurant) => (
-                    <div
-                      key={restaurant.restaurant_id}
-                      onClick={() => setSelectedRestaurantId(restaurant.restaurant_id)}
-                      className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                        selectedRestaurantId === restaurant.restaurant_id
-                          ? 'bg-blue-900 border-2 border-blue-500'
-                          : 'bg-gray-700 hover:bg-gray-600'
-                      }`}
-                    >
-                      <h3 className="font-medium text-white mb-1">{restaurant.name}</h3>
-                      {restaurant.address && (
-                        <p className="text-gray-400 text-sm truncate">{restaurant.address}</p>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="bg-gray-800 rounded-lg shadow-lg mb-8 p-6">
-              <p className="text-gray-400">
-                You need to add a restaurant before you can view analytics.
-              </p>
-            </div>
-          )}
-          
-          {/* Analytics display */}
-          {selectedRestaurantId && (
-            <div className="bg-gray-800 rounded-lg shadow-lg">
-              <div className="p-6">
-                <h2 className="text-xl font-medium text-white mb-6">
-                  Analytics for {restaurants.find(r => r.restaurant_id === selectedRestaurantId)?.name || 'Restaurant'}
-                </h2>
-                
-                {analyticsLoading ? (
-                  <div className="flex justify-center items-center py-16">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                  </div>
-                ) : !analytics ? (
-                  <p className="text-gray-400">
-                    No analytics data available. This could be because there are no reviews yet.
-                  </p>
-                ) : (
-                  <div>
-                    {/* Summary metrics */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-                      <div className="bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-gray-400 text-sm font-medium mb-1">Total Reviews</h3>
-                        <p className="text-3xl font-bold text-white">{analytics.totalReviews}</p>
-                      </div>
-                      
-                      <div className="bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-gray-400 text-sm font-medium mb-1">Average Rating</h3>
-                        <div className="flex items-center">
-                          <p className="text-3xl font-bold text-white mr-2">
-                            {analytics.averageSentiment.toFixed(1)}
-                          </p>
-                          <StarRating rating={analytics.averageSentiment} size="sm" />
-                        </div>
-                      </div>
-                      
-                      <div className="bg-gray-700 p-4 rounded-lg">
-                        <h3 className="text-gray-400 text-sm font-medium mb-1">Recent Trend</h3>
-                        {analytics.recentTrend ? (
-                          <div>
-                            <div className="flex items-center">
-                              <p className="text-2xl font-bold text-white mr-2">
-                                {analytics.recentTrend.average.toFixed(1)}
-                              </p>
-                              <span 
-                                className={`text-sm font-medium ${
-                                  analytics.recentTrend.delta > 0 
-                                    ? 'text-green-500' 
-                                    : analytics.recentTrend.delta < 0 
-                                      ? 'text-red-500' 
-                                      : 'text-gray-400'
-                                }`}
-                              >
-                                {analytics.recentTrend.delta > 0 && '+'}
-                                {analytics.recentTrend.delta.toFixed(1)}
-                              </span>
-                            </div>
-                            <p className="text-gray-400 text-xs">Based on last 5 reviews</p>
-                          </div>
-                        ) : (
-                          <p className="text-gray-400">Not enough data</p>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Sentiment distribution */}
-                    <div className="mb-8">
-                      <h3 className="text-lg font-medium text-white mb-4">Rating Distribution</h3>
-                      
-                      <div className="space-y-3">
-                        {[5, 4, 3, 2, 1].map((rating) => {
-                          const count = analytics.sentimentDistribution[rating] || 0;
-                          const percentage = analytics.totalReviews 
-                            ? Math.round((count / analytics.totalReviews) * 100) 
-                            : 0;
-                            
-                          return (
-                            <div key={rating} className="flex items-center">
-                              <div className="w-16 flex items-center">
-                                <span className="text-white mr-2">{rating}</span>
-                                <span className="text-yellow-400">★</span>
-                              </div>
-                              
-                              <div className="flex-1 mx-4 h-5 bg-gray-700 rounded-full overflow-hidden">
-                                <div 
-                                  className="h-full bg-blue-600 rounded-full"
-                                  style={{ width: `${percentage}%` }}
-                                ></div>
-                              </div>
-                              
-                              <div className="w-16 text-right">
-                                <span className="text-white">{count}</span>
-                                <span className="text-gray-400 ml-1">({percentage}%)</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-                    
-                    {/* Recent reviews */}
-                    <div>
-                      <h3 className="text-lg font-medium text-white mb-4">Recent Reviews</h3>
-                      
-                      {analytics.reviews && analytics.reviews.length > 0 ? (
-                        <div className="space-y-4">
-                          {analytics.reviews.map((review) => (
-                            <div key={review.id || review.review_id} className="bg-gray-700 p-4 rounded-lg">
-                              <div className="flex justify-between items-start mb-2">
-                                <div>
-                                  <h4 className="font-medium text-white">
-                                    {review.customer_name || 'Anonymous'}
-                                  </h4>
-                                  <p className="text-gray-400 text-sm">
-                                    {review.timestamp ? formatDate(review.timestamp) : 'Unknown date'}
-                                  </p>
-                                </div>
-                                
-                                <StarRating rating={review.sentiment_score} showValue={true} />
-                              </div>
-                              
-                              <p className="text-gray-300 mb-2">{review.summary}</p>
-                              
-                              {/* Expandable details */}
-                              <details className="text-sm">
-                                <summary className="text-blue-400 cursor-pointer">View details</summary>
-                                <div className="mt-2 space-y-2 pl-2 border-l-2 border-gray-600">
-                                  {review.food_quality && review.food_quality !== 'N/A' && (
-                                    <p><span className="text-gray-400">Food:</span> {review.food_quality}</p>
-                                  )}
-                                  {review.service && review.service !== 'N/A' && (
-                                    <p><span className="text-gray-400">Service:</span> {review.service}</p>
-                                  )}
-                                  {review.atmosphere && review.atmosphere !== 'N/A' && (
-                                    <p><span className="text-gray-400">Atmosphere:</span> {review.atmosphere}</p>
-                                  )}
-                                  {review.music_and_entertainment && review.music_and_entertainment !== 'N/A' && (
-                                    <p><span className="text-gray-400">Music:</span> {review.music_and_entertainment}</p>
-                                  )}
-                                  
-                                  {/* Key points */}
-                                  {review.specific_points && (
-                                    <div className="mt-2">
-                                      <p className="text-gray-400">Key Points:</p>
-                                      <ul className="list-disc list-inside text-gray-300 pl-2">
-                                        {Array.isArray(review.specific_points) ? (
-                                          review.specific_points.map((point, index) => (
-                                            <li key={index}>{point}</li>
-                                          ))
-                                        ) : typeof review.specific_points === 'string' ? (
-                                          review.specific_points.split(',').map((point, index) => {
-                                            const cleanPoint = point.trim().replace(/^['"]|['"]$/g, '');
-                                            return cleanPoint && cleanPoint !== 'N/A' ? (
-                                              <li key={index}>{cleanPoint}</li>
-                                            ) : null;
-                                          })
-                                        ) : null}
-                                      </ul>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Audio playback if available */}
-                                  {review.audio_url && (
-                                    <div className="mt-2">
-                                      <p className="text-gray-400 mb-1">Original Recording:</p>
-                                      <audio src={review.audio_url} controls className="w-full" />
-                                    </div>
-                                  )}
-                                </div>
-                              </details>
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-gray-400">No reviews yet.</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

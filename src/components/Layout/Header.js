@@ -1,12 +1,15 @@
 // src/components/Layout/Header.js
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import { ChevronDown, User, LogOut, Settings, MessageSquare, BarChart3, Menu, X } from 'lucide-react';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const { currentUser, isOwner, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const handleLogout = async () => {
     try {
@@ -16,230 +19,224 @@ const Header = () => {
       console.error('Logout error:', error);
     }
   };
+
+  const isActivePath = (path) => {
+    return location.pathname === path;
+  };
+  
+  const navItems = [
+    { path: '/', label: 'Home', show: true },
+    { path: '/feedback', label: 'Leave Feedback', icon: MessageSquare, show: !!currentUser },
+    { path: '/my-reviews', label: 'My Reviews', show: !!currentUser },
+    { path: '/dashboard', label: 'Dashboard', icon: BarChart3, show: isOwner, highlight: true },
+  ];
+
+  const filteredNavItems = navItems.filter(item => item.show);
   
   return (
-    <header className="bg-gray-800 shadow-md">
+    <header className="sticky top-0 z-50 border-b border-white/10 glass-card">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          {/* Logo and main nav */}
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="text-xl font-bold text-white flex items-center">
-                <span className="text-2xl mr-2">🍽️</span>
-                <span>Restaurant Review</span>
-              </Link>
-            </div>
-            
-            {/* Desktop navigation */}
-            <div className="hidden md:ml-6 md:flex md:items-center md:space-x-4">
-              <Link to="/" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                Home
-              </Link>
-              
-              {currentUser && (
-                <>
-                  <Link to="/feedback" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                    Leave Feedback
-                  </Link>
-                  
-                  <Link to="/my-reviews" className="px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white">
-                    My Reviews
-                  </Link>
-                </>
-              )}
-              
-              {isOwner && (
-                <Link to="/dashboard" className="px-3 py-2 rounded-md text-sm font-medium text-blue-400 hover:bg-gray-700 hover:text-blue-200">
-                  Owner Dashboard
-                </Link>
-              )}
-            </div>
+        <div className="flex justify-between items-center h-16">
+          {/* Logo and brand */}
+          <div className="flex items-center">
+            <Link 
+              to="/" 
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
+            >
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <span className="text-white text-xl">🍽️</span>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="heading-sm">Restaurant Review</h1>
+                <p className="text-xs text-slate-400 -mt-1">AI-Powered Feedback</p>
+              </div>
+            </Link>
           </div>
           
-          {/* User menu */}
-          <div className="flex items-center">
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center space-x-1">
+            {filteredNavItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`nav-link flex items-center gap-2 ${
+                  isActivePath(item.path) ? 'active' : ''
+                } ${item.highlight ? 'gradient-text' : ''}`}
+              >
+                {item.icon && <item.icon size={16} />}
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+          
+          {/* User section */}
+          <div className="flex items-center space-x-4">
             {currentUser ? (
-              <div className="ml-3 relative">
-                <div className="flex items-center">
-                  <button
-                    type="button"
-                    className="bg-gray-800 flex text-sm rounded-full focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white"
-                    id="user-menu-button"
-                    onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                  >
-                    <span className="sr-only">Open user menu</span>
+              <div className="relative">
+                {/* User menu trigger */}
+                <button
+                  onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-all duration-200 focus-ring"
+                >
+                  {/* Avatar */}
+                  <div className="relative">
                     {currentUser.photoURL ? (
                       <img
-                        className="h-8 w-8 rounded-full"
+                        className="h-8 w-8 rounded-full border border-white/20"
                         src={currentUser.photoURL}
                         alt="User avatar"
                       />
                     ) : (
-                      <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center">
-                        <span className="text-white font-medium">
-                          {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border border-white/20">
+                        <span className="text-white font-medium text-sm">
+                          {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
                         </span>
                       </div>
                     )}
-                  </button>
+                    
+                    {/* Online indicator */}
+                    <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-400 border-2 border-slate-900 rounded-full"></div>
+                  </div>
                   
-                  <div className="hidden md:block ml-3">
-                    <div className="text-base font-medium text-white">
-                      {currentUser.displayName || currentUser.name || currentUser.email.split('@')[0]}
+                  {/* User info - hidden on mobile */}
+                  <div className="hidden md:block text-left">
+                    <div className="text-sm font-medium text-white">
+                      {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0]}
                     </div>
-                    <div className="text-sm font-medium text-gray-400">
-                      {currentUser.email}
+                    <div className="text-xs text-slate-400">
+                      {isOwner ? 'Restaurant Owner' : 'Customer'}
                     </div>
                   </div>
                   
-                  <button
-                    onClick={handleLogout}
-                    className="ml-4 hidden md:block px-3 py-2 rounded-md text-sm font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                  >
-                    Logout
-                  </button>
-                </div>
+                  <ChevronDown 
+                    size={16} 
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      userMenuOpen ? 'transform rotate-180' : ''
+                    }`} 
+                  />
+                </button>
                 
-                {/* Mobile dropdown menu */}
-                {mobileMenuOpen && (
-                  <div className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-gray-700 ring-1 ring-black ring-opacity-5 focus:outline-none">
-                    <div className="px-4 py-2 text-xs text-gray-400 border-b border-gray-600">
-                      Signed in as {currentUser.email}
+                {/* Dropdown menu */}
+                {userMenuOpen && (
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      className="fixed inset-0 z-10" 
+                      onClick={() => setUserMenuOpen(false)}
+                    />
+                    
+                    {/* Menu */}
+                    <div className="absolute right-0 mt-2 w-64 glass-card rounded-xl border border-white/10 shadow-xl z-20">
+                      {/* User info header */}
+                      <div className="px-4 py-3 border-b border-white/10">
+                        <div className="flex items-center space-x-3">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <span className="text-white font-medium">
+                              {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <div className="text-sm font-medium text-white">
+                              {currentUser.displayName || currentUser.name || 'User'}
+                            </div>
+                            <div className="text-xs text-slate-400 truncate">
+                              {currentUser.email}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Menu items */}
+                      <div className="py-2">
+                        {/* Mobile navigation items */}
+                        <div className="lg:hidden">
+                          {filteredNavItems.map((item) => (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              className={`flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/5 transition-colors ${
+                                isActivePath(item.path) ? 'text-blue-400 bg-white/5' : 'text-slate-300'
+                              }`}
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              {item.icon && <item.icon size={16} />}
+                              {item.label}
+                            </Link>
+                          ))}
+                          <div className="border-t border-white/10 my-2"></div>
+                        </div>
+                        
+                        {/* Profile action */}
+                        <button
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/5 transition-colors"
+                          onClick={() => setUserMenuOpen(false)}
+                        >
+                          <User size={16} />
+                          Profile Settings
+                        </button>
+                        
+                        {/* Logout */}
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setUserMenuOpen(false);
+                          }}
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                        >
+                          <LogOut size={16} />
+                          Sign Out
+                        </button>
+                      </div>
                     </div>
-                    
-                    <Link
-                      to="/feedback"
-                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 md:hidden"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      Leave Feedback
-                    </Link>
-                    
-                    <Link
-                      to="/my-reviews"
-                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-600 md:hidden"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      My Reviews
-                    </Link>
-                    
-                    {isOwner && (
-                      <Link
-                        to="/dashboard"
-                        className="block px-4 py-2 text-sm text-blue-400 hover:bg-gray-600 md:hidden"
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        Owner Dashboard
-                      </Link>
-                    )}
-                    
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-300 hover:bg-gray-600"
-                    >
-                      Logout
-                    </button>
-                  </div>
+                  </>
                 )}
               </div>
             ) : (
               <Link
                 to="/login"
-                className="px-4 py-2 rounded-md text-sm font-medium bg-blue-600 text-white hover:bg-blue-700"
+                className="btn-primary text-sm px-4 py-2 focus-ring"
               >
-                Login
+                Sign In
               </Link>
             )}
             
             {/* Mobile menu button */}
-            <div className="flex md:hidden ml-3">
-              <button
-                type="button"
-                className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              >
-                <span className="sr-only">Open main menu</span>
-                <svg
-                  className={`${mobileMenuOpen ? 'hidden' : 'block'} h-6 w-6`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 6h16M4 12h16M4 18h16"
-                  />
-                </svg>
-                <svg
-                  className={`${mobileMenuOpen ? 'block' : 'hidden'} h-6 w-6`}
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  aria-hidden="true"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              </button>
-            </div>
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition-colors focus-ring"
+            >
+              {mobileMenuOpen ? (
+                <X size={20} className="text-slate-300" />
+              ) : (
+                <Menu size={20} className="text-slate-300" />
+              )}
+            </button>
           </div>
         </div>
       </div>
       
-      {/* Mobile menu, show/hide based on menu state */}
-      <div className={`${mobileMenuOpen ? 'block' : 'hidden'} md:hidden`}>
-        <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-          <Link
-            to="/"
-            className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            Home
-          </Link>
-          
-          {currentUser && (
-            <>
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden border-t border-white/10 glass-card">
+          <div className="px-4 py-4 space-y-2">
+            {filteredNavItems.map((item) => (
               <Link
-                to="/feedback"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
+                key={item.path}
+                to={item.path}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActivePath(item.path) 
+                    ? 'bg-white/10 text-white border border-white/20' 
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                Leave Feedback
+                {item.icon && <item.icon size={18} />}
+                {item.label}
               </Link>
-              
-              <Link
-                to="/my-reviews"
-                className="block px-3 py-2 rounded-md text-base font-medium text-gray-300 hover:bg-gray-700 hover:text-white"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                My Reviews
-              </Link>
-              
-              {isOwner && (
-                <Link
-                  to="/dashboard"
-                  className="block px-3 py-2 rounded-md text-base font-medium text-blue-400 hover:bg-gray-700 hover:text-blue-200"
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  Owner Dashboard
-                </Link>
-              )}
-            </>
-          )}
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 };

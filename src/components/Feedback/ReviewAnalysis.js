@@ -2,11 +2,27 @@
 import React, { useState } from 'react';
 import { saveReview, formatReviewForSharing, generateGoogleReviewLink } from '../../services/reviewService';
 import { useAuth } from '../../contexts/AuthContext';
+import { 
+  Star, 
+  Copy, 
+  Check, 
+  RotateCcw, 
+  ExternalLink, 
+  AlertCircle, 
+  CheckCircle, 
+  BookOpen, 
+  Lightbulb,
+  MessageSquare,
+  TrendingUp,
+  Volume2,
+  Share2
+} from 'lucide-react';
 
 const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
+  const [copied, setCopied] = useState(false);
   const { currentUser } = useAuth();
   
   const handleSaveReview = async () => {
@@ -39,36 +55,41 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
   // Render stars for sentiment score
   const renderStars = (score) => {
     const stars = [];
+    const roundedScore = Math.round(score * 2) / 2; // Round to nearest 0.5
     
-    // Add filled stars
-    for (let i = 0; i < Math.floor(score); i++) {
-      stars.push(
-        <span 
-          key={`star-filled-${i}`} 
-          className="star-filled text-2xl"
-          style={{ 
-            animationDelay: `${i * 0.1}s`,
-            animationDuration: '0.3s'
-          }}
-        >
-          ⭐
-        </span>
-      );
-    }
-    
-    // Add empty stars
-    for (let i = Math.ceil(score); i < 5; i++) {
-      stars.push(
-        <span key={`star-empty-${i}`} className="star-empty text-2xl text-gray-500">
-          ☆
-        </span>
-      );
+    for (let i = 1; i <= 5; i++) {
+      if (i <= roundedScore) {
+        stars.push(
+          <Star 
+            key={i} 
+            size={20}
+            className="text-amber-400 fill-current"
+          />
+        );
+      } else if (i - 0.5 === roundedScore) {
+        stars.push(
+          <div key={i} className="relative">
+            <Star size={20} className="text-slate-600" />
+            <div className="absolute inset-0 overflow-hidden w-1/2">
+              <Star size={20} className="text-amber-400 fill-current" />
+            </div>
+          </div>
+        );
+      } else {
+        stars.push(
+          <Star 
+            key={i} 
+            size={20}
+            className="text-slate-600"
+          />
+        );
+      }
     }
     
     return (
-      <div className="flex items-center space-x-1">
+      <div className="flex items-center gap-1">
         {stars}
-        <span className="ml-2 text-lg text-gray-400">({score}/5)</span>
+        <span className="ml-2 text-slate-400 font-medium">({score.toFixed(1)}/5)</span>
       </div>
     );
   };
@@ -79,206 +100,288 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
   // Generate Google Review link
   const googleReviewLink = placeId ? generateGoogleReviewLink(reviewData, placeId) : null;
   
+  const handleCopyReview = async () => {
+    try {
+      await navigator.clipboard.writeText(formattedReview);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
+
+  const getSentimentColor = (score) => {
+    if (score >= 4.5) return 'text-emerald-400';
+    if (score >= 3.5) return 'text-amber-400';
+    if (score >= 2.5) return 'text-orange-400';
+    return 'text-red-400';
+  };
+
+  const getSentimentBg = (score) => {
+    if (score >= 4.5) return 'bg-emerald-500/10 border-emerald-500/20';
+    if (score >= 3.5) return 'bg-amber-500/10 border-amber-500/20';
+    if (score >= 2.5) return 'bg-orange-500/10 border-orange-500/20';
+    return 'bg-red-500/10 border-red-500/20';
+  };
+  
   return (
-    <div className="review-analysis p-6 bg-gray-800 rounded-lg shadow-lg">
+    <div className="space-y-6 p-6">
       {/* Header */}
-      <div className="mb-6 pb-4 border-b border-gray-700">
-        <h3 className="text-xl font-semibold text-white mb-2">Your Feedback Analysis</h3>
-        {error && (
-          <div className="p-3 my-3 bg-red-900 text-white rounded">
-            {error}
+      <div className="text-center">
+        <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
+          <CheckCircle className="text-white" size={24} />
+        </div>
+        <h3 className="heading-lg mb-2">Your Feedback Analysis</h3>
+        <p className="body-md">AI-powered insights from your dining experience</p>
+      </div>
+
+      {/* Error Display */}
+      {error && (
+        <div className="p-4 status-error rounded-lg flex items-start gap-3">
+          <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+          <div>
+            <p className="font-medium">Save Error</p>
+            <p className="text-sm mt-1">{error}</p>
           </div>
-        )}
+        </div>
+      )}
+      
+      {/* Overall Sentiment */}
+      <div className={`p-6 rounded-xl border ${getSentimentBg(reviewData.sentiment_score)}`}>
+        <div className="text-center">
+          <h4 className="heading-sm mb-3 flex items-center justify-center gap-2">
+            <TrendingUp size={20} className={getSentimentColor(reviewData.sentiment_score)} />
+            Overall Experience
+          </h4>
+          {typeof reviewData.sentiment_score === 'number' ? (
+            <div className="space-y-3">
+              {renderStars(reviewData.sentiment_score)}
+              <p className={`text-2xl font-bold ${getSentimentColor(reviewData.sentiment_score)}`}>
+                {reviewData.sentiment_score >= 4.5 ? 'Excellent' :
+                 reviewData.sentiment_score >= 3.5 ? 'Good' :
+                 reviewData.sentiment_score >= 2.5 ? 'Average' : 'Poor'}
+              </p>
+            </div>
+          ) : (
+            <p className="text-xl text-slate-300">{reviewData.sentiment_score || 'N/A'}</p>
+          )}
+        </div>
       </div>
       
       {/* Summary */}
-      <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-        <h4 className="text-lg font-medium text-white mb-2">Summary</h4>
-        <p className="text-gray-200">{reviewData.summary || 'N/A'}</p>
+      <div className="glass-card-subtle rounded-xl p-6">
+        <h4 className="heading-sm mb-3 flex items-center gap-2">
+          <MessageSquare size={20} className="text-blue-400" />
+          Summary
+        </h4>
+        <p className="text-slate-300 leading-relaxed">{reviewData.summary || 'N/A'}</p>
       </div>
       
-      {/* Core assessments in a grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="p-4 bg-gray-700 rounded-lg">
-          <h4 className="text-lg font-medium text-white mb-2 flex items-center">
-            <span className="mr-2">🍽️</span> Food Quality
+      {/* Detailed Assessments */}
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h4 className="heading-sm mb-3 flex items-center gap-2">
+            🍽️ Food Quality
           </h4>
-          <p className="text-gray-200">{reviewData.food_quality || 'N/A'}</p>
+          <p className="text-slate-300">{reviewData.food_quality || 'N/A'}</p>
         </div>
         
-        <div className="p-4 bg-gray-700 rounded-lg">
-          <h4 className="text-lg font-medium text-white mb-2 flex items-center">
-            <span className="mr-2">👨‍🍳</span> Service
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h4 className="heading-sm mb-3 flex items-center gap-2">
+            👨‍🍳 Service
           </h4>
-          <p className="text-gray-200">{reviewData.service || 'N/A'}</p>
+          <p className="text-slate-300">{reviewData.service || 'N/A'}</p>
         </div>
         
-        <div className="p-4 bg-gray-700 rounded-lg">
-          <h4 className="text-lg font-medium text-white mb-2 flex items-center">
-            <span className="mr-2">🏮</span> Atmosphere
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h4 className="heading-sm mb-3 flex items-center gap-2">
+            🏮 Atmosphere
           </h4>
-          <p className="text-gray-200">{reviewData.atmosphere || 'N/A'}</p>
+          <p className="text-slate-300">{reviewData.atmosphere || 'N/A'}</p>
         </div>
         
-        <div className="p-4 bg-gray-700 rounded-lg">
-          <h4 className="text-lg font-medium text-white mb-2 flex items-center">
-            <span className="mr-2">🎵</span> Music & Entertainment
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h4 className="heading-sm mb-3 flex items-center gap-2">
+            🎵 Music & Entertainment
           </h4>
-          <p className="text-gray-200">{reviewData.music_and_entertainment || 'N/A'}</p>
+          <p className="text-slate-300">{reviewData.music_and_entertainment || 'N/A'}</p>
         </div>
       </div>
       
-      {/* Sentiment score */}
-      <div className="mb-6 p-4 bg-gray-700 rounded-lg text-center">
-        <h4 className="text-lg font-medium text-white mb-2">Overall Sentiment</h4>
-        {typeof reviewData.sentiment_score === 'number' ? (
-          <div className="animated-stars">
-            {renderStars(reviewData.sentiment_score)}
-          </div>
-        ) : (
-          <p className="text-xl">{reviewData.sentiment_score || 'N/A'}</p>
-        )}
-      </div>
-      
-      {/* Key points */}
+      {/* Key Points */}
       {reviewData.specific_points && (
-        <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-          <h4 className="text-lg font-medium text-white mb-2 flex items-center">
-            <span className="mr-2">🔑</span> Key Points
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h4 className="heading-sm mb-4 flex items-center gap-2">
+            <BookOpen size={20} className="text-purple-400" />
+            Key Points
           </h4>
-          <ul className="list-disc list-inside text-gray-200">
+          <ul className="space-y-2">
             {Array.isArray(reviewData.specific_points) ? (
               reviewData.specific_points.map((point, index) => (
-                <li key={index} className="mb-1">{point}</li>
+                <li key={index} className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-slate-300">{point}</span>
+                </li>
               ))
             ) : typeof reviewData.specific_points === 'string' ? (
               reviewData.specific_points.split(',').map((point, index) => {
                 const cleanPoint = point.trim().replace(/^['"]|['"]$/g, '');
                 return cleanPoint && cleanPoint !== 'N/A' ? (
-                  <li key={index} className="mb-1">{cleanPoint}</li>
+                  <li key={index} className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-purple-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-slate-300">{cleanPoint}</span>
+                  </li>
                 ) : null;
               })
             ) : (
-              <li>No specific points provided</li>
+              <li className="text-slate-400 italic">No specific points provided</li>
             )}
           </ul>
         </div>
       )}
       
-      {/* Suggestions */}
+      {/* Improvement Suggestions */}
       {reviewData.improvement_suggestions && (
-        <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-          <h4 className="text-lg font-medium text-white mb-2 flex items-center">
-            <span className="mr-2">💡</span> Suggestions for Improvement
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h4 className="heading-sm mb-4 flex items-center gap-2">
+            <Lightbulb size={20} className="text-amber-400" />
+            Suggestions for Improvement
           </h4>
-          <ul className="list-disc list-inside text-gray-200">
+          <ul className="space-y-2">
             {Array.isArray(reviewData.improvement_suggestions) ? (
               reviewData.improvement_suggestions.map((suggestion, index) => (
-                <li key={index} className="mb-1">{suggestion}</li>
+                <li key={index} className="flex items-start gap-3">
+                  <div className="w-2 h-2 bg-amber-400 rounded-full mt-2 flex-shrink-0"></div>
+                  <span className="text-slate-300">{suggestion}</span>
+                </li>
               ))
             ) : typeof reviewData.improvement_suggestions === 'string' ? (
               reviewData.improvement_suggestions.split(',').map((suggestion, index) => {
                 const cleanSuggestion = suggestion.trim().replace(/^['"]|['"]$/g, '');
                 return cleanSuggestion && cleanSuggestion !== 'N/A' ? (
-                  <li key={index} className="mb-1">{cleanSuggestion}</li>
+                  <li key={index} className="flex items-start gap-3">
+                    <div className="w-2 h-2 bg-amber-400 rounded-full mt-2 flex-shrink-0"></div>
+                    <span className="text-slate-300">{cleanSuggestion}</span>
+                  </li>
                 ) : null;
               })
             ) : (
-              <li>No suggestions provided</li>
+              <li className="text-slate-400 italic">No suggestions provided</li>
             )}
           </ul>
         </div>
       )}
       
-      {/* Formatted review for copying */}
-      <div className="mb-6 p-4 bg-gray-700 rounded-lg">
-        <h4 className="text-lg font-medium text-white mb-2 flex items-center">
-          <span className="mr-2">📝</span> Your Review
-        </h4>
-        <p className="text-gray-300 mb-3">
-          Here's your formatted review. You can copy this to post on Google Reviews or other platforms.
-        </p>
-        <div className="relative">
-          <pre className="bg-gray-900 p-4 rounded text-gray-300 whitespace-pre-wrap overflow-x-auto">
-            {formattedReview}
-          </pre>
+      {/* Formatted Review for Sharing */}
+      <div className="glass-card-subtle rounded-xl p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h4 className="heading-sm flex items-center gap-2">
+            <Share2 size={20} className="text-blue-400" />
+            Formatted Review
+          </h4>
           <button 
-            onClick={() => {
-              navigator.clipboard.writeText(formattedReview);
-              alert('Review copied to clipboard!');
-            }}
-            className="absolute top-2 right-2 p-2 bg-gray-700 rounded hover:bg-gray-600 transition"
-            title="Copy to clipboard"
+            onClick={handleCopyReview}
+            className="btn-ghost flex items-center gap-2 focus-ring"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-            </svg>
+            {copied ? (
+              <>
+                <Check size={16} className="text-emerald-400" />
+                <span className="text-emerald-400">Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={16} />
+                Copy
+              </>
+            )}
           </button>
         </div>
+        
+        <p className="body-sm mb-4 text-slate-400">
+          Here's your formatted review ready to share on Google Reviews or other platforms.
+        </p>
+        
+        <div className="relative">
+          <pre className="bg-white/5 p-4 rounded-lg text-slate-300 whitespace-pre-wrap overflow-x-auto text-sm leading-relaxed border border-white/10">
+            {formattedReview}
+          </pre>
+        </div>
       </div>
+
+      {/* Audio Recording */}
+      {reviewData.audio_url && (
+        <div className="glass-card-subtle rounded-xl p-6">
+          <h4 className="heading-sm mb-4 flex items-center gap-2">
+            <Volume2 size={20} className="text-green-400" />
+            Original Audio Recording
+          </h4>
+          <audio src={reviewData.audio_url} controls className="w-full" />
+        </div>
+      )}
       
-      {/* Action buttons */}
-      <div className="grid grid-cols-2 gap-4">
+      {/* Action Buttons */}
+      <div className="grid md:grid-cols-2 gap-4 pt-4">
         <button
           onClick={handleSaveReview}
           disabled={saving || saved}
-          className={`py-3 px-4 rounded-md flex items-center justify-center ${
+          className={`py-4 px-6 rounded-xl font-medium transition-all duration-200 focus-ring flex items-center justify-center gap-2 ${
             saved 
-              ? 'bg-green-700 text-white cursor-default'
-              : 'bg-blue-600 hover:bg-blue-700 text-white'
+              ? 'status-success cursor-default'
+              : 'btn-primary'
           }`}
         >
           {saving ? (
             <>
-              <svg className="animate-spin -ml-1 mr-2 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
               Saving...
             </>
           ) : saved ? (
             <>
-              <svg className="mr-2 h-5 w-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
-              </svg>
-              Saved!
+              <CheckCircle size={20} />
+              Saved Successfully!
             </>
           ) : (
-            <>💾 Save Feedback</>
+            <>
+              <Check size={20} />
+              Save Feedback
+            </>
           )}
         </button>
         
         <button
           onClick={onStartOver}
           disabled={saving}
-          className="py-3 px-4 bg-gray-600 hover:bg-gray-700 text-white rounded-md"
+          className="btn-secondary py-4 px-6 rounded-xl font-medium focus-ring flex items-center justify-center gap-2"
         >
-          ↩️ Start Over
+          <RotateCcw size={20} />
+          Start Over
         </button>
       </div>
       
-      {/* Google Review link */}
+      {/* Google Review Link */}
       {saved && googleReviewLink && (
-        <div className="mt-6 p-5 bg-blue-900 rounded-lg shadow-md">
-          <h4 className="text-lg font-medium text-white mb-3 flex items-center justify-center">
-            <span className="mr-2">🌟</span> Share on Google Reviews?
-          </h4>
-          <p className="text-white mb-4 text-center">
-            Would you mind also sharing your experience on Google Reviews to help other diners?
-          </p>
-          <div className="flex justify-center">
+        <div className="glass-card rounded-xl p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+          <div className="text-center">
+            <h4 className="heading-sm mb-3 flex items-center justify-center gap-2">
+              <Star size={20} className="text-blue-400" />
+              Share on Google Reviews
+            </h4>
+            <p className="body-md mb-6">
+              Help other diners by sharing your experience on Google Reviews too!
+            </p>
             <a
               href={googleReviewLink}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center bg-white text-blue-900 px-4 py-2 rounded-md font-medium hover:bg-gray-100 transition"
+              className="btn-primary flex items-center justify-center gap-2 focus-ring"
             >
               <img 
                 src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" 
                 alt="Google" 
-                className="h-5 mr-2" 
+                className="h-5 w-5" 
               />
               Open Google Reviews
+              <ExternalLink size={16} />
             </a>
           </div>
         </div>

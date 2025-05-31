@@ -5,9 +5,24 @@ import { getReviewsByUser } from '../services/reviewService';
 import { getAllRestaurants } from '../services/restaurantService';
 import { useAuth } from '../contexts/AuthContext';
 import { formatDate } from '../utils/dateUtils';
-
-// Import the star rating component 
 import StarRating from '../components/Reviews/StarRating';
+import { 
+  MessageSquare, 
+  Filter, 
+  Calendar, 
+  MapPin, 
+  ChevronDown, 
+  ChevronRight,
+  Search,
+  SortAsc,
+  SortDesc,
+  Volume2,
+  ExternalLink,
+  TrendingUp,
+  Award,
+  Clock,
+  Star
+} from 'lucide-react';
 
 const MyReviews = () => {
   const [reviews, setReviews] = useState([]);
@@ -15,6 +30,10 @@ const MyReviews = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
+  const [sortBy, setSortBy] = useState('date-desc');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [expandedReview, setExpandedReview] = useState(null);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   
   const { currentUser } = useAuth();
   
@@ -62,19 +81,71 @@ const MyReviews = () => {
     return restaurant ? restaurant.name : 'Unknown Restaurant';
   };
   
-  // Filter reviews by selected restaurant
-  const filteredReviews = selectedRestaurant
-    ? reviews.filter(review => review.restaurant_id === selectedRestaurant)
-    : reviews;
+  // Filter and sort reviews
+  const getFilteredAndSortedReviews = () => {
+    let filtered = reviews;
+    
+    // Filter by restaurant
+    if (selectedRestaurant) {
+      filtered = filtered.filter(review => review.restaurant_id === selectedRestaurant);
+    }
+    
+    // Filter by search term
+    if (searchTerm) {
+      filtered = filtered.filter(review => 
+        review.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getRestaurantName(review.restaurant_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+        review.food_quality?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        review.service?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+    
+    // Sort reviews
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          const dateA = a.timestamp ? new Date(a.timestamp.seconds * 1000) : new Date(0);
+          const dateB = b.timestamp ? new Date(b.timestamp.seconds * 1000) : new Date(0);
+          return dateB - dateA;
+        case 'date-asc':
+          const dateA2 = a.timestamp ? new Date(a.timestamp.seconds * 1000) : new Date(0);
+          const dateB2 = b.timestamp ? new Date(b.timestamp.seconds * 1000) : new Date(0);
+          return dateA2 - dateB2;
+        case 'rating-desc':
+          return (b.sentiment_score || 0) - (a.sentiment_score || 0);
+        case 'rating-asc':
+          return (a.sentiment_score || 0) - (b.sentiment_score || 0);
+        case 'restaurant':
+          return getRestaurantName(a.restaurant_id).localeCompare(getRestaurantName(b.restaurant_id));
+        default:
+          return 0;
+      }
+    });
+    
+    return filtered;
+  };
   
   // Extract unique restaurant IDs from reviews
   const restaurantIds = [...new Set(reviews.map(review => review.restaurant_id))];
+  
+  // Calculate statistics
+  const stats = {
+    totalReviews: reviews.length,
+    averageRating: reviews.length > 0 
+      ? reviews.reduce((sum, review) => sum + (review.sentiment_score || 0), 0) / reviews.length 
+      : 0,
+    restaurantsReviewed: restaurantIds.length,
+    lastReview: reviews.length > 0 ? reviews[0] : null
+  };
   
   // Display loading state
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
+          <p className="body-md">Loading your reviews...</p>
+        </div>
       </div>
     );
   }
@@ -82,15 +153,17 @@ const MyReviews = () => {
   // Display error state
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto mt-8 p-6 bg-red-900 rounded-lg text-white">
-        <h2 className="text-xl font-bold mb-2">Error</h2>
-        <p>{error}</p>
-        <button 
-          onClick={() => window.location.reload()}
-          className="mt-4 px-4 py-2 bg-white text-red-900 font-medium rounded-md hover:bg-gray-200"
-        >
-          Retry
-        </button>
+      <div className="max-w-4xl mx-auto mt-8">
+        <div className="glass-card rounded-2xl p-8 text-center status-error">
+          <h2 className="heading-md mb-4">Unable to Load Reviews</h2>
+          <p className="body-md mb-6">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="btn-primary focus-ring"
+          >
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }
@@ -99,144 +172,323 @@ const MyReviews = () => {
   if (reviews.length === 0) {
     return (
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-white mb-6">My Reviews</h1>
-        
-        <div className="bg-gray-800 rounded-lg p-8 text-center">
-          <div className="text-5xl mb-4">📝</div>
-          <h2 className="text-xl font-medium text-white mb-2">No Reviews Yet</h2>
-          <p className="text-gray-400 mb-6">
-            You haven't shared any feedback yet. Start by reviewing a restaurant!
-          </p>
-          <Link 
-            to="/"
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md font-medium"
-          >
-            Browse Restaurants
-          </Link>
+        <div className="glass-card rounded-2xl overflow-hidden">
+          <div className="p-8 text-center">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+              <MessageSquare className="text-white" size={32} />
+            </div>
+            <h2 className="heading-lg mb-4">No Reviews Yet</h2>
+            <p className="body-lg mb-8 max-w-md mx-auto">
+              You haven't shared any feedback yet. Start by reviewing a restaurant and help improve dining experiences!
+            </p>
+            <Link 
+              to="/"
+              className="btn-primary focus-ring"
+            >
+              Browse Restaurants
+            </Link>
+          </div>
         </div>
       </div>
     );
   }
   
+  const filteredReviews = getFilteredAndSortedReviews();
+  
   return (
-    <div className="max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-white mb-6">My Reviews</h1>
+    <div className="max-w-6xl mx-auto space-y-8">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="heading-xl">My Reviews</h1>
+          <p className="body-lg">Track your feedback and dining experiences</p>
+        </div>
+        
+        <Link to="/feedback" className="btn-primary focus-ring">
+          <MessageSquare size={18} className="mr-2" />
+          Leave New Review
+        </Link>
+      </div>
       
-      {/* Restaurant filter if user has reviews for multiple restaurants */}
-      {restaurantIds.length > 1 && (
-        <div className="mb-6 p-4 bg-gray-800 rounded-lg">
-          <h3 className="text-lg font-medium text-white mb-3">Filter by Restaurant</h3>
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setSelectedRestaurant(null)}
-              className={`px-3 py-1 rounded-full text-sm ${
-                selectedRestaurant === null
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-              }`}
-            >
-              All
-            </button>
-            
-            {restaurantIds.map(id => (
-              <button
-                key={id}
-                onClick={() => setSelectedRestaurant(id)}
-                className={`px-3 py-1 rounded-full text-sm ${
-                  selectedRestaurant === id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                {getRestaurantName(id)}
-              </button>
-            ))}
+      {/* Statistics Cards */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Total Reviews</p>
+              <p className="text-3xl font-bold text-white">{stats.totalReviews}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
+              <MessageSquare className="text-blue-400" size={24} />
+            </div>
           </div>
         </div>
-      )}
+        
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Average Rating</p>
+              <p className="text-3xl font-bold text-white">{stats.averageRating.toFixed(1)}</p>
+            </div>
+            <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center">
+              <Star className="text-amber-400" size={24} />
+            </div>
+          </div>
+        </div>
+        
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Restaurants</p>
+              <p className="text-3xl font-bold text-white">{stats.restaurantsReviewed}</p>
+            </div>
+            <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
+              <MapPin className="text-emerald-400" size={24} />
+            </div>
+          </div>
+        </div>
+        
+        <div className="glass-card-subtle rounded-xl p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="body-sm mb-1">Last Review</p>
+              <p className="text-lg font-bold text-white">
+                {stats.lastReview ? formatDate(stats.lastReview.timestamp, 'relative') : 'Never'}
+              </p>
+            </div>
+            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
+              <Clock className="text-purple-400" size={24} />
+            </div>
+          </div>
+        </div>
+      </div>
       
-      {/* Reviews list */}
-      <div className="space-y-6">
-        {filteredReviews.map((review) => (
-          <div key={review.id || review.review_id} className="bg-gray-800 rounded-lg overflow-hidden shadow-md">
-            <div className="border-b border-gray-700 px-6 py-4 flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-medium text-white">
-                  {getRestaurantName(review.restaurant_id)}
-                </h3>
-                <p className="text-gray-400 text-sm">
-                  {review.timestamp ? formatDate(review.timestamp) : 'Unknown date'}
-                </p>
+      {/* Filters and Search */}
+      <div className="glass-card-subtle rounded-xl p-6">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <Search className="h-5 w-5 text-slate-400" />
               </div>
+              <input
+                type="text"
+                placeholder="Search reviews..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input-field pl-10"
+              />
+            </div>
+          </div>
+          
+          {/* Restaurant Filter */}
+          {restaurantIds.length > 1 && (
+            <div className="relative">
+              <button
+                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                className="btn-secondary flex items-center gap-2 focus-ring"
+              >
+                <Filter size={18} />
+                {selectedRestaurant ? getRestaurantName(selectedRestaurant) : 'All Restaurants'}
+                <ChevronDown size={16} className={`transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
               
-              <div className="flex items-center">
-                {typeof review.sentiment_score === 'number' && (
-                  <StarRating rating={review.sentiment_score} />
+              {filterDropdownOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setFilterDropdownOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-2 w-64 glass-card rounded-xl border border-white/10 shadow-xl z-20">
+                    <div className="p-2">
+                      <button
+                        onClick={() => {
+                          setSelectedRestaurant(null);
+                          setFilterDropdownOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                          !selectedRestaurant ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'
+                        }`}
+                      >
+                        All Restaurants
+                      </button>
+                      {restaurantIds.map(id => (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            setSelectedRestaurant(id);
+                            setFilterDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                            selectedRestaurant === id ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'
+                          }`}
+                        >
+                          {getRestaurantName(id)}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          
+          {/* Sort */}
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="input-field lg:w-48"
+          >
+            <option value="date-desc">Newest First</option>
+            <option value="date-asc">Oldest First</option>
+            <option value="rating-desc">Highest Rating</option>
+            <option value="rating-asc">Lowest Rating</option>
+            <option value="restaurant">Restaurant Name</option>
+          </select>
+        </div>
+        
+        <div className="mt-4 flex items-center justify-between">
+          <p className="body-sm">
+            Showing {filteredReviews.length} of {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+          </p>
+          
+          {(selectedRestaurant || searchTerm) && (
+            <button
+              onClick={() => {
+                setSelectedRestaurant(null);
+                setSearchTerm('');
+              }}
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
+      </div>
+      
+      {/* Reviews List */}
+      <div className="space-y-6">
+        {filteredReviews.length === 0 ? (
+          <div className="glass-card-subtle rounded-xl p-8 text-center">
+            <h3 className="heading-sm mb-2">No Reviews Found</h3>
+            <p className="body-md">Try adjusting your search or filter criteria.</p>
+          </div>
+        ) : (
+          filteredReviews.map((review) => (
+            <div key={review.id || review.review_id} className="glass-card rounded-xl overflow-hidden">
+              <div className="p-6">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+                  <div>
+                    <h3 className="heading-sm mb-1">
+                      {getRestaurantName(review.restaurant_id)}
+                    </h3>
+                    <div className="flex items-center gap-4 text-slate-400 text-sm">
+                      <div className="flex items-center gap-1">
+                        <Calendar size={14} />
+                        {review.timestamp ? formatDate(review.timestamp) : 'Unknown date'}
+                      </div>
+                      {typeof review.sentiment_score === 'number' && (
+                        <div className="flex items-center gap-2">
+                          <StarRating rating={review.sentiment_score} size="sm" />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => setExpandedReview(expandedReview === review.id ? null : review.id)}
+                    className="btn-ghost flex items-center gap-2 focus-ring"
+                  >
+                    {expandedReview === review.id ? 'Show Less' : 'View Details'}
+                    <ChevronRight 
+                      size={16} 
+                      className={`transition-transform ${expandedReview === review.id ? 'rotate-90' : ''}`} 
+                    />
+                  </button>
+                </div>
+                
+                {/* Summary */}
+                <div className="mb-4">
+                  <p className="text-slate-300 leading-relaxed">{review.summary || 'No summary available'}</p>
+                </div>
+                
+                {/* Expanded Details */}
+                {expandedReview === review.id && (
+                  <div className="space-y-6 pt-4 border-t border-white/10">
+                    {/* Detailed Ratings */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <h5 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                          🍽️ Food Quality
+                        </h5>
+                        <p className="body-sm">{review.food_quality || 'N/A'}</p>
+                      </div>
+                      
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <h5 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                          👨‍🍳 Service
+                        </h5>
+                        <p className="body-sm">{review.service || 'N/A'}</p>
+                      </div>
+                      
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <h5 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                          🏮 Atmosphere
+                        </h5>
+                        <p className="body-sm">{review.atmosphere || 'N/A'}</p>
+                      </div>
+                      
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <h5 className="text-sm font-medium text-white mb-2 flex items-center gap-2">
+                          🎵 Music & Entertainment
+                        </h5>
+                        <p className="body-sm">{review.music_and_entertainment || 'N/A'}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Key Points */}
+                    {review.specific_points && (
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                          🔑 Key Points
+                        </h4>
+                        <ul className="list-disc list-inside text-slate-300 space-y-1 text-sm">
+                          {Array.isArray(review.specific_points) ? (
+                            review.specific_points.map((point, index) => (
+                              <li key={index}>{point}</li>
+                            ))
+                          ) : typeof review.specific_points === 'string' ? (
+                            review.specific_points.split(',').map((point, index) => {
+                              const cleanPoint = point.trim().replace(/^['"]|['"]$/g, '');
+                              return cleanPoint && cleanPoint !== 'N/A' ? (
+                                <li key={index}>{cleanPoint}</li>
+                              ) : null;
+                            })
+                          ) : (
+                            <li>No specific points provided</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Audio playback */}
+                    {review.audio_url && (
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                          <Volume2 size={16} />
+                          Original Audio Recording
+                        </h4>
+                        <audio src={review.audio_url} controls className="w-full" />
+                      </div>
+                    )}
+                  </div>
                 )}
               </div>
             </div>
-            
-            <div className="p-6">
-              <div className="mb-4">
-                <h4 className="text-lg font-medium text-white mb-2">Summary</h4>
-                <p className="text-gray-300">{review.summary || 'No summary available'}</p>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                <div className="bg-gray-700 p-3 rounded-lg">
-                  <h5 className="text-sm font-medium text-white mb-1">Food Quality</h5>
-                  <p className="text-gray-400 text-sm">{review.food_quality || 'N/A'}</p>
-                </div>
-                
-                <div className="bg-gray-700 p-3 rounded-lg">
-                  <h5 className="text-sm font-medium text-white mb-1">Service</h5>
-                  <p className="text-gray-400 text-sm">{review.service || 'N/A'}</p>
-                </div>
-                
-                <div className="bg-gray-700 p-3 rounded-lg">
-                  <h5 className="text-sm font-medium text-white mb-1">Atmosphere</h5>
-                  <p className="text-gray-400 text-sm">{review.atmosphere || 'N/A'}</p>
-                </div>
-                
-                <div className="bg-gray-700 p-3 rounded-lg">
-                  <h5 className="text-sm font-medium text-white mb-1">Music & Entertainment</h5>
-                  <p className="text-gray-400 text-sm">{review.music_and_entertainment || 'N/A'}</p>
-                </div>
-              </div>
-              
-              {/* Key Points Section */}
-              {review.specific_points && (
-                <div className="mb-4">
-                  <h4 className="text-lg font-medium text-white mb-2">Key Points</h4>
-                  <ul className="list-disc list-inside text-gray-300 space-y-1">
-                    {Array.isArray(review.specific_points) ? (
-                      review.specific_points.map((point, index) => (
-                        <li key={index}>{point}</li>
-                      ))
-                    ) : typeof review.specific_points === 'string' ? (
-                      review.specific_points.split(',').map((point, index) => {
-                        const cleanPoint = point.trim().replace(/^['"]|['"]$/g, '');
-                        return cleanPoint && cleanPoint !== 'N/A' ? (
-                          <li key={index}>{cleanPoint}</li>
-                        ) : null;
-                      })
-                    ) : (
-                      <li>No specific points provided</li>
-                    )}
-                  </ul>
-                </div>
-              )}
-              
-              {/* Audio playback if available */}
-              {review.audio_url && (
-                <div className="mt-4 p-3 bg-gray-700 rounded-lg">
-                  <h4 className="text-sm font-medium text-white mb-2">Original Audio Recording</h4>
-                  <audio src={review.audio_url} controls className="w-full" />
-                </div>
-              )}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
