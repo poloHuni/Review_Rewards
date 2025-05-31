@@ -79,38 +79,52 @@ const Header = () => {
                   className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-all duration-200 focus-ring"
                 >
                   {/* Avatar */}
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     {currentUser.photoURL ? (
                       <img
-                        className="h-8 w-8 rounded-full border border-white/20"
+                        className="h-9 w-9 rounded-full border border-white/20 object-cover object-center"
                         src={currentUser.photoURL}
                         alt="User avatar"
+                        style={{ objectPosition: 'center center' }}
+                        onError={(e) => {
+                          // If image fails to load, hide it and show fallback
+                          e.target.style.display = 'none';
+                          e.target.nextElementSibling.style.display = 'flex';
+                        }}
                       />
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border border-white/20">
-                        <span className="text-white font-medium text-sm">
-                          {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
-                        </span>
-                      </div>
-                    )}
+                    ) : null}
+                    
+                    {/* Fallback avatar - always render but hide if photo loads */}
+                    <div 
+                      className={`absolute inset-0 h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border border-white/20 ${
+                        currentUser.photoURL ? 'hidden' : 'flex'
+                      }`}
+                    >
+                      <span className="text-white font-medium text-sm">
+                        {(() => {
+                          const name = currentUser.displayName || currentUser.name || currentUser.email || 'U';
+                          return name.charAt(0).toUpperCase();
+                        })()}
+                      </span>
+                    </div>
                     
                     {/* Online indicator */}
                     <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-400 border-2 border-slate-900 rounded-full"></div>
                   </div>
                   
                   {/* User info - hidden on mobile */}
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium text-white">
+                  <div className="hidden md:block text-left max-w-[120px]">
+                    <div className="text-sm font-medium text-white truncate">
                       {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0]}
                     </div>
-                    <div className="text-xs text-slate-400">
+                    <div className="text-xs text-slate-400 truncate">
                       {isOwner ? 'Restaurant Owner' : 'Customer'}
                     </div>
                   </div>
                   
                   <ChevronDown 
                     size={16} 
-                    className={`text-slate-400 transition-transform duration-200 ${
+                    className={`text-slate-400 transition-transform duration-200 ml-1 ${
                       userMenuOpen ? 'transform rotate-180' : ''
                     }`} 
                   />
@@ -129,14 +143,38 @@ const Header = () => {
                     <div className="absolute right-0 mt-2 w-64 glass-card rounded-xl border border-white/10 shadow-xl z-20">
                       {/* User info header */}
                       <div className="px-4 py-3 border-b border-white/10">
-                        <div className="flex items-center space-x-3">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                            <span className="text-white font-medium">
-                              {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
-                            </span>
+                        <div className="flex items-center space-x-4">
+                          <div className="relative flex-shrink-0">
+                            {currentUser.photoURL ? (
+                              <img
+                                className="h-12 w-12 rounded-full border border-white/20 object-cover object-center"
+                                src={currentUser.photoURL}
+                                alt="User avatar"
+                                style={{ objectPosition: 'center center' }}
+                                onError={(e) => {
+                                  // If image fails to load, hide it and show fallback
+                                  e.target.style.display = 'none';
+                                  e.target.nextElementSibling.style.display = 'flex';
+                                }}
+                              />
+                            ) : null}
+                            
+                            {/* Fallback avatar */}
+                            <div 
+                              className={`absolute inset-0 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border border-white/20 ${
+                                currentUser.photoURL ? 'hidden' : 'flex'
+                              }`}
+                            >
+                              <span className="text-white font-medium text-lg">
+                                {(() => {
+                                  const name = currentUser.displayName || currentUser.name || currentUser.email || 'U';
+                                  return name.charAt(0).toUpperCase();
+                                })()}
+                              </span>
+                            </div>
                           </div>
-                          <div>
-                            <div className="text-sm font-medium text-white">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-white truncate">
                               {currentUser.displayName || currentUser.name || 'User'}
                             </div>
                             <div className="text-xs text-slate-400 truncate">
@@ -169,7 +207,11 @@ const Header = () => {
                         {/* Profile action */}
                         <button
                           className="flex items-center gap-3 w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/5 transition-colors"
-                          onClick={() => setUserMenuOpen(false)}
+                          onClick={() => {
+                            setUserMenuOpen(false);
+                            // TODO: Add profile settings navigation when page is created
+                            alert('Profile settings coming soon!');
+                          }}
                         >
                           <User size={16} />
                           Profile Settings

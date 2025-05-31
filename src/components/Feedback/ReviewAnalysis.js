@@ -7,10 +7,10 @@ import {
   Star, 
   Copy, 
   Check, 
+  CheckCircle,
   RotateCcw, 
   ExternalLink, 
   AlertCircle, 
-  CheckCircle, 
   BookOpen, 
   Lightbulb,
   MessageSquare,
@@ -27,9 +27,7 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
-  const [showSharingSection, setShowSharingSection] = useState(false);
-  const [showAnalysisView, setShowAnalysisView] = useState(true);
-  const [hasBeenSaved, setHasBeenSaved] = useState(false); // Track if we've saved before
+  const [currentView, setCurrentView] = useState('analysis'); // 'analysis' or 'sharing'
   const { currentUser } = useAuth();
   
   const handleSaveReview = async () => {
@@ -49,13 +47,11 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
       
       await saveReview(reviewData, currentUser.user_id || currentUser.uid, customerInfo);
       setSaved(true);
-      setHasBeenSaved(true);
       
-      // Much faster, seamless transition
+      // Quick success indication, then transition to sharing
       setTimeout(() => {
-        setShowAnalysisView(false);
-        setShowSharingSection(true);
-      }, 200);
+        setCurrentView('sharing');
+      }, 500);
       
       if (onSaveSuccess) {
         onSaveSuccess(reviewData);
@@ -67,16 +63,12 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
     }
   };
 
-  const handleBackToAnalysis = () => {
-    // Instant, seamless transition
-    setShowSharingSection(false);
-    setShowAnalysisView(true);
+  const handleViewAnalysis = () => {
+    setCurrentView('analysis');
   };
 
-  const handleBackToSharing = () => {
-    // Instant, seamless transition  
-    setShowAnalysisView(false);
-    setShowSharingSection(true);
+  const handleViewSharing = () => {
+    setCurrentView('sharing');
   };
   
   // Generate Google Review link
@@ -151,31 +143,31 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
     return 'bg-red-500/10 border-red-500/20';
   };
 
-  // Fast, seamless animation variants
+  // Faster, more seamless animation variants
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
       transition: {
-        duration: 0.2, // Much faster
-        staggerChildren: 0.05 // Faster stagger
+        duration: 0.15, // Even faster
+        staggerChildren: 0.03 // Faster stagger
       }
     },
     exit: {
       opacity: 0,
       transition: {
-        duration: 0.15 // Quick exit
+        duration: 0.1 // Very quick exit
       }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 10 }, // Smaller movement
+    hidden: { opacity: 0, y: 5 }, // Smaller movement
     visible: {
       opacity: 1,
       y: 0,
       transition: {
-        duration: 0.2, // Faster
+        duration: 0.15, // Faster
         ease: "easeOut"
       }
     }
@@ -184,37 +176,37 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
   const sharingVariants = {
     hidden: { 
       opacity: 0, 
-      scale: 0.98,
-      y: 10
+      scale: 0.99, // Less dramatic scaling
+      y: 5
     },
     visible: {
       opacity: 1,
       scale: 1,
       y: 0,
       transition: {
-        duration: 0.3, // Faster but still smooth
+        duration: 0.2, // Faster but still smooth
         ease: [0.22, 1, 0.36, 1],
-        staggerChildren: 0.1
+        staggerChildren: 0.05
       }
     },
     exit: {
       opacity: 0,
-      scale: 0.98,
-      y: -10,
+      scale: 0.99,
+      y: -5,
       transition: {
-        duration: 0.15
+        duration: 0.1
       }
     }
   };
 
   const cardVariants = {
-    hidden: { opacity: 0, y: 10, scale: 0.99 },
+    hidden: { opacity: 0, y: 5, scale: 0.995 },
     visible: {
       opacity: 1,
       y: 0,
       scale: 1,
       transition: {
-        duration: 0.2,
+        duration: 0.15,
         ease: "easeOut"
       }
     }
@@ -323,7 +315,7 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
         variants={cardVariants}
       >
         <button
-          onClick={handleBackToAnalysis}
+          onClick={handleViewAnalysis}
           className="btn-ghost flex items-center justify-center gap-2 focus-ring px-6 py-3"
         >
           <Eye size={18} />
@@ -350,11 +342,11 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
       exit="exit"
       variants={containerVariants}
     >
-      {/* Back Button (if coming from sharing) */}
-      {hasBeenSaved && (
+      {/* Back Button (if already saved) */}
+      {saved && (
         <motion.div className="mb-4" variants={itemVariants}>
           <button
-            onClick={handleBackToSharing}
+            onClick={handleViewSharing}
             className="btn-ghost flex items-center gap-2 focus-ring"
           >
             <ArrowLeft size={18} />
@@ -531,7 +523,7 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
         </motion.div>
       )}
       
-      {/* Save Feedback Button or Back to Sharing */}
+      {/* Save Feedback Button or Navigation */}
       <motion.div className="pt-4" variants={itemVariants}>
         {!saved ? (
           <button
@@ -540,13 +532,20 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
             className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-200 focus-ring flex items-center justify-center gap-2 ${
               saving 
                 ? 'bg-blue-900 cursor-not-allowed opacity-50'
-                : 'btn-primary hover:scale-105'
+                : saved && currentView === 'analysis'
+                  ? 'bg-emerald-600 hover:bg-emerald-700'
+                  : 'btn-primary hover:scale-105'
             }`}
           >
             {saving ? (
               <>
                 <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
                 Saving Your Feedback...
+              </>
+            ) : saved && currentView === 'analysis' ? (
+              <>
+                <CheckCircle size={20} />
+                Feedback Saved! Preparing to share...
               </>
             ) : (
               <>
@@ -558,7 +557,7 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
         ) : (
           <div className="flex gap-4">
             <button
-              onClick={handleBackToSharing}
+              onClick={handleViewSharing}
               className="btn-primary flex-1 py-4 px-6 rounded-xl font-medium focus-ring flex items-center justify-center gap-2 hover:scale-105"
             >
               <Share2 size={20} />
@@ -579,25 +578,10 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
   
   return (
     <AnimatePresence mode="wait">
-      {showAnalysisView ? (
+      {currentView === 'analysis' ? (
         <AnalysisSection key="analysis" />
-      ) : showSharingSection ? (
-        <SharingSection key="sharing" />
       ) : (
-        // Very brief loading state
-        <motion.div 
-          key="loading"
-          className="flex justify-center items-center min-h-[20vh]"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.1 }}
-        >
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent mx-auto mb-2"></div>
-            <p className="body-sm text-emerald-400">Loading...</p>
-          </div>
-        </motion.div>
+        <SharingSection key="sharing" />
       )}
     </AnimatePresence>
   );

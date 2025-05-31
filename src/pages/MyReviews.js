@@ -34,6 +34,7 @@ const MyReviews = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedReview, setExpandedReview] = useState(null);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
   
   const { currentUser } = useAuth();
   
@@ -81,7 +82,7 @@ const MyReviews = () => {
     return restaurant ? restaurant.name : 'Unknown Restaurant';
   };
   
-  // Filter and sort reviews
+  // Filter and sort reviews - limit to top 10 by default
   const getFilteredAndSortedReviews = () => {
     let filtered = reviews;
     
@@ -121,6 +122,11 @@ const MyReviews = () => {
           return 0;
       }
     });
+    
+    // Limit to top 10 reviews unless searching/filtering or showing all
+    if (!selectedRestaurant && !searchTerm && !showAllReviews) {
+      return filtered.slice(0, 10);
+    }
     
     return filtered;
   };
@@ -338,32 +344,47 @@ const MyReviews = () => {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="input-field lg:w-48"
+            className="input-field lg:w-48 bg-slate-800 border-slate-700 text-white focus:border-blue-500 focus:ring-blue-500/50"
           >
-            <option value="date-desc">Newest First</option>
-            <option value="date-asc">Oldest First</option>
-            <option value="rating-desc">Highest Rating</option>
-            <option value="rating-asc">Lowest Rating</option>
-            <option value="restaurant">Restaurant Name</option>
+            <option value="date-desc" className="bg-slate-800 text-white">Newest First</option>
+            <option value="date-asc" className="bg-slate-800 text-white">Oldest First</option>
+            <option value="rating-desc" className="bg-slate-800 text-white">Highest Rating</option>
+            <option value="rating-asc" className="bg-slate-800 text-white">Lowest Rating</option>
+            <option value="restaurant" className="bg-slate-800 text-white">Restaurant Name</option>
           </select>
         </div>
         
         <div className="mt-4 flex items-center justify-between">
           <p className="body-sm">
             Showing {filteredReviews.length} of {reviews.length} review{reviews.length !== 1 ? 's' : ''}
+            {!selectedRestaurant && !searchTerm && !showAllReviews && reviews.length > 10 && (
+              <span className="text-blue-400 ml-2">(Limited to 10 most recent)</span>
+            )}
           </p>
           
-          {(selectedRestaurant || searchTerm) && (
-            <button
-              onClick={() => {
-                setSelectedRestaurant(null);
-                setSearchTerm('');
-              }}
-              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-            >
-              Clear Filters
-            </button>
-          )}
+          <div className="flex items-center gap-4">
+            {!selectedRestaurant && !searchTerm && !showAllReviews && reviews.length > 10 && (
+              <button
+                onClick={() => setShowAllReviews(true)}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                Show All {reviews.length} Reviews
+              </button>
+            )}
+            
+            {(selectedRestaurant || searchTerm || showAllReviews) && (
+              <button
+                onClick={() => {
+                  setSelectedRestaurant(null);
+                  setSearchTerm('');
+                  setShowAllReviews(false);
+                }}
+                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+              >
+                {showAllReviews ? 'Show Recent Only' : 'Clear Filters'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
       
