@@ -1,5 +1,6 @@
 // src/components/Feedback/ReviewAnalysis.js
 import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { saveReview, formatReviewForSharing, generateGoogleReviewLink } from '../../services/reviewService';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
@@ -15,7 +16,10 @@ import {
   MessageSquare,
   TrendingUp,
   Volume2,
-  Share2
+  Share2,
+  Sparkles,
+  ArrowLeft,
+  Eye
 } from 'lucide-react';
 
 const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => {
@@ -23,6 +27,9 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [showSharingSection, setShowSharingSection] = useState(false);
+  const [showAnalysisView, setShowAnalysisView] = useState(true);
+  const [hasBeenSaved, setHasBeenSaved] = useState(false); // Track if we've saved before
   const { currentUser } = useAuth();
   
   const handleSaveReview = async () => {
@@ -42,6 +49,14 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
       
       await saveReview(reviewData, currentUser.user_id || currentUser.uid, customerInfo);
       setSaved(true);
+      setHasBeenSaved(true);
+      
+      // Much faster, seamless transition
+      setTimeout(() => {
+        setShowAnalysisView(false);
+        setShowSharingSection(true);
+      }, 200);
+      
       if (onSaveSuccess) {
         onSaveSuccess(reviewData);
       }
@@ -51,7 +66,35 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
       setSaving(false);
     }
   };
+
+  const handleBackToAnalysis = () => {
+    // Instant, seamless transition
+    setShowSharingSection(false);
+    setShowAnalysisView(true);
+  };
+
+  const handleBackToSharing = () => {
+    // Instant, seamless transition  
+    setShowAnalysisView(false);
+    setShowSharingSection(true);
+  };
   
+  // Generate Google Review link
+  const googleReviewLink = placeId ? generateGoogleReviewLink(reviewData, placeId) : null;
+  
+  // Format the review for sharing
+  const formattedReview = formatReviewForSharing(reviewData);
+  
+  const handleCopyReview = async () => {
+    try {
+      await navigator.clipboard.writeText(formattedReview);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy text:', err);
+    }
+  };
+
   // Render stars for sentiment score
   const renderStars = (score) => {
     const stars = [];
@@ -93,22 +136,6 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
       </div>
     );
   };
-  
-  // Format the review for sharing
-  const formattedReview = formatReviewForSharing(reviewData);
-  
-  // Generate Google Review link
-  const googleReviewLink = placeId ? generateGoogleReviewLink(reviewData, placeId) : null;
-  
-  const handleCopyReview = async () => {
-    try {
-      await navigator.clipboard.writeText(formattedReview);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (err) {
-      console.error('Failed to copy text:', err);
-    }
-  };
 
   const getSentimentColor = (score) => {
     if (score >= 4.5) return 'text-emerald-400';
@@ -123,31 +150,252 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
     if (score >= 2.5) return 'bg-orange-500/10 border-orange-500/20';
     return 'bg-red-500/10 border-red-500/20';
   };
-  
-  return (
-    <div className="space-y-6 p-6">
+
+  // Fast, seamless animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        duration: 0.2, // Much faster
+        staggerChildren: 0.05 // Faster stagger
+      }
+    },
+    exit: {
+      opacity: 0,
+      transition: {
+        duration: 0.15 // Quick exit
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 10 }, // Smaller movement
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.2, // Faster
+        ease: "easeOut"
+      }
+    }
+  };
+
+  const sharingVariants = {
+    hidden: { 
+      opacity: 0, 
+      scale: 0.98,
+      y: 10
+    },
+    visible: {
+      opacity: 1,
+      scale: 1,
+      y: 0,
+      transition: {
+        duration: 0.3, // Faster but still smooth
+        ease: [0.22, 1, 0.36, 1],
+        staggerChildren: 0.1
+      }
+    },
+    exit: {
+      opacity: 0,
+      scale: 0.98,
+      y: -10,
+      transition: {
+        duration: 0.15
+      }
+    }
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 10, scale: 0.99 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      scale: 1,
+      transition: {
+        duration: 0.2,
+        ease: "easeOut"
+      }
+    }
+  };
+
+  // Sharing Section Component (Clean, focused interface)
+  const SharingSection = () => (
+    <motion.div
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      variants={sharingVariants}
+      className="min-h-[60vh] flex flex-col justify-center space-y-8 p-6"
+    >
+      {/* Success Header */}
+      <motion.div 
+        className="text-center"
+        variants={cardVariants}
+      >
+        <div className="w-20 h-20 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl">
+          <Sparkles className="text-white" size={32} />
+        </div>
+        <h2 className="heading-lg mb-3 text-emerald-400">Feedback Saved Successfully!</h2>
+        <p className="body-lg mb-2">Thank you for sharing your experience</p>
+        <p className="body-md">Now help other diners by sharing your review</p>
+      </motion.div>
+
+      {/* Formatted Review Card */}
+      <motion.div 
+        className="glass-card rounded-2xl p-8 max-w-4xl mx-auto w-full"
+        variants={cardVariants}
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="heading-md flex items-center gap-3">
+            <Share2 size={24} className="text-blue-400" />
+            Your Formatted Review
+          </h3>
+          <button 
+            onClick={handleCopyReview}
+            className={`btn-secondary flex items-center gap-2 focus-ring transition-all duration-200 ${
+              copied ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : ''
+            }`}
+          >
+            {copied ? (
+              <>
+                <Check size={18} className="text-emerald-400" />
+                <span>Copied!</span>
+              </>
+            ) : (
+              <>
+                <Copy size={18} />
+                Copy Text
+              </>
+            )}
+          </button>
+        </div>
+        
+        <p className="body-md mb-6 text-center">
+          Here's your formatted review ready to share on Google Reviews or other platforms.
+        </p>
+        
+        <div className="relative">
+          <div className="bg-white/5 p-6 rounded-xl border border-white/10 max-h-80 overflow-y-auto">
+            <pre className="text-slate-200 whitespace-pre-wrap text-base leading-relaxed font-sans">
+              {formattedReview}
+            </pre>
+          </div>
+        </div>
+      </motion.div>
+
+      {/* Google Review Button */}
+      {googleReviewLink && (
+        <motion.div 
+          className="text-center"
+          variants={cardVariants}
+        >
+          <div className="glass-card rounded-2xl p-8 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 max-w-2xl mx-auto">
+            <h3 className="heading-md mb-3 flex items-center justify-center gap-3">
+              <Star size={24} className="text-blue-400" />
+              Share on Google Reviews
+            </h3>
+            <p className="body-lg mb-8">
+              Help other diners discover great experiences by sharing your review on Google!
+            </p>
+            <a
+              href={googleReviewLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-primary text-lg px-8 py-4 flex items-center justify-center gap-3 focus-ring hover:scale-105 mx-auto max-w-sm"
+            >
+              <img 
+                src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" 
+                alt="Google" 
+                className="h-6 w-6" 
+              />
+              Open Google Reviews
+              <ExternalLink size={20} />
+            </a>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Action Buttons */}
+      <motion.div 
+        className="flex flex-col sm:flex-row gap-4 justify-center max-w-2xl mx-auto w-full"
+        variants={cardVariants}
+      >
+        <button
+          onClick={handleBackToAnalysis}
+          className="btn-ghost flex items-center justify-center gap-2 focus-ring px-6 py-3"
+        >
+          <Eye size={18} />
+          View Full Analysis
+        </button>
+        
+        <button
+          onClick={onStartOver}
+          className="btn-secondary flex items-center justify-center gap-2 focus-ring px-6 py-3 hover:scale-105 transition-transform"
+        >
+          <RotateCcw size={18} />
+          Leave Another Review
+        </button>
+      </motion.div>
+    </motion.div>
+  );
+
+  // Analysis Section Component
+  const AnalysisSection = () => (
+    <motion.div 
+      className="space-y-6 p-6"
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      variants={containerVariants}
+    >
+      {/* Back Button (if coming from sharing) */}
+      {hasBeenSaved && (
+        <motion.div className="mb-4" variants={itemVariants}>
+          <button
+            onClick={handleBackToSharing}
+            className="btn-ghost flex items-center gap-2 focus-ring"
+          >
+            <ArrowLeft size={18} />
+            Back to Formatted Review
+          </button>
+        </motion.div>
+      )}
+
       {/* Header */}
-      <div className="text-center">
+      <motion.div className="text-center" variants={itemVariants}>
         <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
           <CheckCircle className="text-white" size={24} />
         </div>
         <h3 className="heading-lg mb-2">Your Feedback Analysis</h3>
         <p className="body-md">AI-powered insights from your dining experience</p>
-      </div>
+      </motion.div>
 
       {/* Error Display */}
-      {error && (
-        <div className="p-4 status-error rounded-lg flex items-start gap-3">
-          <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="font-medium">Save Error</p>
-            <p className="text-sm mt-1">{error}</p>
-          </div>
-        </div>
-      )}
+      <AnimatePresence>
+        {error && (
+          <motion.div 
+            className="p-4 status-error rounded-lg flex items-start gap-3"
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <AlertCircle size={18} className="mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="font-medium">Save Error</p>
+              <p className="text-sm mt-1">{error}</p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       
       {/* Overall Sentiment */}
-      <div className={`p-6 rounded-xl border ${getSentimentBg(reviewData.sentiment_score)}`}>
+      <motion.div 
+        className={`p-6 rounded-xl border ${getSentimentBg(reviewData.sentiment_score)}`}
+        variants={itemVariants}
+      >
         <div className="text-center">
           <h4 className="heading-sm mb-3 flex items-center justify-center gap-2">
             <TrendingUp size={20} className={getSentimentColor(reviewData.sentiment_score)} />
@@ -166,19 +414,19 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
             <p className="text-xl text-slate-300">{reviewData.sentiment_score || 'N/A'}</p>
           )}
         </div>
-      </div>
+      </motion.div>
       
       {/* Summary */}
-      <div className="glass-card-subtle rounded-xl p-6">
+      <motion.div className="glass-card-subtle rounded-xl p-6" variants={itemVariants}>
         <h4 className="heading-sm mb-3 flex items-center gap-2">
           <MessageSquare size={20} className="text-blue-400" />
           Summary
         </h4>
         <p className="text-slate-300 leading-relaxed">{reviewData.summary || 'N/A'}</p>
-      </div>
+      </motion.div>
       
       {/* Detailed Assessments */}
-      <div className="grid md:grid-cols-2 gap-4">
+      <motion.div className="grid md:grid-cols-2 gap-4" variants={itemVariants}>
         <div className="glass-card-subtle rounded-xl p-6">
           <h4 className="heading-sm mb-3 flex items-center gap-2">
             🍽️ Food Quality
@@ -206,11 +454,11 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
           </h4>
           <p className="text-slate-300">{reviewData.music_and_entertainment || 'N/A'}</p>
         </div>
-      </div>
+      </motion.div>
       
       {/* Key Points */}
       {reviewData.specific_points && (
-        <div className="glass-card-subtle rounded-xl p-6">
+        <motion.div className="glass-card-subtle rounded-xl p-6" variants={itemVariants}>
           <h4 className="heading-sm mb-4 flex items-center gap-2">
             <BookOpen size={20} className="text-purple-400" />
             Key Points
@@ -237,12 +485,12 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
               <li className="text-slate-400 italic">No specific points provided</li>
             )}
           </ul>
-        </div>
+        </motion.div>
       )}
       
       {/* Improvement Suggestions */}
       {reviewData.improvement_suggestions && (
-        <div className="glass-card-subtle rounded-xl p-6">
+        <motion.div className="glass-card-subtle rounded-xl p-6" variants={itemVariants}>
           <h4 className="heading-sm mb-4 flex items-center gap-2">
             <Lightbulb size={20} className="text-amber-400" />
             Suggestions for Improvement
@@ -269,124 +517,89 @@ const ReviewAnalysis = ({ reviewData, onSaveSuccess, onStartOver, placeId }) => 
               <li className="text-slate-400 italic">No suggestions provided</li>
             )}
           </ul>
-        </div>
+        </motion.div>
       )}
-      
-      {/* Formatted Review for Sharing */}
-      <div className="glass-card-subtle rounded-xl p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="heading-sm flex items-center gap-2">
-            <Share2 size={20} className="text-blue-400" />
-            Formatted Review
-          </h4>
-          <button 
-            onClick={handleCopyReview}
-            className="btn-ghost flex items-center gap-2 focus-ring"
-          >
-            {copied ? (
-              <>
-                <Check size={16} className="text-emerald-400" />
-                <span className="text-emerald-400">Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy size={16} />
-                Copy
-              </>
-            )}
-          </button>
-        </div>
-        
-        <p className="body-sm mb-4 text-slate-400">
-          Here's your formatted review ready to share on Google Reviews or other platforms.
-        </p>
-        
-        <div className="relative">
-          <pre className="bg-white/5 p-4 rounded-lg text-slate-300 whitespace-pre-wrap overflow-x-auto text-sm leading-relaxed border border-white/10">
-            {formattedReview}
-          </pre>
-        </div>
-      </div>
 
       {/* Audio Recording */}
       {reviewData.audio_url && (
-        <div className="glass-card-subtle rounded-xl p-6">
+        <motion.div className="glass-card-subtle rounded-xl p-6" variants={itemVariants}>
           <h4 className="heading-sm mb-4 flex items-center gap-2">
             <Volume2 size={20} className="text-green-400" />
             Original Audio Recording
           </h4>
           <audio src={reviewData.audio_url} controls className="w-full" />
-        </div>
+        </motion.div>
       )}
       
-      {/* Action Buttons */}
-      <div className="grid md:grid-cols-2 gap-4 pt-4">
-        <button
-          onClick={handleSaveReview}
-          disabled={saving || saved}
-          className={`py-4 px-6 rounded-xl font-medium transition-all duration-200 focus-ring flex items-center justify-center gap-2 ${
-            saved 
-              ? 'status-success cursor-default'
-              : 'btn-primary'
-          }`}
-        >
-          {saving ? (
-            <>
-              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-              Saving...
-            </>
-          ) : saved ? (
-            <>
-              <CheckCircle size={20} />
-              Saved Successfully!
-            </>
-          ) : (
-            <>
-              <Check size={20} />
-              Save Feedback
-            </>
-          )}
-        </button>
-        
-        <button
-          onClick={onStartOver}
-          disabled={saving}
-          className="btn-secondary py-4 px-6 rounded-xl font-medium focus-ring flex items-center justify-center gap-2"
-        >
-          <RotateCcw size={20} />
-          Start Over
-        </button>
-      </div>
-      
-      {/* Google Review Link */}
-      {saved && googleReviewLink && (
-        <div className="glass-card rounded-xl p-6 bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-          <div className="text-center">
-            <h4 className="heading-sm mb-3 flex items-center justify-center gap-2">
-              <Star size={20} className="text-blue-400" />
-              Share on Google Reviews
-            </h4>
-            <p className="body-md mb-6">
-              Help other diners by sharing your experience on Google Reviews too!
-            </p>
-            <a
-              href={googleReviewLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn-primary flex items-center justify-center gap-2 focus-ring"
+      {/* Save Feedback Button or Back to Sharing */}
+      <motion.div className="pt-4" variants={itemVariants}>
+        {!saved ? (
+          <button
+            onClick={handleSaveReview}
+            disabled={saving}
+            className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-200 focus-ring flex items-center justify-center gap-2 ${
+              saving 
+                ? 'bg-blue-900 cursor-not-allowed opacity-50'
+                : 'btn-primary hover:scale-105'
+            }`}
+          >
+            {saving ? (
+              <>
+                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+                Saving Your Feedback...
+              </>
+            ) : (
+              <>
+                <Check size={20} />
+                Save My Feedback
+              </>
+            )}
+          </button>
+        ) : (
+          <div className="flex gap-4">
+            <button
+              onClick={handleBackToSharing}
+              className="btn-primary flex-1 py-4 px-6 rounded-xl font-medium focus-ring flex items-center justify-center gap-2 hover:scale-105"
             >
-              <img 
-                src="https://www.gstatic.com/images/branding/product/2x/googleg_48dp.png" 
-                alt="Google" 
-                className="h-5 w-5" 
-              />
-              Open Google Reviews
-              <ExternalLink size={16} />
-            </a>
+              <Share2 size={20} />
+              Share Your Review
+            </button>
+            <button
+              onClick={onStartOver}
+              className="btn-secondary py-4 px-6 rounded-xl font-medium focus-ring flex items-center justify-center gap-2 hover:scale-105"
+            >
+              <RotateCcw size={20} />
+              New Review
+            </button>
           </div>
-        </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+  
+  return (
+    <AnimatePresence mode="wait">
+      {showAnalysisView ? (
+        <AnalysisSection key="analysis" />
+      ) : showSharingSection ? (
+        <SharingSection key="sharing" />
+      ) : (
+        // Very brief loading state
+        <motion.div 
+          key="loading"
+          className="flex justify-center items-center min-h-[20vh]"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.1 }}
+        >
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent mx-auto mb-2"></div>
+            <p className="body-sm text-emerald-400">Loading...</p>
+          </div>
+        </motion.div>
       )}
-    </div>
+    </AnimatePresence>
   );
 };
 
