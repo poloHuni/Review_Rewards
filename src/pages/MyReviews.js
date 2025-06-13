@@ -34,7 +34,7 @@ const MyReviews = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedReview, setExpandedReview] = useState(null);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-  const [showAllReviews, setShowAllReviews] = useState(false);
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   
   const { currentUser } = useAuth();
   
@@ -75,6 +75,19 @@ const MyReviews = () => {
     
     fetchData();
   }, [currentUser]);
+
+  // Close dropdowns when one opens
+  useEffect(() => {
+    if (filterDropdownOpen) {
+      setSortDropdownOpen(false);
+    }
+  }, [filterDropdownOpen]);
+
+  useEffect(() => {
+    if (sortDropdownOpen) {
+      setFilterDropdownOpen(false);
+    }
+  }, [sortDropdownOpen]);
   
   // Get restaurant name by ID
   const getRestaurantName = (restaurantId) => {
@@ -82,7 +95,7 @@ const MyReviews = () => {
     return restaurant ? restaurant.name : 'Unknown Restaurant';
   };
   
-  // Filter and sort reviews - limit to top 10 by default
+  // Filter and sort reviews
   const getFilteredAndSortedReviews = () => {
     let filtered = reviews;
     
@@ -122,11 +135,6 @@ const MyReviews = () => {
           return 0;
       }
     });
-    
-    // Limit to top 10 reviews unless searching/filtering or showing all
-    if (!selectedRestaurant && !searchTerm && !showAllReviews) {
-      return filtered.slice(0, 10);
-    }
     
     return filtered;
   };
@@ -270,7 +278,7 @@ const MyReviews = () => {
       </div>
       
       {/* Filters and Search */}
-      <div className="glass-card-subtle rounded-xl p-6">
+      <div className="glass-card-subtle rounded-xl p-6 relative z-50 isolate">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -290,7 +298,7 @@ const MyReviews = () => {
           
           {/* Restaurant Filter */}
           {restaurantIds.length > 1 && (
-            <div className="relative">
+            <div className="relative z-50">
               <button
                 onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
                 className="btn-secondary flex items-center gap-2 focus-ring"
@@ -303,10 +311,10 @@ const MyReviews = () => {
               {filterDropdownOpen && (
                 <>
                   <div 
-                    className="fixed inset-0 z-10" 
+                    className="fixed inset-0 !z-[9998]" 
                     onClick={() => setFilterDropdownOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-64 glass-card rounded-xl border border-white/10 shadow-xl z-20">
+                  <div className="absolute right-0 mt-2 w-64 bg-slate-800/95 backdrop-blur-sm rounded-xl border border-white/20 shadow-2xl !z-[9999]">
                     <div className="p-2">
                       <button
                         onClick={() => {
@@ -314,7 +322,7 @@ const MyReviews = () => {
                           setFilterDropdownOpen(false);
                         }}
                         className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                          !selectedRestaurant ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'
+                          !selectedRestaurant ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
                         }`}
                       >
                         All Restaurants
@@ -327,7 +335,7 @@ const MyReviews = () => {
                             setFilterDropdownOpen(false);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                            selectedRestaurant === id ? 'bg-white/10 text-white' : 'text-slate-300 hover:bg-white/5'
+                            selectedRestaurant === id ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
                           }`}
                         >
                           {getRestaurantName(id)}
@@ -341,50 +349,107 @@ const MyReviews = () => {
           )}
           
           {/* Sort */}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value)}
-            className="input-field lg:w-48 bg-slate-800 border-slate-700 text-white focus:border-blue-500 focus:ring-blue-500/50"
-          >
-            <option value="date-desc" className="bg-slate-800 text-white">Newest First</option>
-            <option value="date-asc" className="bg-slate-800 text-white">Oldest First</option>
-            <option value="rating-desc" className="bg-slate-800 text-white">Highest Rating</option>
-            <option value="rating-asc" className="bg-slate-800 text-white">Lowest Rating</option>
-            <option value="restaurant" className="bg-slate-800 text-white">Restaurant Name</option>
-          </select>
+          <div className="relative z-50">
+            <button
+              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
+              className="btn-secondary flex items-center gap-2 focus-ring lg:w-48"
+            >
+              <span className="flex-1 text-left">
+                {sortBy === 'date-desc' ? 'Newest First' :
+                 sortBy === 'date-asc' ? 'Oldest First' :
+                 sortBy === 'rating-desc' ? 'Highest Rating' :
+                 sortBy === 'rating-asc' ? 'Lowest Rating' :
+                 sortBy === 'restaurant' ? 'Restaurant Name' : 'Sort By'}
+              </span>
+              <ChevronDown size={16} className={`transition-transform ${sortDropdownOpen ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {sortDropdownOpen && (
+              <>
+                <div 
+                  className="fixed inset-0 !z-[9998]" 
+                  onClick={() => setSortDropdownOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-64 bg-slate-800/95 backdrop-blur-sm rounded-xl border border-white/20 shadow-2xl !z-[9999]">
+                  <div className="p-2">
+                    <button
+                      onClick={() => {
+                        setSortBy('date-desc');
+                        setSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        sortBy === 'date-desc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
+                      }`}
+                    >
+                      Newest First
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSortBy('date-asc');
+                        setSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        sortBy === 'date-asc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
+                      }`}
+                    >
+                      Oldest First
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSortBy('rating-desc');
+                        setSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        sortBy === 'rating-desc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
+                      }`}
+                    >
+                      Highest Rating
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSortBy('rating-asc');
+                        setSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        sortBy === 'rating-asc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
+                      }`}
+                    >
+                      Lowest Rating
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSortBy('restaurant');
+                        setSortDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
+                        sortBy === 'restaurant' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
+                      }`}
+                    >
+                      Restaurant Name
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
         
         <div className="mt-4 flex items-center justify-between">
           <p className="body-sm">
             Showing {filteredReviews.length} of {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-            {!selectedRestaurant && !searchTerm && !showAllReviews && reviews.length > 10 && (
-              <span className="text-blue-400 ml-2">(Limited to 10 most recent)</span>
-            )}
           </p>
           
-          <div className="flex items-center gap-4">
-            {!selectedRestaurant && !searchTerm && !showAllReviews && reviews.length > 10 && (
-              <button
-                onClick={() => setShowAllReviews(true)}
-                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-              >
-                Show All {reviews.length} Reviews
-              </button>
-            )}
-            
-            {(selectedRestaurant || searchTerm || showAllReviews) && (
-              <button
-                onClick={() => {
-                  setSelectedRestaurant(null);
-                  setSearchTerm('');
-                  setShowAllReviews(false);
-                }}
-                className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-              >
-                {showAllReviews ? 'Show Recent Only' : 'Clear Filters'}
-              </button>
-            )}
-          </div>
+          {(selectedRestaurant || searchTerm) && (
+            <button
+              onClick={() => {
+                setSelectedRestaurant(null);
+                setSearchTerm('');
+              }}
+              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
+            >
+              Clear Filters
+            </button>
+          )}
         </div>
       </div>
       
