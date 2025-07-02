@@ -1,158 +1,150 @@
-// src/pages/MyReviews.js
+// src/pages/MyReviews.js - Simplified Version (Works Without Points System)
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { getReviewsByUser } from '../services/reviewService';
-import { getAllRestaurants } from '../services/restaurantService';
 import { useAuth } from '../contexts/AuthContext';
-import { formatDate } from '../utils/dateUtils';
-import StarRating from '../components/Reviews/StarRating';
+import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
+import { db } from '../firebase/config';
 import { 
   MessageSquare, 
-  Filter, 
-  Calendar, 
+  Star, 
   MapPin, 
-  ChevronDown, 
-  ChevronRight,
-  Search,
-  SortAsc,
-  SortDesc,
-  Volume2,
-  ExternalLink,
-  TrendingUp,
-  Award,
-  Clock,
-  Star
+  Clock, 
+  ChevronRight, 
+  Filter,
+  Calendar,
+  TrendingUp
 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const MyReviews = () => {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState([]);
-  const [restaurants, setRestaurants] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedRestaurant, setSelectedRestaurant] = useState(null);
-  const [sortBy, setSortBy] = useState('date-desc');
-  const [searchTerm, setSearchTerm] = useState('');
   const [expandedReview, setExpandedReview] = useState(null);
-  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
-  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  
-  const { currentUser } = useAuth();
-  
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        // Fetch all restaurants
-        const restaurantsData = await getAllRestaurants();
-        setRestaurants(restaurantsData);
-        
-        // Get user ID
-        const userId = currentUser?.uid || currentUser?.user_id;
-        
-        if (!userId) {
-          throw new Error('User ID not found');
-        }
-        
-        // Fetch reviews from this user
-        const reviewsData = await getReviewsByUser(userId);
-        
-        // Sort by timestamp (newest first)
-        const sortedReviews = reviewsData.sort((a, b) => {
-          const dateA = a.timestamp ? new Date(a.timestamp.seconds * 1000) : new Date(0);
-          const dateB = b.timestamp ? new Date(b.timestamp.seconds * 1000) : new Date(0);
-          return dateB - dateA;
-        });
-        
-        setReviews(sortedReviews);
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchData();
-  }, [currentUser]);
-
-  // Close dropdowns when one opens
-  useEffect(() => {
-    if (filterDropdownOpen) {
-      setSortDropdownOpen(false);
-    }
-  }, [filterDropdownOpen]);
+  const [sortBy, setSortBy] = useState('date');
+  const [filterBy, setFilterBy] = useState('all');
 
   useEffect(() => {
-    if (sortDropdownOpen) {
-      setFilterDropdownOpen(false);
+    if (user) {
+      fetchReviews();
+    } else {
+      setLoading(false);
     }
-  }, [sortDropdownOpen]);
-  
-  // Get restaurant name by ID
-  const getRestaurantName = (restaurantId) => {
-    const restaurant = restaurants.find(r => r.restaurant_id === restaurantId);
-    return restaurant ? restaurant.name : 'Unknown Restaurant';
-  };
-  
-  // Filter and sort reviews
-  const getFilteredAndSortedReviews = () => {
-    let filtered = reviews;
-    
-    // Filter by restaurant
-    if (selectedRestaurant) {
-      filtered = filtered.filter(review => review.restaurant_id === selectedRestaurant);
-    }
-    
-    // Filter by search term
-    if (searchTerm) {
-      filtered = filtered.filter(review => 
-        review.summary?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        getRestaurantName(review.restaurant_id).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.food_quality?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        review.service?.toLowerCase().includes(searchTerm.toLowerCase())
+  }, [user]);
+
+  const fetchReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      console.log('Fetching reviews for user:', user.uid);
+      
+      const reviewsQuery = query(
+        collection(db, 'reviews'),
+        where('user_id', '==', user.uid),
+        orderBy('timestamp', 'desc')
       );
+      
+      const querySnapshot = await getDocs(reviewsQuery);
+      const reviewsData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      
+      console.log('Fetched reviews:', reviewsData);
+      setReviews(reviewsData);
+      
+    } catch (err) {
+      console.error('Error fetching reviews:', err);
+      setError(`Failed to load reviews: ${err.message}`);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const calculateStats = () => {
+    if (reviews.length === 0) {
+      return {
+        totalReviews: 0,
+        averageRating: 0,
+        restaurantsReviewed: 0,
+        lastReview: null
+      };
+    }
+
+    const validRatings = reviews
+      .map(r => r.sentiment_score)
+      .filter(score => score && !isNaN(score));
     
-    // Sort reviews
+    const averageRating = validRatings.length > 0 
+      ? validRatings.reduce((sum, score) => sum + score, 0) / validRatings.length 
+      : 0;
+
+    const uniqueRestaurants = new Set(
+      reviews.map(r => r.restaurant_id).filter(Boolean)
+    ).size;
+
+    const lastReview = reviews.length > 0 ? reviews[0].timestamp : null;
+
+    return {
+      totalReviews: reviews.length,
+      averageRating,
+      restaurantsReviewed: uniqueRestaurants,
+      lastReview
+    };
+  };
+
+  const getFilteredAndSortedReviews = () => {
+    let filtered = [...reviews];
+
+    if (filterBy !== 'all') {
+      filtered = filtered.filter(review => {
+        switch (filterBy) {
+          case 'high':
+            return review.sentiment_score >= 4;
+          case 'medium':
+            return review.sentiment_score >= 2 && review.sentiment_score < 4;
+          case 'low':
+            return review.sentiment_score < 2;
+          default:
+            return true;
+        }
+      });
+    }
+
     filtered.sort((a, b) => {
       switch (sortBy) {
-        case 'date-desc':
-          const dateA = a.timestamp ? new Date(a.timestamp.seconds * 1000) : new Date(0);
-          const dateB = b.timestamp ? new Date(b.timestamp.seconds * 1000) : new Date(0);
-          return dateB - dateA;
-        case 'date-asc':
-          const dateA2 = a.timestamp ? new Date(a.timestamp.seconds * 1000) : new Date(0);
-          const dateB2 = b.timestamp ? new Date(b.timestamp.seconds * 1000) : new Date(0);
-          return dateA2 - dateB2;
-        case 'rating-desc':
+        case 'rating':
           return (b.sentiment_score || 0) - (a.sentiment_score || 0);
-        case 'rating-asc':
-          return (a.sentiment_score || 0) - (b.sentiment_score || 0);
         case 'restaurant':
-          return getRestaurantName(a.restaurant_id).localeCompare(getRestaurantName(b.restaurant_id));
+          return (a.restaurant_name || '').localeCompare(b.restaurant_name || '');
+        case 'date':
         default:
-          return 0;
+          return new Date(b.timestamp?.seconds * 1000 || b.timestamp || 0) - 
+                 new Date(a.timestamp?.seconds * 1000 || a.timestamp || 0);
       }
     });
-    
+
     return filtered;
   };
-  
-  // Extract unique restaurant IDs from reviews
-  const restaurantIds = [...new Set(reviews.map(review => review.restaurant_id))];
-  
-  // Calculate statistics
-  const stats = {
-    totalReviews: reviews.length,
-    averageRating: reviews.length > 0 
-      ? reviews.reduce((sum, review) => sum + (review.sentiment_score || 0), 0) / reviews.length 
-      : 0,
-    restaurantsReviewed: restaurantIds.length,
-    lastReview: reviews.length > 0 ? reviews[0] : null
+
+  const formatDate = (timestamp) => {
+    if (!timestamp) return 'Unknown date';
+    
+    const date = timestamp.seconds 
+      ? new Date(timestamp.seconds * 1000)
+      : new Date(timestamp);
+    
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
-  
-  // Display loading state
+
+  const stats = calculateStats();
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[60vh]">
@@ -163,16 +155,15 @@ const MyReviews = () => {
       </div>
     );
   }
-  
-  // Display error state
+
   if (error) {
     return (
       <div className="max-w-4xl mx-auto mt-8">
         <div className="glass-card rounded-2xl p-8 text-center status-error">
-          <h2 className="heading-md mb-4">Unable to Load Reviews</h2>
+          <h2 className="heading-md mb-4">Error Loading Reviews</h2>
           <p className="body-md mb-6">{error}</p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={fetchReviews}
             className="btn-primary focus-ring"
           >
             Try Again
@@ -181,25 +172,23 @@ const MyReviews = () => {
       </div>
     );
   }
-  
-  // Handle empty state
+
   if (reviews.length === 0) {
     return (
       <div className="max-w-4xl mx-auto">
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="p-8 text-center">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <MessageSquare className="text-white" size={32} />
-            </div>
-            <h2 className="heading-lg mb-4">No Reviews Yet</h2>
-            <p className="body-lg mb-8 max-w-md mx-auto">
-              You haven't shared any feedback yet. Start by reviewing a restaurant and help improve dining experiences!
+        <div className="glass-card rounded-2xl p-12 text-center">
+          <div className="text-6xl mb-6">📝</div>
+          <h2 className="heading-lg mb-4">No Reviews Yet</h2>
+          <div className="max-w-md mx-auto space-y-4">
+            <p className="body-lg">
+              Start by reviewing a restaurant and help improve dining experiences!
             </p>
             <Link 
-              to="/"
-              className="btn-primary focus-ring"
+              to="/feedback"
+              className="btn-primary focus-ring inline-flex items-center gap-2"
             >
-              Browse Restaurants
+              <MessageSquare size={18} />
+              Leave Your First Review
             </Link>
           </div>
         </div>
@@ -267,7 +256,7 @@ const MyReviews = () => {
             <div>
               <p className="body-sm mb-1">Last Review</p>
               <p className="text-lg font-bold text-white">
-                {stats.lastReview ? formatDate(stats.lastReview.timestamp, 'relative') : 'Never'}
+                {stats.lastReview ? formatDate(stats.lastReview) : 'Never'}
               </p>
             </div>
             <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
@@ -276,223 +265,89 @@ const MyReviews = () => {
           </div>
         </div>
       </div>
-      
-      {/* Filters and Search */}
-      <div className="glass-card-subtle rounded-xl p-6 relative z-50 isolate">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-slate-400" />
-              </div>
-              <input
-                type="text"
-                placeholder="Search reviews..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field pl-10"
-              />
-            </div>
-          </div>
-          
-          {/* Restaurant Filter */}
-          {restaurantIds.length > 1 && (
-            <div className="relative z-50">
-              <button
-                onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
-                className="btn-secondary flex items-center gap-2 focus-ring"
-              >
-                <Filter size={18} />
-                {selectedRestaurant ? getRestaurantName(selectedRestaurant) : 'All Restaurants'}
-                <ChevronDown size={16} className={`transition-transform ${filterDropdownOpen ? 'rotate-180' : ''}`} />
-              </button>
-              
-              {filterDropdownOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 !z-[9998]" 
-                    onClick={() => setFilterDropdownOpen(false)}
-                  />
-                  <div className="absolute right-0 mt-2 w-64 bg-slate-800/95 backdrop-blur-sm rounded-xl border border-white/20 shadow-2xl !z-[9999]">
-                    <div className="p-2">
-                      <button
-                        onClick={() => {
-                          setSelectedRestaurant(null);
-                          setFilterDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                          !selectedRestaurant ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
-                        }`}
-                      >
-                        All Restaurants
-                      </button>
-                      {restaurantIds.map(id => (
-                        <button
-                          key={id}
-                          onClick={() => {
-                            setSelectedRestaurant(id);
-                            setFilterDropdownOpen(false);
-                          }}
-                          className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                            selectedRestaurant === id ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
-                          }`}
-                        >
-                          {getRestaurantName(id)}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-          
-          {/* Sort */}
-          <div className="relative z-50">
-            <button
-              onClick={() => setSortDropdownOpen(!sortDropdownOpen)}
-              className="btn-secondary flex items-center gap-2 focus-ring lg:w-48"
+
+      {/* Filters and Sorting */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-slate-400" />
+            <select
+              value={filterBy}
+              onChange={(e) => setFilterBy(e.target.value)}
+              className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
             >
-              <span className="flex-1 text-left">
-                {sortBy === 'date-desc' ? 'Newest First' :
-                 sortBy === 'date-asc' ? 'Oldest First' :
-                 sortBy === 'rating-desc' ? 'Highest Rating' :
-                 sortBy === 'rating-asc' ? 'Lowest Rating' :
-                 sortBy === 'restaurant' ? 'Restaurant Name' : 'Sort By'}
-              </span>
-              <ChevronDown size={16} className={`transition-transform ${sortDropdownOpen ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {sortDropdownOpen && (
-              <>
-                <div 
-                  className="fixed inset-0 !z-[9998]" 
-                  onClick={() => setSortDropdownOpen(false)}
-                />
-                <div className="absolute right-0 mt-2 w-64 bg-slate-800/95 backdrop-blur-sm rounded-xl border border-white/20 shadow-2xl !z-[9999]">
-                  <div className="p-2">
-                    <button
-                      onClick={() => {
-                        setSortBy('date-desc');
-                        setSortDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        sortBy === 'date-desc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
-                      }`}
-                    >
-                      Newest First
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSortBy('date-asc');
-                        setSortDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        sortBy === 'date-asc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
-                      }`}
-                    >
-                      Oldest First
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSortBy('rating-desc');
-                        setSortDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        sortBy === 'rating-desc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
-                      }`}
-                    >
-                      Highest Rating
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSortBy('rating-asc');
-                        setSortDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        sortBy === 'rating-asc' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
-                      }`}
-                    >
-                      Lowest Rating
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSortBy('restaurant');
-                        setSortDropdownOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 rounded-lg transition-colors ${
-                        sortBy === 'restaurant' ? 'bg-blue-600 text-white' : 'text-slate-200 hover:bg-slate-700'
-                      }`}
-                    >
-                      Restaurant Name
-                    </button>
-                  </div>
-                </div>
-              </>
-            )}
+              <option value="all">All Reviews</option>
+              <option value="high">High Rated (4-5)</option>
+              <option value="medium">Medium Rated (2-3)</option>
+              <option value="low">Low Rated (1-2)</option>
+            </select>
           </div>
+          
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-500"
+          >
+            <option value="date">Sort by Date</option>
+            <option value="rating">Sort by Rating</option>
+            <option value="restaurant">Sort by Restaurant</option>
+          </select>
         </div>
         
-        <div className="mt-4 flex items-center justify-between">
-          <p className="body-sm">
-            Showing {filteredReviews.length} of {reviews.length} review{reviews.length !== 1 ? 's' : ''}
-          </p>
-          
-          {(selectedRestaurant || searchTerm) && (
-            <button
-              onClick={() => {
-                setSelectedRestaurant(null);
-                setSearchTerm('');
-              }}
-              className="text-blue-400 hover:text-blue-300 text-sm font-medium"
-            >
-              Clear Filters
-            </button>
-          )}
+        <div className="text-sm text-slate-400">
+          Showing {filteredReviews.length} of {reviews.length} reviews
         </div>
       </div>
-      
+
       {/* Reviews List */}
       <div className="space-y-6">
-        {filteredReviews.length === 0 ? (
-          <div className="glass-card-subtle rounded-xl p-8 text-center">
-            <h3 className="heading-sm mb-2">No Reviews Found</h3>
-            <p className="body-md">Try adjusting your search or filter criteria.</p>
-          </div>
-        ) : (
-          filteredReviews.map((review) => (
-            <div key={review.id || review.review_id} className="glass-card rounded-xl overflow-hidden">
+        <AnimatePresence>
+          {filteredReviews.map((review) => (
+            <motion.div
+              key={review.id}
+              className="glass-card rounded-xl overflow-hidden"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+            >
               <div className="p-6">
-                {/* Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-                  <div>
-                    <h3 className="heading-sm mb-1">
-                      {getRestaurantName(review.restaurant_id)}
-                    </h3>
-                    <div className="flex items-center gap-4 text-slate-400 text-sm">
-                      <div className="flex items-center gap-1">
-                        <Calendar size={14} />
-                        {review.timestamp ? formatDate(review.timestamp) : 'Unknown date'}
-                      </div>
-                      {typeof review.sentiment_score === 'number' && (
-                        <div className="flex items-center gap-2">
-                          <StarRating rating={review.sentiment_score} size="sm" />
-                        </div>
-                      )}
+                {/* Review Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4">
+                  <div className="flex items-center gap-4 mb-2 sm:mb-0">
+                    <div className="flex items-center">
+                      {[...Array(5)].map((_, i) => (
+                        <Star
+                          key={i}
+                          size={16}
+                          className={`${
+                            i < (review.sentiment_score || 0)
+                              ? 'text-amber-400 fill-amber-400'
+                              : 'text-slate-500'
+                          }`}
+                        />
+                      ))}
                     </div>
+                    <span className="font-semibold text-white">
+                      {review.restaurant_name || 'Restaurant'}
+                    </span>
                   </div>
                   
-                  <button
-                    onClick={() => setExpandedReview(expandedReview === review.id ? null : review.id)}
-                    className="btn-ghost flex items-center gap-2 focus-ring"
-                  >
-                    {expandedReview === review.id ? 'Show Less' : 'View Details'}
-                    <ChevronRight 
-                      size={16} 
-                      className={`transition-transform ${expandedReview === review.id ? 'rotate-90' : ''}`} 
-                    />
-                  </button>
+                  <div className="flex items-center gap-4 text-sm text-slate-400">
+                    <div className="flex items-center gap-1">
+                      <Calendar size={14} />
+                      <span>{formatDate(review.timestamp)}</span>
+                    </div>
+                    <button
+                      onClick={() => setExpandedReview(expandedReview === review.id ? null : review.id)}
+                      className="btn-ghost flex items-center gap-2 focus-ring"
+                    >
+                      {expandedReview === review.id ? 'Show Less' : 'View Details'}
+                      <ChevronRight 
+                        size={16} 
+                        className={`transition-transform ${expandedReview === review.id ? 'rotate-90' : ''}`} 
+                      />
+                    </button>
+                  </div>
                 </div>
                 
                 {/* Summary */}
@@ -541,30 +396,38 @@ const MyReviews = () => {
                           🔑 Key Points
                         </h4>
                         <ul className="list-disc list-inside text-slate-300 space-y-1 text-sm">
-                          {Array.isArray(review.specific_points) ? (
+                          {Array.isArray(review.specific_points) ?
                             review.specific_points.map((point, index) => (
                               <li key={index}>{point}</li>
-                            ))
-                          ) : typeof review.specific_points === 'string' ? (
-                            review.specific_points.split(',').map((point, index) => {
-                              const cleanPoint = point.trim().replace(/^['"]|['"]$/g, '');
-                              return cleanPoint && cleanPoint !== 'N/A' ? (
-                                <li key={index}>{cleanPoint}</li>
-                              ) : null;
-                            })
-                          ) : (
-                            <li>No specific points provided</li>
-                          )}
+                            )) :
+                            <li>{review.specific_points}</li>
+                          }
                         </ul>
                       </div>
                     )}
                     
-                    {/* Audio playback */}
+                    {/* Improvement Suggestions */}
+                    {review.improvement_suggestions && (
+                      <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                        <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
+                          💡 Improvement Suggestions
+                        </h4>
+                        <ul className="list-disc list-inside text-slate-300 space-y-1 text-sm">
+                          {Array.isArray(review.improvement_suggestions) ?
+                            review.improvement_suggestions.map((suggestion, index) => (
+                              <li key={index}>{suggestion}</li>
+                            )) :
+                            <li>{review.improvement_suggestions}</li>
+                          }
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {/* Audio Recording */}
                     {review.audio_url && (
                       <div className="p-4 bg-white/5 rounded-lg border border-white/10">
                         <h4 className="text-sm font-medium text-white mb-3 flex items-center gap-2">
-                          <Volume2 size={16} />
-                          Original Audio Recording
+                          🎵 Audio Recording
                         </h4>
                         <audio src={review.audio_url} controls className="w-full" />
                       </div>
@@ -572,9 +435,9 @@ const MyReviews = () => {
                   </div>
                 )}
               </div>
-            </div>
-          ))
-        )}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-// src/App.js
+// src/App.js - Complete with Points System Routes
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -9,6 +9,13 @@ import Login from './pages/Login';
 import MyReviews from './pages/MyReviews';
 import OwnerDashboard from './pages/OwnerDashboard';
 import RecordFeedback from './pages/RecordFeedback';
+
+// NEW: Points System Pages
+import Rewards from './pages/Rewards';
+import Vouchers from './pages/Vouchers';
+import AdminRewards from './pages/AdminRewards';
+import TestSetup from './TestSetup';
+
 import { AnimatePresence, motion } from 'framer-motion';
 
 // Protected route component with smooth loading
@@ -72,53 +79,32 @@ const OwnerRoute = ({ children }) => {
   return children;
 };
 
-// Page transition wrapper
-const PageTransition = ({ children }) => {
-  const location = useLocation();
-  
-  return (
-    <AnimatePresence mode="wait">
-      <motion.div
-        key={location.pathname}
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -20 }}
-        transition={{ 
-          duration: 0.3,
-          ease: "easeInOut"
-        }}
-        className="min-h-screen flex flex-col"
-      >
-        {children}
-      </motion.div>
-    </AnimatePresence>
-  );
-};
-
-// Layout wrapper for consistent spacing and structure
+// Layout wrapper
 const AppLayout = ({ children, showFooter = true }) => {
   const location = useLocation();
-  const isLoginPage = location.pathname === '/login';
   
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Skip header on login page for cleaner design */}
-      {!isLoginPage && <Header />}
-      
-      {/* Main content area */}
-      <main className={`flex-1 ${isLoginPage ? '' : 'py-8 px-4 sm:px-6 lg:px-8'}`}>
-        <PageTransition>
-          {children}
-        </PageTransition>
+      <Header />
+      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={location.pathname}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            {children}
+          </motion.div>
+        </AnimatePresence>
       </main>
-      
-      {/* Footer */}
-      {showFooter && !isLoginPage && <Footer />}
+      {showFooter && <Footer />}
     </div>
   );
 };
 
-// Error boundary for better error handling
+// Error boundary component
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
@@ -136,21 +122,19 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center px-4">
-          <div className="text-center">
-            <div className="glass-card rounded-2xl p-8 max-w-md mx-auto">
-              <div className="text-6xl mb-4">⚠️</div>
-              <h2 className="heading-md mb-4">Something went wrong</h2>
-              <p className="body-md mb-6">
-                We apologize for the inconvenience. Please try refreshing the page.
-              </p>
-              <button
-                onClick={() => window.location.reload()}
-                className="btn-primary focus-ring"
-              >
-                Refresh Page
-              </button>
-            </div>
+        <div className="min-h-screen flex items-center justify-center bg-slate-950">
+          <div className="text-center max-w-md mx-auto p-8">
+            <div className="text-6xl mb-4">😵</div>
+            <h1 className="text-2xl font-bold text-white mb-4">Something went wrong</h1>
+            <p className="text-slate-300 mb-6">
+              We encountered an unexpected error. Please try refreshing the page.
+            </p>
+            <button
+              onClick={() => window.location.reload()}
+              className="btn-primary focus-ring"
+            >
+              Refresh Page
+            </button>
           </div>
         </div>
       );
@@ -164,6 +148,7 @@ function AppContent() {
   return (
     <Router>
       <Routes>
+        {/* Public Routes */}
         <Route path="/login" element={
           <AppLayout showFooter={false}>
             <Login />
@@ -176,7 +161,7 @@ function AppContent() {
           </AppLayout>
         } />
         
-        {/* Feedback routes */}
+        {/* Feedback Routes */}
         <Route path="/feedback/:restaurantName" element={
           <AppLayout>
             <ProtectedRoute>
@@ -193,7 +178,7 @@ function AppContent() {
           </AppLayout>
         } />
         
-        {/* User routes */}
+        {/* User Routes */}
         <Route path="/my-reviews" element={
           <AppLayout>
             <ProtectedRoute>
@@ -202,11 +187,46 @@ function AppContent() {
           </AppLayout>
         } />
         
-        {/* Owner routes */}
+        {/* NEW: Points System Routes */}
+        <Route path="/rewards" element={
+          <AppLayout>
+            <ProtectedRoute>
+              <Rewards />
+            </ProtectedRoute>
+          </AppLayout>
+        } />
+        
+        <Route path="/vouchers" element={
+          <AppLayout>
+            <ProtectedRoute>
+              <Vouchers />
+            </ProtectedRoute>
+          </AppLayout>
+        } />
+        
+        {/* Setup Route (for initializing points system) */}
+        <Route path="/test-setup" element={
+          <AppLayout>
+            <ProtectedRoute>
+              <TestSetup />
+            </ProtectedRoute>
+          </AppLayout>
+        } />
+        
+        {/* Owner Routes */}
         <Route path="/dashboard" element={
           <AppLayout>
             <OwnerRoute>
               <OwnerDashboard />
+            </OwnerRoute>
+          </AppLayout>
+        } />
+        
+        {/* NEW: Admin Rewards Management Route */}
+        <Route path="/admin/rewards" element={
+          <AppLayout>
+            <OwnerRoute>
+              <AdminRewards />
             </OwnerRoute>
           </AppLayout>
         } />

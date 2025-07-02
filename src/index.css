@@ -1,4 +1,4 @@
-/* src/index.css */
+/* src/index.css - Complete File with All Fixes */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -68,176 +68,187 @@
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
   --radius-2xl: 1.5rem;
+  
+  /* Transitions */
+  --transition-fast: 150ms ease-in-out;
+  --transition-normal: 250ms ease-in-out;
+  --transition-slow: 350ms ease-in-out;
 }
 
-/* Custom Body Styles */
-body {
-  background: linear-gradient(135deg, var(--color-primary-950) 0%, var(--color-primary-900) 50%, var(--color-primary-800) 100%);
-  color: var(--color-primary-100);
-  font-family: var(--font-sans);
-  font-feature-settings: 'kern', 'liga', 'clig', 'calt';
+/* Base Styles */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  min-height: 100vh;
+}
+
+body {
   margin: 0;
+  font-family: var(--font-sans);
+  background: linear-gradient(135deg, var(--color-primary-950) 0%, var(--color-primary-900) 100%);
+  color: var(--color-primary-100);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 
-/* Custom Component Classes */
-@layer components {
-  /* Glass Cards */
-  .glass-card {
-    @apply backdrop-blur-xl border border-white/10;
-    background: rgba(255, 255, 255, 0.05);
-    box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  }
-  
-  .glass-card-subtle {
-    @apply backdrop-blur-md border;
-    background: rgba(255, 255, 255, 0.02);
-    border-color: rgba(255, 255, 255, 0.05);
-    box-shadow: var(--shadow-lg);
-  }
-  
-  /* Buttons */
-  .btn-primary {
-    @apply px-6 py-3 text-white font-medium rounded-lg transition-all duration-200 shadow-lg;
-    background: linear-gradient(to right, #2563eb, #1d4ed8);
-    transform: translateY(0);
-  }
-  
-  .btn-primary:hover {
-    background: linear-gradient(to right, #1d4ed8, #1e40af);
-    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
-    transform: translateY(-1px);
-  }
-  
-  .btn-secondary {
-    @apply px-6 py-3 text-white font-medium rounded-lg transition-all duration-200;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  
-  .btn-secondary:hover {
-    background: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.3);
-  }
-  
-  .btn-ghost {
-    @apply px-4 py-2 font-medium rounded-md transition-all duration-200;
-    color: #cbd5e1;
-  }
-  
-  .btn-ghost:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
-  }
-  
-  /* Input Fields */
-  .input-field {
-    @apply w-full px-4 py-3 rounded-lg text-white font-medium transition-all duration-200;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-  }
-  
-  .input-field::placeholder {
-    color: #94a3b8;
-  }
-  
-  .input-field:focus {
-    outline: none;
-    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
-    border-color: rgba(59, 130, 246, 0.5);
-  }
-  
-  /* Typography */
-  .heading-xl {
-    @apply text-4xl font-bold tracking-tight text-white;
-  }
-  
-  .heading-lg {
-    @apply text-3xl font-bold tracking-tight text-white;
-  }
-  
-  .heading-md {
-    @apply text-2xl font-semibold tracking-tight text-white;
-  }
-  
-  .heading-sm {
-    @apply text-xl font-semibold text-white;
-  }
-  
-  .body-lg {
-    @apply text-lg leading-relaxed;
-    color: #cbd5e1;
-  }
-  
-  .body-md {
-    @apply text-base leading-relaxed;
-    color: #cbd5e1;
-  }
-  
-  .body-sm {
-    @apply text-sm;
-    color: #94a3b8;
-  }
-  
-  /* Status indicators */
-  .status-success {
-    @apply text-emerald-400;
-    background: rgba(16, 185, 129, 0.1);
-    border: 1px solid rgba(16, 185, 129, 0.2);
-  }
-  
-  .status-warning {
-    @apply text-amber-400;
-    background: rgba(245, 158, 11, 0.1);
-    border: 1px solid rgba(245, 158, 11, 0.2);
-  }
-  
-  .status-error {
-    @apply text-red-400;
-    background: rgba(239, 68, 68, 0.1);
-    border: 1px solid rgba(239, 68, 68, 0.2);
-  }
-  
-  /* Modern card hover effects */
-  .card-hover {
-    @apply transition-all duration-300;
-  }
-  
-  .card-hover:hover {
-    transform: scale(1.02);
-    box-shadow: 0 25px 50px -12px rgb(0 0 0 / 0.25);
-  }
-  
-  /* Gradient text */
-  .gradient-text {
-    background: linear-gradient(to right, #60a5fa, #2563eb);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-  
-  /* Navigation */
-  .nav-link {
-    @apply px-4 py-2 font-medium rounded-md transition-all duration-200;
-    color: #cbd5e1;
-  }
-  
-  .nav-link:hover {
-    background: rgba(255, 255, 255, 0.05);
-    color: #ffffff;
-  }
-  
-  .nav-link.active {
-    @apply text-white;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
+/* Typography Scale */
+.heading-xs { @apply text-lg font-semibold tracking-tight; }
+.heading-sm { @apply text-xl font-semibold tracking-tight; }
+.heading-md { @apply text-2xl font-bold tracking-tight; }
+.heading-lg { @apply text-3xl font-bold tracking-tight; }
+.heading-xl { @apply text-4xl md:text-5xl font-bold tracking-tight; }
+
+.body-xs { @apply text-xs leading-5; }
+.body-sm { @apply text-sm leading-6; }
+.body-md { @apply text-base leading-7; }
+.body-lg { @apply text-lg leading-8; }
+
+.gradient-text {
+  background: linear-gradient(135deg, var(--color-accent-400), var(--color-accent-600));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-/* Enhanced scrollbar */
+/* Glass Card Components */
+.glass-card {
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--shadow-xl);
+}
+
+.glass-card-subtle {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Button Components */
+.btn-primary {
+  @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white;
+  background: linear-gradient(135deg, var(--color-accent-600), var(--color-accent-700));
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-accent-500);
+  box-shadow: var(--shadow-md);
+  transition: all var(--transition-normal);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, var(--color-accent-500), var(--color-accent-600));
+  box-shadow: var(--shadow-lg);
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-6 py-3 text-sm font-medium text-white;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--radius-lg);
+  backdrop-filter: blur(8px);
+  transition: all var(--transition-normal);
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
+.btn-ghost {
+  @apply inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-slate-300;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: white;
+}
+
+/* Navigation Styles */
+.nav-link {
+  @apply relative px-4 py-2 text-sm font-medium text-slate-300 rounded-lg transition-all duration-200;
+}
+
+.nav-link:hover {
+  @apply text-white bg-white/5;
+}
+
+.nav-link.active {
+  @apply text-white bg-white/10 border border-white/20;
+}
+
+.nav-link.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 20px;
+  height: 2px;
+  background: var(--color-accent-500);
+  border-radius: 1px;
+}
+
+/* Form Components */
+.input-field {
+  @apply w-full px-4 py-3 text-white placeholder-slate-400 border rounded-lg transition-all duration-200;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+.input-field:focus {
+  @apply outline-none ring-2 ring-blue-500/50 border-blue-500/50;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.input-field:disabled {
+  @apply opacity-50 cursor-not-allowed;
+}
+
+/* Status Components */
+.status-success {
+  @apply p-4 rounded-lg border;
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.2);
+}
+
+.status-warning {
+  @apply p-4 rounded-lg border;
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.status-error {
+  @apply p-4 rounded-lg border;
+  background: rgba(239, 68, 68, 0.1);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.status-info {
+  @apply p-4 rounded-lg border;
+  background: rgba(59, 130, 246, 0.1);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -333,4 +344,414 @@ audio::-webkit-media-controls-timeline {
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
+}
+
+/* ========================================= */
+/* VOUCHER STYLING FOR POINTS SYSTEM */
+/* ========================================= */
+
+/* === VOUCHER CARD STYLING === */
+
+/* Main voucher container with ticket-like appearance */
+.voucher-card {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, 
+    rgba(34, 197, 94, 0.1) 0%, 
+    rgba(59, 130, 246, 0.1) 100%);
+  border: 2px dashed rgba(34, 197, 94, 0.3);
+  border-radius: 12px;
+  transition: all 0.3s ease;
+}
+
+/* Hover effect for vouchers */
+.voucher-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.5);
+}
+
+/* Circular cutouts on left and right sides (ticket style) */
+.voucher-card::before,
+.voucher-card::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #0f172a; /* Matches your page background color */
+  transform: translateY(-50%);
+  z-index: 10;
+}
+
+.voucher-card::before {
+  left: -10px;
+}
+
+.voucher-card::after {
+  right: -10px;
+}
+
+/* Alternative perforated edge style */
+.voucher-card-perforated {
+  position: relative;
+  background: linear-gradient(135deg, 
+    rgba(34, 197, 94, 0.15) 0%, 
+    rgba(59, 130, 246, 0.15) 100%);
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+/* Create perforated edge with multiple small circles */
+.voucher-card-perforated::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 8px;
+  background: 
+    radial-gradient(circle at 10px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 30px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 50px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 70px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 90px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px);
+  background-size: 100px 8px;
+  background-repeat: repeat-x;
+}
+
+/* Bottom perforated edge */
+.voucher-card-perforated::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 8px;
+  background: 
+    radial-gradient(circle at 10px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 30px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 50px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 70px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px),
+    radial-gradient(circle at 90px 4px, transparent 3px, rgba(34, 197, 94, 0.3) 3px);
+  background-size: 100px 8px;
+  background-repeat: repeat-x;
+}
+
+/* === VOUCHER CONTENT STYLING === */
+
+/* Voucher header with reward name */
+.voucher-header {
+  background: linear-gradient(90deg, 
+    rgba(34, 197, 94, 0.2) 0%, 
+    rgba(59, 130, 246, 0.2) 100%);
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.2);
+  padding: 1rem 1.5rem;
+  position: relative;
+}
+
+/* Large voucher code display */
+.voucher-code {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-family: 'Monaco', 'Menlo', 'Consolas', monospace;
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 0.1em;
+  text-align: center;
+  color: #ffffff;
+  background-image: repeating-linear-gradient(
+    45deg,
+    transparent,
+    transparent 2px,
+    rgba(255, 255, 255, 0.03) 2px,
+    rgba(255, 255, 255, 0.03) 4px
+  );
+}
+
+/* Voucher status indicators */
+.voucher-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.voucher-status.active {
+  background: rgba(34, 197, 94, 0.2);
+  color: rgb(34, 197, 94);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.voucher-status.used {
+  background: rgba(107, 114, 128, 0.2);
+  color: rgb(156, 163, 175);
+  border: 1px solid rgba(107, 114, 128, 0.3);
+}
+
+.voucher-status.expired {
+  background: rgba(239, 68, 68, 0.2);
+  color: rgb(239, 68, 68);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* === VOUCHER ANIMATION EFFECTS === */
+
+/* Subtle pulse animation for active vouchers */
+@keyframes voucher-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+}
+
+.voucher-card.active {
+  animation: voucher-pulse 2s infinite;
+}
+
+/* Shimmer effect for premium vouchers */
+@keyframes voucher-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.voucher-premium {
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1),
+    rgba(147, 51, 234, 0.1),
+    rgba(34, 197, 94, 0.1)
+  );
+  background-size: 200% 200%;
+  animation: voucher-shimmer 3s ease-in-out infinite;
+}
+
+/* === RESPONSIVE VOUCHER STYLING === */
+
+/* Mobile optimizations */
+@media (max-width: 640px) {
+  .voucher-card::before,
+  .voucher-card::after {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .voucher-card::before {
+    left: -8px;
+  }
+  
+  .voucher-card::after {
+    right: -8px;
+  }
+  
+  .voucher-code {
+    font-size: 1.25rem;
+    padding: 0.5rem 0.75rem;
+  }
+  
+  .voucher-header {
+    padding: 0.75rem 1rem;
+  }
+}
+
+/* === VOUCHER PRINT STYLING === */
+
+/* Print-specific styles for vouchers */
+@media print {
+  .voucher-card {
+    background: white !important;
+    color: black !important;
+    border: 2px dashed #333 !important;
+    box-shadow: none !important;
+    page-break-inside: avoid;
+  }
+  
+  .voucher-card::before,
+  .voucher-card::after {
+    background: white !important;
+    border: 1px solid #333;
+  }
+  
+  .voucher-code {
+    background: #f5f5f5 !important;
+    color: black !important;
+    border: 1px solid #333 !important;
+  }
+}
+
+/* === VOUCHER GRID LAYOUT === */
+
+/* Grid layout for multiple vouchers */
+.vouchers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}
+
+/* Large voucher display for single active voucher */
+.voucher-large {
+  max-width: 500px;
+  margin: 2rem auto;
+  padding: 2rem;
+}
+
+.voucher-large .voucher-code {
+  font-size: 2rem;
+  padding: 1rem 1.5rem;
+  margin: 1rem 0;
+}
+
+/* === POINTS SYSTEM STYLING === */
+
+/* Points display animations */
+@keyframes points-earned {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.points-earned {
+  animation: points-earned 0.6s ease-in-out;
+}
+
+/* Progress bar for points */
+.points-progress {
+  background: linear-gradient(90deg, 
+    rgba(147, 51, 234, 0.2), 
+    rgba(59, 130, 246, 0.2));
+  border-radius: 9999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.points-progress::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, 
+    transparent, 
+    rgba(255, 255, 255, 0.2), 
+    transparent);
+  animation: progress-shimmer 2s infinite;
+}
+
+@keyframes progress-shimmer {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+/* Reward card styling */
+.reward-card {
+  @apply transition-all duration-300 ease-in-out;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+}
+
+.reward-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.reward-card.affordable {
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.reward-card.affordable:hover {
+  border-color: rgba(34, 197, 94, 0.5);
+  box-shadow: 0 12px 32px rgba(34, 197, 94, 0.15);
+}
+
+/* Points balance display */
+.points-balance {
+  background: linear-gradient(135deg, 
+    rgba(147, 51, 234, 0.2), 
+    rgba(59, 130, 246, 0.2));
+  border: 1px solid rgba(147, 51, 234, 0.3);
+  border-radius: 12px;
+  padding: 1rem;
+  backdrop-filter: blur(12px);
+}
+
+/* ========================================= */
+/* LOGO FIX - REMOVE BLUE BORDER */
+/* ========================================= */
+
+/* Remove blue border/outline from logo and navigation elements */
+.logo-container,
+.logo-container img,
+.logo-container div,
+.logo-container span,
+.logo-container:focus,
+.logo-container:focus-visible,
+.logo-container:active {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove blue border from all navigation links */
+nav a,
+nav button,
+header a,
+header button {
+  outline: none !important;
+  border: none !important;
+}
+
+/* Remove default focus styles but keep accessibility */
+nav a:focus-visible,
+header a:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.5) !important;
+  outline-offset: 2px !important;
+  border-radius: 4px !important;
+}
+
+/* Specific fix for the logo icon container */
+.bg-gradient-to-br {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+}
+
+/* Remove any default button or link styling */
+button:focus,
+a:focus {
+  outline: none !important;
+}
+
+/* Keep focus visible for accessibility but make it subtle */
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.3) !important;
+  outline-offset: 2px !important;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+  .voucher-card::before,
+  .voucher-card::after {
+    background: var(--color-primary-950);
+  }
 }

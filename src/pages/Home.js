@@ -1,6 +1,6 @@
 // src/pages/Home.js
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { getAllRestaurants } from '../services/restaurantService';
 import { useAuth } from '../contexts/AuthContext';
 import { createSlug } from '../utils/stringUtils';
@@ -13,6 +13,7 @@ const Home = () => {
   const [selectedRestaurant, setSelectedRestaurant] = useState(null);
   
   const { currentUser, isOwner } = useAuth();
+  const navigate = useNavigate();
   
   useEffect(() => {
     const fetchRestaurants = async () => {
@@ -85,9 +86,14 @@ const Home = () => {
               </Link>
             </div>
           ) : (
-            <p className="body-md">
-              No restaurants are currently available for feedback. Please check back later.
-            </p>
+            <div>
+              <p className="body-md mb-6">
+                No restaurants are currently available for review. Please check back later.
+              </p>
+              <Link to="/my-reviews" className="btn-secondary focus-ring">
+                View My Reviews
+              </Link>
+            </div>
           )}
         </div>
       </div>
@@ -95,16 +101,15 @@ const Home = () => {
   }
   
   return (
-    <div className="max-w-7xl mx-auto space-y-12">
+    <div className="space-y-12">
       {/* Hero Section */}
-      <section className="text-center py-12">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-5xl font-bold tracking-tight text-white mb-6">
-            Transform Customer Feedback with{' '}
-            <span className="gradient-text">AI-Powered Insights</span>
+      <section className="text-center">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <h1 className="heading-xl mb-6">
+            Share Your Dining Experience
           </h1>
-          <p className="body-lg max-w-2xl mx-auto mb-8">
-            Share your dining experience through voice or text and help restaurants improve their service with detailed, actionable feedback powered by artificial intelligence.
+          <p className="body-lg max-w-2xl mx-auto">
+            Help restaurants improve by sharing your honest feedback. Your voice matters in creating better dining experiences for everyone.
           </p>
           
           {currentUser ? (
@@ -139,10 +144,30 @@ const Home = () => {
               </div>
               
               <div className="grid lg:grid-cols-3 gap-8">
-                {/* Restaurant Image */}
+                {/* Restaurant Image - UPDATED FOR YOUR ACTUAL FILES */}
                 <div className="lg:col-span-1">
-                  <div className="aspect-square bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl flex items-center justify-center border border-white/10">
-                    <span className="text-6xl">🍽️</span>
+                  <div className="aspect-square bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden border border-white/10 relative">
+                    <img
+                      src={`/images/restaurants/restaurant${selectedRestaurant.restaurant_id}.jpg`}
+                      alt={`${selectedRestaurant.name} restaurant`}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      onError={(e) => {
+                        // Fallback 1: Try your default-restaurant.jpg
+                        console.log(`Restaurant${selectedRestaurant.restaurant_id}.jpg not found, trying default`);
+                        e.target.src = '/images/restaurants/default-restaurant.jpg';
+                        e.target.onerror = function() {
+                          // Fallback 2: Hide image and show emoji
+                          console.log('Default restaurant image not found, showing emoji fallback');
+                          e.target.style.display = 'none';
+                          e.target.parentElement.querySelector('.emoji-fallback').style.display = 'flex';
+                        };
+                      }}
+                    />
+                    
+                    {/* Final fallback - emoji */}
+                    <div className="emoji-fallback hidden absolute inset-0 flex items-center justify-center">
+                      <span className="text-6xl">🍽️</span>
+                    </div>
                   </div>
                 </div>
                 
@@ -223,92 +248,109 @@ const Home = () => {
                   }`}
                   onClick={() => setSelectedRestaurant(restaurant)}
                 >
-                  {/* Restaurant Image */}
-                  <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 flex items-center justify-center">
-                    <span className="text-4xl">🍽️</span>
+                  {/* Restaurant Image - UPDATED FOR YOUR ACTUAL FILES */}
+                  <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden relative">
+                    {/* Try to load restaurant-specific image based on restaurant_id */}
+                    <img
+                      src={`/images/restaurants/restaurant${restaurant.restaurant_id}.jpg`}
+                      alt={`${restaurant.name} restaurant`}
+                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                      onError={(e) => {
+                        // Fallback 1: Try your default-restaurant.jpg
+                        console.log(`Restaurant${restaurant.restaurant_id}.jpg not found, trying default`);
+                        e.target.src = '/images/restaurants/default-restaurant.jpg';
+                        e.target.onerror = function() {
+                          // Fallback 2: Hide image and show emoji
+                          console.log('Default restaurant image not found, showing emoji fallback');
+                          e.target.style.display = 'none';
+                          e.target.parentElement.querySelector('.emoji-fallback').style.display = 'flex';
+                        };
+                      }}
+                    />
+                    
+                    {/* Final fallback - emoji */}
+                    <div className="emoji-fallback hidden absolute inset-0 flex items-center justify-center">
+                      <span className="text-4xl">🍽️</span>
+                    </div>
+                    
+                    {/* Image overlay for better text contrast */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+                    
+                    {/* Optional: Restaurant status badge */}
+                    {restaurant.status && (
+                      <div className="absolute top-3 right-3">
+                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                          restaurant.status === 'open' 
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
+                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                        }`}>
+                          {restaurant.status === 'open' ? 'Open' : 'Closed'}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   
                   {/* Restaurant Info */}
                   <div className="p-6">
                     <h3 className="heading-sm mb-2">{restaurant.name}</h3>
-                    <p className="body-sm mb-4 line-clamp-1">
-                      {restaurant.address || 'Address not provided'}
+                    <p className="body-sm mb-4 line-clamp-2">
+                      {restaurant.description || restaurant.address || 'Experience great food and atmosphere'}
                     </p>
+                    
+                    {/* Restaurant details */}
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex items-center gap-2 text-sm text-slate-400">
+                        <span>📍</span>
+                        <span className="truncate">{restaurant.address || 'Location available'}</span>
+                      </div>
+                      
+                      {/* Rating display (if you have ratings) */}
+                      {restaurant.rating && (
+                        <div className="flex items-center gap-1">
+                          <span className="text-yellow-400">⭐</span>
+                          <span className="text-sm font-medium text-white">{restaurant.rating}</span>
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="flex justify-between items-center">
                       {currentUser ? (
-                        <Link
-                          to={`/feedback/${createSlug(restaurant.name)}`}
-                          className="text-blue-400 hover:text-blue-300 font-medium text-sm flex items-center gap-1 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/feedback', { state: { restaurant } });
+                          }}
+                          className="btn-primary text-sm px-4 py-2"
                         >
-                          Leave Feedback
-                          <ArrowRight size={14} />
-                        </Link>
+                          Leave Review
+                        </button>
                       ) : (
-                        <Link
-                          to={`/login?restaurant_id=${restaurant.restaurant_id}`}
-                          className="text-blue-400 hover:text-blue-300 font-medium text-sm flex items-center gap-1 transition-colors"
-                          onClick={(e) => e.stopPropagation()}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate('/login');
+                          }}
+                          className="btn-secondary text-sm px-4 py-2"
                         >
-                          Sign In
-                          <ArrowRight size={14} />
-                        </Link>
+                          Sign in to Review
+                        </button>
                       )}
                       
-                      <div className="text-slate-500 body-sm">
-                        ID: {restaurant.restaurant_id}
-                      </div>
+                      {/* Additional info button */}
+                      <button 
+                        className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // Add modal or expand functionality here
+                          console.log('Show more info for:', restaurant.name);
+                        }}
+                      >
+                        <span className="text-slate-400 text-sm">More Info</span>
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <section>
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="p-8">
-            <div className="text-center mb-12">
-              <h2 className="heading-lg mb-4">How It Works</h2>
-              <p className="body-lg max-w-2xl mx-auto">
-                Our AI-powered system transforms your feedback into actionable insights for restaurants
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto shadow-lg">
-                  <Mic className="text-white" size={24} />
-                </div>
-                <h3 className="heading-sm">Share Your Experience</h3>
-                <p className="body-md">
-                  Record your thoughts via voice or text. Talk about food quality, service, atmosphere, and what could be improved.
-                </p>
-              </div>
-              
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center mx-auto shadow-lg">
-                  <TrendingUp className="text-white" size={24} />
-                </div>
-                <h3 className="heading-sm">AI Analysis</h3>
-                <p className="body-md">
-                  Our advanced AI analyzes your feedback, extracting key insights about sentiment, specific issues, and improvement suggestions.
-                </p>
-              </div>
-              
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto shadow-lg">
-                  <BarChart3 className="text-white" size={24} />
-                </div>
-                <h3 className="heading-sm">Actionable Insights</h3>
-                <p className="body-md">
-                  Restaurants receive detailed analytics and trends to improve their service and create better dining experiences.
-                </p>
-              </div>
             </div>
           </div>
         </div>
@@ -319,66 +361,46 @@ const Home = () => {
         <div className="glass-card rounded-2xl overflow-hidden">
           <div className="p-8">
             <div className="text-center mb-12">
-              <h2 className="heading-lg mb-4">Why Choose Our Platform</h2>
-              <p className="body-lg max-w-2xl mx-auto">
-                Designed for both customers and restaurant owners with cutting-edge technology
+              <h2 className="heading-lg mb-4">Why Your Feedback Matters</h2>
+              <p className="body-md text-slate-300 max-w-2xl mx-auto">
+                Every review helps restaurants understand what they're doing well and where they can improve. Your honest feedback creates better experiences for everyone.
               </p>
             </div>
             
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center mx-auto border border-blue-500/30">
-                  <Mic className="text-blue-400" size={20} />
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mx-auto border border-blue-500/30">
+                  <MessageSquare size={24} className="text-blue-400" />
                 </div>
-                <h4 className="font-semibold text-white">Voice & Text</h4>
-                <p className="body-sm">Multiple input methods for convenience</p>
+                <h3 className="heading-sm">Voice & Text Reviews</h3>
+                <p className="body-sm text-slate-400">
+                  Share your experience through voice recordings or traditional text reviews
+                </p>
               </div>
               
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center mx-auto border border-emerald-500/30">
-                  <Shield className="text-emerald-400" size={20} />
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-green-500/20 rounded-xl flex items-center justify-center mx-auto border border-green-500/30">
+                  <TrendingUp size={24} className="text-green-400" />
                 </div>
-                <h4 className="font-semibold text-white">Secure & Private</h4>
-                <p className="body-sm">Your data is protected and encrypted</p>
+                <h3 className="heading-sm">AI-Powered Insights</h3>
+                <p className="body-sm text-slate-400">
+                  Advanced analysis helps restaurants understand patterns and improve service
+                </p>
               </div>
               
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mx-auto border border-purple-500/30">
-                  <TrendingUp className="text-purple-400" size={20} />
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto border border-purple-500/30">
+                  <Shield size={24} className="text-purple-400" />
                 </div>
-                <h4 className="font-semibold text-white">Real-time Analytics</h4>
-                <p className="body-sm">Instant insights and trends</p>
-              </div>
-              
-              <div className="text-center space-y-3">
-                <div className="w-12 h-12 bg-amber-500/20 rounded-lg flex items-center justify-center mx-auto border border-amber-500/30">
-                  <Users className="text-amber-400" size={20} />
-                </div>
-                <h4 className="font-semibold text-white">Community Driven</h4>
-                <p className="body-sm">Help improve dining experiences</p>
+                <h3 className="heading-sm">Anonymous & Secure</h3>
+                <p className="body-sm text-slate-400">
+                  Your privacy is protected while your feedback helps improve dining experiences
+                </p>
               </div>
             </div>
           </div>
         </div>
       </section>
-
-      {/* CTA Section */}
-      {!currentUser && (
-        <section>
-          <div className="glass-card rounded-2xl overflow-hidden bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-            <div className="p-8 text-center">
-              <h2 className="heading-lg mb-4">Ready to Get Started?</h2>
-              <p className="body-lg mb-8 max-w-2xl mx-auto">
-                Join our community of food enthusiasts and help restaurants create better dining experiences through intelligent feedback.
-              </p>
-              <Link to="/login" className="btn-primary text-lg px-8 py-4 focus-ring">
-                Create Your Account
-                <ArrowRight size={20} className="ml-2" />
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
     </div>
   );
 };

@@ -1,6 +1,6 @@
 // src/components/Layout/Footer.js
-import React from 'react';
-import { Link } from 'react-router-dom';
+// import React from 'react';
+// import { Link } from 'react-router-dom';
 import { Heart, Shield, Zap, Users, Mail, MapPin, Phone } from 'lucide-react';
 
 const Footer = () => {
