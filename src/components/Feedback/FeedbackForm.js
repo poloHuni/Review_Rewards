@@ -1,16 +1,30 @@
-// src/components/Feedback/FeedbackForm.js - Complete Updated with Points System
+// src/components/Feedback/FeedbackForm.js - Complete Updated with Enhanced Recording Interface
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mic, Pause, Send, FileText, Check, AlertTriangle, Info, Play, Copy, Zap, Gift } from 'lucide-react';
+import { 
+  Mic, 
+  FileText, 
+  Check, 
+  AlertTriangle, 
+  Info, 
+  Zap, 
+  Gift, 
+  Copy,
+  ExternalLink,
+  RefreshCw
+} from 'lucide-react';
 import { transcribeAudio, processAudio } from '../../services/audioService';
 import { analyzeReview } from '../../services/openaiService';
 import { useAuth } from '../../contexts/AuthContext';
 import ReviewAnalysis from './ReviewAnalysis';
 
-// NEW: Import points services
+// Import points services
 import { canEarnPointsToday, awardPoints, POINTS_CONFIG, getUserPoints } from '../../services/pointsService';
 
-// Define the steps as constants to avoid typos
+// Import the new enhanced recording interface
+import EnhancedRecordingInterface from './EnhancedRecordingInterface';
+
+// Define the steps as constants
 const STEPS = {
   STARTING: 'starting',
   PROCESSING_AUDIO: 'processing_audio',
@@ -24,48 +38,46 @@ const STEPS = {
 const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   // State management
   const [step, setStep] = useState('input');
-  const [inputMethod, setInputMethod] = useState('audio');
-  const [textFeedback, setTextFeedback] = useState('');
-  const [isRecording, setIsRecording] = useState(false);
-  const [recordingComplete, setRecordingComplete] = useState(false);
-  const [audioBlob, setAudioBlob] = useState(null);
-  const [audioUrl, setAudioUrl] = useState(null);
-  const [recordingTime, setRecordingTime] = useState(0);
   const [reviewAnalysis, setReviewAnalysis] = useState(null);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [processingStep, setProcessingStep] = useState(STEPS.STARTING);
   const [error, setError] = useState(null);
-  const [validationError, setValidationError] = useState(null);
 
-  // NEW: Points system state
+  // Points system state
   const [pointsEarned, setPointsEarned] = useState(0);
   const [showPointsModal, setShowPointsModal] = useState(false);
   const [canEarnToday, setCanEarnToday] = useState(true);
   const [currentPoints, setCurrentPoints] = useState(0);
   const [generatedReview, setGeneratedReview] = useState('');
   
+  // Audio/text state for processing
+  const [audioBlob, setAudioBlob] = useState(null);
+  const [audioUrl, setAudioUrl] = useState(null);
+  const [textFeedback, setTextFeedback] = useState('');
+  
   // Refs
-  const mediaRecorderRef = useRef(null);
-  const chunksRef = useRef([]);
-  const timerRef = useRef(null);
   const progressIntervalRef = useRef(null);
   
-  const { user } = useAuth();
+  const { currentUser } = useAuth();
 
-  // NEW: Check if user can earn points today
+  // Check if user can earn points today
   useEffect(() => {
     const checkPointsEligibility = async () => {
-      if (user) {
-        const canEarn = await canEarnPointsToday(user.uid);
-        const pointsData = await getUserPoints(user.uid);
-        setCanEarnToday(canEarn);
-        setCurrentPoints(pointsData.totalPoints);
+      if (currentUser) {
+        try {
+          const canEarn = await canEarnPointsToday(currentUser.uid);
+          const pointsData = await getUserPoints(currentUser.uid);
+          setCanEarnToday(canEarn);
+          setCurrentPoints(pointsData.totalPoints);
+        } catch (error) {
+          console.error('Error checking points eligibility:', error);
+        }
       }
     };
     
     checkPointsEligibility();
-  }, [user]);
+  }, [currentUser]);
 
   // Animation variants
   const containerVariants = {
@@ -87,7 +99,6 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   // Clean up function
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
     };
   }, []);
@@ -109,160 +120,20 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     console.log(stepMessages[step] || step);
   };
 
-  // Start audio recording
-  const startRecording = async () => {
-    try {
-      setError(null);
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        setRecordingComplete(true);
-        
-        // Stop all tracks to release microphone
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      
-      // Start timer
-      timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
-      }, 1000);
-      
-    } catch (err) {
-      console.error('Error starting recording:', err);
-      setError('Unable to access microphone. Please ensure microphone permissions are granted.');
-    }
-  };
-
-  // Stop audio recording
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
-    }
-  };
-
-  // Format recording time
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
-  // Reset recording
-  const resetRecording = () => {
-    setRecordingComplete(false);
-    setAudioBlob(null);
-    setAudioUrl(null);
-    setRecordingTime(0);
+  // Handle audio completion from enhanced interface
+  const handleAudioComplete = async (audioBlob, audioUrl) => {
+    setAudioBlob(audioBlob);
+    setAudioUrl(audioUrl);
     
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
-  };
-
-  // NEW: Handle feedback submission with points
-  const handleSubmitFeedback = async (reviewData) => {
-    try {
-      // Your existing review submission logic here
-      // This would typically save to Firestore
-      console.log('Submitting review:', reviewData);
-      
-      // Store the generated review text for copy function
-      setGeneratedReview(reviewData.summary || '');
-      
-      // NEW: Award points if user can earn today
-      let earnedPoints = 0;
-      if (canEarnToday && user) {
-        const success = await awardPoints(user.uid, POINTS_CONFIG.SAVE_FEEDBACK, 'Feedback Saved');
-        if (success) {
-          earnedPoints = POINTS_CONFIG.SAVE_FEEDBACK;
-          setPointsEarned(earnedPoints);
-          
-          // Update current points display
-          const pointsData = await getUserPoints(user.uid);
-          setCurrentPoints(pointsData.totalPoints);
-          
-          // Show points modal
-          setShowPointsModal(true);
-        }
-      }
-      
-      return {
-        success: true,
-        pointsEarned: earnedPoints
-      };
-      
-    } catch (error) {
-      console.error('Error submitting feedback:', error);
-      throw error;
-    }
-  };
-
-  // NEW: Handle Google Review copy with bonus points
-  const handleCopyToGoogle = async () => {
-    try {
-      // Copy review to clipboard
-      await navigator.clipboard.writeText(generatedReview);
-      
-      // Award additional points if eligible
-      if (canEarnToday && user && pointsEarned > 0) { // Only if they earned points today
-        const success = await awardPoints(user.uid, POINTS_CONFIG.COPY_TO_GOOGLE, 'Copied to Google Reviews');
-        if (success) {
-          const extraPoints = POINTS_CONFIG.COPY_TO_GOOGLE;
-          setPointsEarned(prev => prev + extraPoints);
-          
-          // Update current points display
-          const pointsData = await getUserPoints(user.uid);
-          setCurrentPoints(pointsData.totalPoints);
-          
-          // Show success message
-          alert(`Review copied! You earned ${extraPoints} more points!`);
-        }
-      } else {
-        // Just show copy success if no points awarded
-        alert('Review copied to clipboard!');
-      }
-    } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      alert('Failed to copy review to clipboard');
-    }
-  };
-
-  // Audio feedback submission
-  const handleAudioSubmit = async () => {
-    if (!audioBlob) {
-      setValidationError('Please record your feedback first.');
+    if (!audioBlob || audioBlob.size === 0) {
+      setError('No audio recording found. Please try recording again.');
       return;
     }
     
-    setValidationError(null);
     setStep('processing');
     setProcessing(true);
     setProcessingProgress(0);
-    updateProcessingStep(STEPS.STARTING);
+    updateProcessingStep(STEPS.PROCESSING_AUDIO);
     
     // Progress animation
     progressIntervalRef.current = setInterval(() => {
@@ -271,54 +142,68 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
           clearInterval(progressIntervalRef.current);
           return 90;
         }
-        return prev + 3;
+        return prev + 2;
       });
     }, 200);
     
     try {
       setProcessingProgress(10);
-      updateProcessingStep(STEPS.PROCESSING_AUDIO);
-      
-      // Process audio
-      const processedAudio = await processAudio(audioBlob);
-      
-      setProcessingProgress(30);
       updateProcessingStep(STEPS.TRANSCRIBING);
       
       // Transcribe audio
-      const transcription = await transcribeAudio(processedAudio);
+      const transcription = await transcribeAudio(audioBlob);
       
-      if (!transcription || transcription.trim().length === 0) {
-        throw new Error('Could not transcribe audio. Please try recording again or use text input.');
+      if (!transcription || transcription.trim().length < 10) {
+        throw new Error('Could not transcribe audio clearly. Please try recording again with clearer speech.');
       }
       
-      setProcessingProgress(60);
+      setProcessingProgress(50);
       updateProcessingStep(STEPS.ANALYZING);
       
-      // Analyze transcription
+      // Analyze the transcription
       const analysis = await analyzeReview(transcription, restaurantName);
       
-      setProcessingProgress(90);
+      setProcessingProgress(80);
       updateProcessingStep(STEPS.COMPLETING);
       
       if (analysis) {
-        // Add restaurant and audio data
+        // Add restaurant and audio info
         analysis.restaurant_id = restaurantId;
+        analysis.restaurant_name = restaurantName;
         analysis.audio_url = audioUrl;
         analysis.transcription = transcription;
         
         setReviewAnalysis(analysis);
         setProcessingProgress(100);
         updateProcessingStep(STEPS.COMPLETE);
-        setStep('analysis');
+        
+        setTimeout(() => {
+          setStep('analysis');
+        }, 1000);
       } else {
-        throw new Error('Failed to analyze your feedback. Please try again.');
+        createFallbackReview(transcription);
       }
       
     } catch (err) {
       console.error('Audio processing error:', err);
-      setError(err.message || 'An error occurred while processing your audio. Please try again.');
+      setError(err.message);
       updateProcessingStep(STEPS.ERROR);
+      
+      // Create fallback review from raw transcription if available
+      if (audioBlob) {
+        try {
+          const transcription = await transcribeAudio(audioBlob);
+          if (transcription && transcription.trim().length > 10) {
+            createFallbackReview(transcription);
+          } else {
+            setStep('input');
+          }
+        } catch (fallbackErr) {
+          setStep('input');
+        }
+      } else {
+        setStep('input');
+      }
     } finally {
       setProcessing(false);
       if (progressIntervalRef.current) {
@@ -327,35 +212,15 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     }
   };
 
-  // Fallback function for when AI analysis fails
-  const createFallbackReview = (text) => {
-    const fallbackReview = {
-      summary: text.length > 100 ? text.substring(0, 100) + "..." : text,
-      food_quality: "The food was good.",
-      service: "The service was attentive.",
-      atmosphere: "The atmosphere was pleasant.",
-      music_and_entertainment: "The music added to the dining experience.",
-      specific_points: ["Enjoyed the meal", "Service was timely", "Good atmosphere"],
-      sentiment_score: 4,
-      improvement_suggestions: ["Keep up the good work"],
-      restaurant_id: restaurantId,
-      audio_url: audioUrl
-    };
+  // Handle text completion from enhanced interface
+  const handleTextComplete = async (textContent) => {
+    setTextFeedback(textContent);
     
-    setReviewAnalysis(fallbackReview);
-    setStep('analysis');
-    setProcessing(false);
-  };
-  
-  // Text feedback submission
-  const handleTextSubmit = async () => {
-    // Validate text input
-    if (!textFeedback || textFeedback.trim().length < 10) {
-      setValidationError('Please provide more detailed feedback (at least 10 characters).');
+    if (!textContent || textContent.trim().length < 10) {
+      setError('Please provide more detailed feedback (at least 10 characters).');
       return;
     }
     
-    setValidationError(null);
     setStep('processing');
     setProcessing(true);
     setProcessingProgress(0);
@@ -376,36 +241,135 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       setProcessingProgress(30);
       
       // Analyze text feedback directly
-      const analysis = await analyzeReview(textFeedback, restaurantName);
+      const analysis = await analyzeReview(textContent, restaurantName);
       
       setProcessingProgress(80);
       updateProcessingStep(STEPS.COMPLETING);
       
       if (analysis) {
-        // Add restaurant ID to review data
+        // Add restaurant info
         analysis.restaurant_id = restaurantId;
-        
-        // Add audio URL if available
-        if (audioUrl) {
-          analysis.audio_url = audioUrl;
-        }
+        analysis.restaurant_name = restaurantName;
         
         setReviewAnalysis(analysis);
         setProcessingProgress(100);
         updateProcessingStep(STEPS.COMPLETE);
-        setStep('analysis');
+        
+        setTimeout(() => {
+          setStep('analysis');
+        }, 1000);
       } else {
-        createFallbackReview(textFeedback);
+        createFallbackReview(textContent);
       }
       
     } catch (err) {
       console.error('Text analysis error:', err);
-      createFallbackReview(textFeedback);
+      createFallbackReview(textContent);
     } finally {
       setProcessing(false);
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
+    }
+  };
+
+  // Create fallback review when AI analysis fails
+  const createFallbackReview = (content) => {
+    const fallbackReview = {
+      summary: content,
+      food_quality: "Good experience overall",
+      service: "Service was satisfactory", 
+      atmosphere: "Pleasant atmosphere",
+      music_and_entertainment: "Enjoyable environment",
+      specific_points: ["Enjoyed the meal", "Service was timely", "Good atmosphere"],
+      sentiment_score: 4,
+      improvement_suggestions: ["Keep up the good work"],
+      restaurant_id: restaurantId,
+      restaurant_name: restaurantName,
+      audio_url: audioUrl,
+      transcription: content
+    };
+    
+    setReviewAnalysis(fallbackReview);
+    setProcessingProgress(100);
+    updateProcessingStep(STEPS.COMPLETE);
+    
+    setTimeout(() => {
+      setStep('analysis');
+    }, 1000);
+  };
+
+  // Handle feedback submission with points
+  const handleSubmitFeedback = async (reviewData) => {
+    try {
+      console.log('Submitting review:', reviewData);
+      
+      // Store the generated review text for copy function
+      setGeneratedReview(reviewData.summary || '');
+      
+      // Award points if user can earn today
+      let earnedPoints = 0;
+      if (canEarnToday && currentUser) {
+        try {
+          const success = await awardPoints(currentUser.uid, POINTS_CONFIG.SAVE_FEEDBACK, 'save_feedback');
+          if (success) {
+            earnedPoints = POINTS_CONFIG.SAVE_FEEDBACK;
+            setPointsEarned(earnedPoints);
+            
+            // Update current points display
+            const pointsData = await getUserPoints(currentUser.uid);
+            setCurrentPoints(pointsData.totalPoints);
+            
+            // Show points modal
+            setShowPointsModal(true);
+          }
+        } catch (pointsError) {
+          console.error('Points error (non-critical):', pointsError);
+        }
+      }
+      
+      return {
+        success: true,
+        pointsEarned: earnedPoints
+      };
+      
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+      throw error;
+    }
+  };
+
+  // Handle Google Review copy with bonus points
+  const handleCopyToGoogle = async () => {
+    try {
+      // Copy review to clipboard
+      await navigator.clipboard.writeText(generatedReview);
+      
+      // Award additional points if eligible
+      if (canEarnToday && currentUser && pointsEarned > 0) {
+        try {
+          const success = await awardPoints(currentUser.uid, POINTS_CONFIG.COPY_TO_GOOGLE, 'copy_to_google');
+          if (success) {
+            const extraPoints = POINTS_CONFIG.COPY_TO_GOOGLE;
+            setPointsEarned(prev => prev + extraPoints);
+            
+            // Update current points display
+            const pointsData = await getUserPoints(currentUser.uid);
+            setCurrentPoints(pointsData.totalPoints);
+            
+            alert(`Review copied! You earned ${extraPoints} more points!`);
+          }
+        } catch (error) {
+          console.error('Error awarding Google review points:', error);
+          alert('Review copied to clipboard!');
+        }
+      } else {
+        alert('Review copied to clipboard!');
+      }
+      
+    } catch (error) {
+      console.error('Error copying to clipboard:', error);
+      alert('Failed to copy review to clipboard');
     }
   };
 
@@ -415,19 +379,18 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     setTextFeedback('');
     setReviewAnalysis(null);
     setError(null);
-    setValidationError(null);
     setProcessingProgress(0);
     setProcessing(false);
-    // NEW: Reset points modal
+    setAudioBlob(null);
+    setAudioUrl(null);
     setShowPointsModal(false);
     setPointsEarned(0);
-    resetRecording();
   };
 
   // Progress steps renderer
   const renderProgressSteps = () => {
     const steps = [
-      { id: 'input', label: 'Input', icon: inputMethod === 'audio' ? Mic : FileText },
+      { id: 'input', label: 'Input', icon: Mic },
       { id: 'processing', label: 'Processing', icon: Info },
       { id: 'analysis', label: 'Review', icon: Check }
     ];
@@ -474,45 +437,127 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     );
   };
 
+  // Points earned modal
+  const renderPointsModal = () => (
+    <AnimatePresence>
+      {showPointsModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <motion.div 
+            className="glass-card-enhanced rounded-2xl p-8 max-w-md w-full border border-purple-500/30"
+            initial={{ scale: 0.8, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.8, opacity: 0, y: 20 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          >
+            <div className="text-center">
+              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 0.8, ease: "easeInOut" }}
+                >
+                  <Zap className="text-white" size={32} />
+                </motion.div>
+              </div>
+              
+              <h3 className="text-2xl font-bold text-white mb-2">
+                Points Earned!
+              </h3>
+              
+              <p className="text-lg text-gray-300 mb-6">
+                You earned <span className="font-bold text-purple-400">+{pointsEarned} points</span> for sharing your review!
+              </p>
+              
+              <div className="bg-white/5 rounded-2xl p-4 mb-6 border border-white/10">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Your Total Points:</span>
+                  <div className="flex items-center gap-2">
+                    <Zap className="text-purple-400" size={16} />
+                    <span className="text-white font-bold">{currentPoints}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                {generatedReview && (
+                  <button
+                    onClick={handleCopyToGoogle}
+                    className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white px-4 py-3 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-105"
+                  >
+                    <Copy size={18} />
+                    Copy to Google Reviews (+{POINTS_CONFIG.COPY_TO_GOOGLE} point)
+                  </button>
+                )}
+                
+                <button
+                  onClick={() => setShowPointsModal(false)}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white px-4 py-3 rounded-xl font-medium transition-all duration-300 border border-white/20"
+                >
+                  Continue
+                </button>
+                
+                <div className="text-center">
+                  <button
+                    onClick={() => window.location.href = '/rewards'}
+                    className="text-purple-400 hover:text-purple-300 text-sm inline-flex items-center gap-1 transition-colors"
+                  >
+                    <Gift size={14} />
+                    View Available Rewards
+                  </button>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
+    </AnimatePresence>
+  );
+
   // Processing screen
   if (step === 'processing') {
     return (
-      <motion.div 
-        className="glass-card rounded-2xl overflow-hidden max-w-4xl mx-auto"
-        initial="hidden"
-        animate="visible"
-        variants={containerVariants}
-      >
-        {renderProgressSteps()}
-        
-        <div className="p-8 text-center">
-          <motion.div 
-            className="w-24 h-24 mx-auto mb-6 rounded-full border-4 border-blue-200/20 border-t-blue-500 animate-spin"
-            variants={itemVariants}
-          />
+      <>
+        <motion.div 
+          className="glass-card-enhanced rounded-3xl overflow-hidden max-w-4xl mx-auto"
+          initial="hidden"
+          animate="visible"
+          variants={containerVariants}
+        >
+          {renderProgressSteps()}
           
-          <motion.div className="space-y-4" variants={itemVariants}>
-            <h3 className="heading-md">Processing Your Feedback</h3>
-            <p className="body-md text-slate-400">
-              {processingStep === STEPS.STARTING && 'Getting ready to process...'}
-              {processingStep === STEPS.PROCESSING_AUDIO && 'Processing your audio recording...'}
-              {processingStep === STEPS.TRANSCRIBING && 'Converting speech to text...'}
-              {processingStep === STEPS.ANALYZING && 'Analyzing your feedback with AI...'}
-              {processingStep === STEPS.COMPLETING && 'Finalizing your review...'}
-              {processingStep === STEPS.COMPLETE && 'Complete!'}
-            </p>
+          <div className="p-12 text-center">
+            <motion.div 
+              className="w-32 h-32 mx-auto mb-8 rounded-full border-4 border-purple-200/20 border-t-purple-500"
+              animate={{ rotate: 360 }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+              variants={itemVariants}
+            />
             
-            <div className="w-full bg-slate-700 rounded-full h-3">
-              <div 
-                className="bg-gradient-to-r from-blue-500 to-purple-500 h-3 rounded-full transition-all duration-300"
-                style={{ width: `${processingProgress}%` }}
-              />
-            </div>
-            
-            <p className="text-sm text-slate-500">{processingProgress}% complete</p>
-          </motion.div>
-        </div>
-      </motion.div>
+            <motion.div className="space-y-6" variants={itemVariants}>
+              <h3 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                Processing Your Feedback
+              </h3>
+              <p className="text-xl text-gray-300">
+                {processingStep === STEPS.STARTING && '🚀 Getting ready to process...'}
+                {processingStep === STEPS.PROCESSING_AUDIO && '🎵 Processing your audio recording...'}
+                {processingStep === STEPS.TRANSCRIBING && '📝 Converting speech to text...'}
+                {processingStep === STEPS.ANALYZING && '🤖 Analyzing your feedback with AI...'}
+                {processingStep === STEPS.COMPLETING && '✨ Finalizing your review...'}
+                {processingStep === STEPS.COMPLETE && '🎉 Complete!'}
+              </p>
+              
+              <div className="w-full bg-white/10 rounded-full h-4 overflow-hidden">
+                <motion.div 
+                  className="bg-gradient-to-r from-purple-500 to-pink-500 h-4 rounded-full transition-all duration-500"
+                  style={{ width: `${processingProgress}%` }}
+                />
+              </div>
+              
+              <p className="text-lg text-gray-400">{processingProgress}% complete</p>
+            </motion.div>
+          </div>
+        </motion.div>
+        {renderPointsModal()}
+      </>
     );
   }
 
@@ -525,288 +570,94 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
           onSave={handleSubmitFeedback}
           onStartOver={handleStartOver}
         />
-        
-        {/* NEW: Points Earned Modal */}
-        {showPointsModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <motion.div 
-              className="bg-slate-900 rounded-xl p-6 max-w-md w-full border border-white/10"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-            >
-              <div className="text-center">
-                <div className="text-4xl mb-4">🎉</div>
-                <h3 className="text-xl font-bold text-white mb-2">Points Earned!</h3>
-                <p className="text-slate-300 mb-4">
-                  You earned <span className="text-purple-400 font-bold">{pointsEarned} points</span> for your review!
-                </p>
-                
-                <div className="bg-white/5 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Your Total Points:</span>
-                    <div className="flex items-center gap-2">
-                      <Zap className="text-purple-400" size={16} />
-                      <span className="text-white font-bold">{currentPoints}</span>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="space-y-3">
-                  {generatedReview && (
-                    <button
-                      onClick={handleCopyToGoogle}
-                      className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Copy size={18} />
-                      Copy to Google Reviews (+{POINTS_CONFIG.COPY_TO_GOOGLE} point)
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => setShowPointsModal(false)}
-                    className="w-full bg-white/10 text-white px-4 py-3 rounded-lg hover:bg-white/20 transition-colors"
-                  >
-                    Continue
-                  </button>
-                  
-                  <div className="text-center">
-                    <button
-                      onClick={() => window.location.href = '/rewards'}
-                      className="text-purple-400 hover:text-purple-300 text-sm inline-flex items-center gap-1"
-                    >
-                      <Gift size={14} />
-                      View Available Rewards
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
+        {renderPointsModal()}
       </>
     );
   }
 
-  // Input screen with professional styling
-  if (step === 'input') {
+  // Error screen
+  if (error) {
     return (
       <motion.div 
-        className="glass-card rounded-2xl overflow-hidden max-w-4xl mx-auto"
+        className="glass-card-enhanced rounded-3xl overflow-hidden max-w-4xl mx-auto"
         initial="hidden"
         animate="visible"
         variants={containerVariants}
       >
-        {renderProgressSteps()}
-        
-        {/* NEW: Points Status Banner */}
-        {user && (
-          <div className="mx-6 mt-6 p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <Zap className="text-purple-400" size={20} />
-                <div>
-                  <p className="text-white font-medium">Your Points: {currentPoints}</p>
-                  <p className="text-slate-300 text-sm">
-                    {canEarnToday 
-                      ? `Earn ${POINTS_CONFIG.SAVE_FEEDBACK}-${POINTS_CONFIG.SAVE_FEEDBACK + POINTS_CONFIG.COPY_TO_GOOGLE} points for this review`
-                      : 'Daily limit reached - come back tomorrow to earn more points'
-                    }
-                  </p>
-                </div>
-              </div>
+        <div className="p-12 text-center">
+          <motion.div variants={itemVariants}>
+            <AlertTriangle className="w-20 h-20 text-red-400 mx-auto mb-6" />
+            <h3 className="text-2xl font-bold text-white mb-4">Oops! Something went wrong</h3>
+            <p className="text-gray-300 mb-8">{error}</p>
+            <div className="flex gap-4 justify-center">
               <button
-                onClick={() => window.location.href = '/rewards'}
-                className="text-purple-400 hover:text-purple-300 text-sm"
+                onClick={handleStartOver}
+                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 transform hover:scale-105"
               >
-                View Rewards →
+                <RefreshCw size={18} />
+                Try Again
               </button>
             </div>
-          </div>
-        )}
-        
-        {/* Error display */}
-        <AnimatePresence>
-          {error && (
-            <motion.div 
-              className="mx-6 mb-6 p-4 status-error rounded-lg flex items-start gap-3"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-            >
-              <AlertTriangle size={18} className="text-red-400 mt-0.5 flex-shrink-0" />
-              <div>
-                <p className="font-medium text-red-400">Error</p>
-                <p className="text-red-300 text-sm">{error}</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-        
-        {/* Input method selector */}
-        <div className="px-6 mb-6">
-          <div className="p-1 bg-white/5 rounded-xl border border-white/10 flex">
-            <button
-              className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium
-                ${inputMethod === 'audio'
-                  ? 'bg-white/10 text-white shadow-lg border border-white/20'
-                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-                }`}
-              onClick={() => setInputMethod('audio')}
-            >
-              <Mic size={18} />
-              <span>Voice Feedback</span>
-            </button>
-            <button
-              className={`flex-1 py-3 px-4 rounded-lg flex items-center justify-center gap-2 transition-all duration-200 font-medium
-                ${inputMethod === 'text'
-                  ? 'bg-white/10 text-white shadow-lg border border-white/20'
-                  : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-                }`}
-              onClick={() => setInputMethod('text')}
-            >
-              <FileText size={18} />
-              <span>Written Feedback</span>
-            </button>
-          </div>
+          </motion.div>
         </div>
-        
-        {/* Audio recorder */}
-        {inputMethod === 'audio' && (
-          <div className="px-6 pb-6">
-            <motion.div 
-              className="glass-card-subtle rounded-xl p-6"
-              variants={itemVariants}
-            >
-              {!recordingComplete ? (
-                <div className="text-center space-y-6">
-                  <h3 className="heading-md">Voice Feedback</h3>
-                  <p className="body-md text-slate-400">
-                    Click the button below to start recording your feedback
-                  </p>
-                  
-                  {isRecording && (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center gap-4">
-                        <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                        <span className="text-red-400 font-medium">Recording...</span>
-                        <span className="text-white font-mono">{formatTime(recordingTime)}</span>
-                      </div>
-                      
-                      <div className="w-full bg-slate-700 rounded-full h-2">
-                        <div 
-                          className="bg-red-500 h-2 rounded-full transition-all duration-1000"
-                          style={{ width: `${Math.min((recordingTime / 180) * 100, 100)}%` }}
-                        />
-                      </div>
-                      
-                      <p className="text-sm text-slate-500">
-                        Maximum recording time: 3 minutes
-                      </p>
-                    </div>
-                  )}
-                  
-                  <button
-                    onClick={isRecording ? stopRecording : startRecording}
-                    className={`w-20 h-20 rounded-full flex items-center justify-center transition-all duration-200 mx-auto ${
-                      isRecording 
-                        ? 'bg-red-500 hover:bg-red-600 text-white scale-110' 
-                        : 'bg-blue-500 hover:bg-blue-600 text-white hover:scale-105'
-                    }`}
-                  >
-                    {isRecording ? <Pause size={24} /> : <Mic size={24} />}
-                  </button>
-                  
-                  <p className="text-sm text-slate-400">
-                    {isRecording ? 'Click to stop recording' : 'Click to start recording'}
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  <div className="text-center">
-                    <h3 className="heading-md mb-2">Recording Complete</h3>
-                    <p className="body-sm text-slate-400">
-                      Duration: {formatTime(recordingTime)}
-                    </p>
-                  </div>
-                  
-                  {audioUrl && (
-                    <div className="bg-white/5 rounded-lg p-4">
-                      <audio src={audioUrl} controls className="w-full" />
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-3">
-                    <button
-                      onClick={resetRecording}
-                      className="btn-secondary flex-1 focus-ring"
-                    >
-                      Record Again
-                    </button>
-                    <button
-                      onClick={handleAudioSubmit}
-                      className="btn-primary flex-1 focus-ring flex items-center justify-center gap-2"
-                    >
-                      <Send size={18} />
-                      Submit Feedback
-                    </button>
-                  </div>
-                </div>
-              )}
-            </motion.div>
-          </div>
-        )}
-        
-        {/* Text input */}
-        {inputMethod === 'text' && (
-          <div className="px-6 pb-6">
-            <motion.div 
-              className="glass-card-subtle rounded-xl p-6"
-              variants={itemVariants}
-            >
-              <div className="space-y-6">
-                <h3 className="heading-md text-center">Written Feedback</h3>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-slate-300">
-                    Share your experience
-                  </label>
-                  <textarea
-                    value={textFeedback}
-                    onChange={(e) => setTextFeedback(e.target.value)}
-                    placeholder="Tell us about your visit to this restaurant. What did you like? What could be improved? Please be as detailed as possible..."
-                    className="w-full h-40 bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
-                    maxLength={2000}
-                  />
-                  <div className="flex justify-between text-xs text-slate-400">
-                    <span>Minimum 10 characters</span>
-                    <span>{textFeedback.length}/2000</span>
-                  </div>
-                </div>
-                
-                {validationError && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
-                    <p className="text-red-400 text-sm">{validationError}</p>
-                  </div>
-                )}
-                
-                <button
-                  onClick={handleTextSubmit}
-                  disabled={!textFeedback || textFeedback.trim().length < 10}
-                  className="w-full btn-primary focus-ring flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Send size={18} />
-                  Submit Feedback
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
       </motion.div>
     );
   }
 
-  return null;
+  // Input screen with enhanced recording interface
+  return (
+    <>
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={containerVariants}
+      >
+        {/* Points Status Banner */}
+        {currentUser && (
+          <motion.div 
+            className="max-w-4xl mx-auto mb-8"
+            variants={itemVariants}
+          >
+            <div className="glass-card-enhanced rounded-2xl p-6 border border-purple-500/20">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                    <Zap className="text-white" size={24} />
+                  </div>
+                  <div>
+                    <p className="text-white font-semibold text-lg">Your Points: {currentPoints}</p>
+                    <p className="text-gray-300 text-sm">
+                      {canEarnToday 
+                        ? `Earn +${POINTS_CONFIG.SAVE_FEEDBACK} points for this review!`
+                        : 'Daily review limit reached. Come back tomorrow!'
+                      }
+                    </p>
+                  </div>
+                </div>
+                <a 
+                  href="/rewards"
+                  className="bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center gap-2 border border-white/20"
+                >
+                  <Gift size={16} />
+                  Rewards
+                </a>
+              </div>
+            </div>
+          </motion.div>
+        )}
+
+        {/* Enhanced Recording Interface */}
+        <motion.div variants={itemVariants}>
+          <EnhancedRecordingInterface 
+            onAudioComplete={handleAudioComplete}
+            onTextComplete={handleTextComplete}
+            restaurantName={restaurantName || 'this restaurant'}
+          />
+        </motion.div>
+      </motion.div>
+      {renderPointsModal()}
+    </>
+  );
 };
 
 export default FeedbackForm;

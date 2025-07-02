@@ -1,5 +1,5 @@
 // src/components/Feedback/ReviewAnalysis.js
-// Complete file with authentication debugging
+// Complete updated file with enhanced authentication and Firestore fixes
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -12,13 +12,16 @@ import {
   Copy, 
   ExternalLink,
   Zap,
-  Gift 
+  Gift,
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { 
   saveReview, 
   generateGoogleReviewLink, 
-  formatReviewForSharing 
+  formatReviewForSharing,
+  testReviewPermissions
 } from '../../services/reviewService';
 
 // Points system imports
@@ -29,7 +32,7 @@ import {
   getUserPoints 
 } from '../../services/pointsService';
 
-// Firebase auth imports for debugging
+// Firebase auth imports for enhanced debugging
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../../firebase/config';
 
@@ -51,9 +54,10 @@ const ReviewAnalysis = ({ reviewData, onSave, onStartOver }) => {
   const [googleReviewLink, setGoogleReviewLink] = useState('');
   const [formattedReviewText, setFormattedReviewText] = useState('');
 
-  // NEW: Debug authentication state
+  // Enhanced authentication state
   const [firebaseUser, setFirebaseUser] = useState(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [authError, setAuthError] = useState(null);
 
   // Animation variants
   const containerVariants = {
@@ -72,16 +76,27 @@ const ReviewAnalysis = ({ reviewData, onSave, onStartOver }) => {
     visible: { opacity: 1, y: 0 }
   };
 
-  // NEW: Direct Firebase auth listener for debugging
+  // Enhanced Firebase auth listener
   useEffect(() => {
-    console.log('🔍 Setting up Firebase auth listener...');
+    console.log('🔍 Setting up enhanced Firebase auth listener...');
     
     const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('🔥 Firebase Auth State Changed:', user);
-      console.log('Firebase user UID:', user?.uid);
-      console.log('Firebase user email:', user?.email);
+      console.log('🔥 Firebase Auth State Changed:', {
+        user: !!user,
+        uid: user?.uid,
+        email: user?.email,
+        displayName: user?.displayName,
+        emailVerified: user?.emailVerified
+      });
+      
       setFirebaseUser(user);
       setAuthLoading(false);
+      
+      if (!user) {
+        setAuthError('No authenticated user found');
+      } else {
+        setAuthError(null);
+      }
     });
 
     return () => {
@@ -90,72 +105,79 @@ const ReviewAnalysis = ({ reviewData, onSave, onStartOver }) => {
     };
   }, []);
 
-  // NEW: Debug authentication useEffect
+  // Enhanced authentication debugging
   useEffect(() => {
-    console.log('🔍 ========== AUTH DEBUG in ReviewAnalysis ==========');
-    console.log('1. useAuth user object:', user);
+    console.log('🔍 ========== ENHANCED AUTH DEBUG ==========');
+    console.log('1. useAuth user:', user);
     console.log('2. useAuth user exists:', !!user);
     console.log('3. useAuth user UID:', user?.uid);
     console.log('4. useAuth user email:', user?.email);
-    console.log('5. useAuth user type:', typeof user);
     
-    console.log('6. Firebase user object:', firebaseUser);
-    console.log('7. Firebase user exists:', !!firebaseUser);
-    console.log('8. Firebase user UID:', firebaseUser?.uid);
+    console.log('5. Firebase user:', firebaseUser);
+    console.log('6. Firebase user exists:', !!firebaseUser);
+    console.log('7. Firebase user UID:', firebaseUser?.uid);
     
-    console.log('9. auth.currentUser:', auth.currentUser);
-    console.log('10. auth.currentUser UID:', auth.currentUser?.uid);
+    console.log('8. auth.currentUser:', auth.currentUser);
+    console.log('9. auth.currentUser UID:', auth.currentUser?.uid);
+    
+    console.log('10. Auth loading:', authLoading);
+    console.log('11. Auth error:', authError);
     
     if (user) {
-      console.log('11. useAuth user object keys:', Object.keys(user));
-      console.log('12. Full useAuth user object:', JSON.stringify(user, null, 2));
-    } else {
-      console.log('❌ useAuth USER IS NULL/UNDEFINED!');
+      console.log('12. useAuth user keys:', Object.keys(user));
     }
     
     if (firebaseUser) {
-      console.log('13. Firebase user object keys:', Object.keys(firebaseUser));
-    } else {
-      console.log('❌ FIREBASE USER IS NULL/UNDEFINED!');
+      console.log('13. Firebase user keys:', Object.keys(firebaseUser));
     }
     
-    console.log('========== END AUTH DEBUG ==========');
-  }, [user, firebaseUser]);
+    console.log('========== END ENHANCED AUTH DEBUG ==========');
+  }, [user, firebaseUser, authLoading, authError]);
 
-  // NEW: Get authenticated user from multiple sources
+  // Enhanced user authentication function
   const getAuthenticatedUser = () => {
-    console.log('🔍 Getting authenticated user...');
+    console.log('🔍 Getting authenticated user with enhanced logic...');
     
-    // Try multiple sources for user
-    const sources = [
-      { name: 'useAuth', user: user },
+    // Priority order: Firebase Auth (most reliable) > useAuth > auth.currentUser
+    const userSources = [
       { name: 'firebase', user: firebaseUser },
-      { name: 'auth.currentUser', user: auth.currentUser }
+      { name: 'useAuth', user: user },
+      { name: 'currentUser', user: auth.currentUser }
     ];
     
-    for (const source of sources) {
-      console.log(`Checking ${source.name}:`, source.user);
-      if (source.user && source.user.uid) {
-        console.log(`✅ Found authenticated user from ${source.name}:`, source.user.uid);
+    for (const source of userSources) {
+      console.log(`Checking ${source.name}:`, {
+        exists: !!source.user,
+        uid: source.user?.uid,
+        email: source.user?.email
+      });
+      
+      if (source.user && source.user.uid && typeof source.user.uid === 'string') {
+        console.log(`✅ Using authenticated user from ${source.name}:`, source.user.uid);
         return source.user;
       }
     }
     
-    console.error('❌ No authenticated user found from any source');
-    console.error('Sources checked:', sources);
+    console.error('❌ No valid authenticated user found from any source');
+    console.error('All sources:', userSources.map(s => ({ name: s.name, hasUser: !!s.user, hasUid: !!s.user?.uid })));
     return null;
   };
 
-  // Check points eligibility and prepare sharing data
+  // Enhanced points and sharing initialization
   useEffect(() => {
     const initializePointsAndSharing = async () => {
       console.log('🔍 Initializing points and sharing...');
+      
+      if (authLoading) {
+        console.log('⏳ Auth still loading, skipping initialization');
+        return;
+      }
       
       const authenticatedUser = getAuthenticatedUser();
       
       if (authenticatedUser && reviewData) {
         try {
-          console.log('✅ User found, checking points eligibility...');
+          console.log('✅ User and review data found, initializing...');
           
           // Check points eligibility
           const canEarn = await canEarnPointsToday(authenticatedUser.uid);
@@ -181,40 +203,45 @@ const ReviewAnalysis = ({ reviewData, onSave, onStartOver }) => {
           console.error('❌ Error initializing points and sharing:', error);
         }
       } else {
-        console.log('⚠️ Skipping points initialization - no user or review data');
-        console.log('User exists:', !!authenticatedUser);
-        console.log('Review data exists:', !!reviewData);
+        console.log('⚠️ Skipping points initialization:', {
+          hasUser: !!authenticatedUser,
+          hasReviewData: !!reviewData,
+          authLoading
+        });
       }
     };
     
-    // Only initialize if not loading
-    if (!authLoading) {
-      initializePointsAndSharing();
-    }
+    initializePointsAndSharing();
   }, [user, firebaseUser, reviewData, authLoading]);
 
-  // Save review with comprehensive debugging
+  // Enhanced save review function
   const handleSaveReview = async () => {
     try {
-      console.log('🔍 ========== SAVE DEBUG - Starting save process ==========');
+      console.log('🔍 ========== ENHANCED SAVE DEBUG - Starting ==========');
       console.log('Save button clicked at:', new Date().toISOString());
+      
+      // Check if auth is still loading
+      if (authLoading) {
+        console.log('⏳ Authentication still loading...');
+        alert('Authentication is still loading. Please wait a moment and try again.');
+        return;
+      }
       
       const authenticatedUser = getAuthenticatedUser();
       
       console.log('Authentication check results:');
-      console.log('- useAuth user:', user);
-      console.log('- Firebase user:', firebaseUser);
-      console.log('- auth.currentUser:', auth.currentUser);
       console.log('- Selected user:', authenticatedUser);
+      console.log('- User UID:', authenticatedUser?.uid);
+      console.log('- User email:', authenticatedUser?.email);
       
       if (!authenticatedUser) {
         console.error('❌ NO AUTHENTICATED USER FOUND!');
         console.error('Detailed auth state:');
         console.error('- useAuth user:', user);
-        console.error('- useAuth user type:', typeof user);
         console.error('- Firebase user:', firebaseUser);
         console.error('- auth.currentUser:', auth.currentUser);
         console.error('- Auth loading:', authLoading);
+        console.error('- Auth error:', authError);
         
         // Show detailed error to user
         const errorMsg = `Authentication error detected:
@@ -245,6 +272,21 @@ const ReviewAnalysis = ({ reviewData, onSave, onStartOver }) => {
       console.log('- User ID:', authenticatedUser.uid);
       console.log('- User email:', authenticatedUser.email);
       
+      // Validate review data
+      if (!reviewData) {
+        console.error('❌ Review data missing');
+        alert('Review data is missing. Please try recording your review again.');
+        return;
+      }
+      
+      // Check required fields
+      if (!reviewData.summary || reviewData.summary.trim() === '') {
+        console.error('❌ Review summary missing');
+        alert('Review summary is required. Please ensure you have recorded a complete review.');
+        return;
+      }
+      
+      console.log('✅ Review data validated');
       console.log('Review data to save:', reviewData);
       
       setSaving(true);
@@ -257,512 +299,447 @@ const ReviewAnalysis = ({ reviewData, onSave, onStartOver }) => {
       console.log('Save result:', result);
       
       if (result.success) {
-        console.log('✅ Review saved successfully!');
-        console.log('Document ID:', result.id);
+        console.log('✅ Review saved successfully! ID:', result.id);
+        setSaved(true);
+        setShowSharingSection(true);
         
-        // Award points logic
-        let earnedPoints = 0;
+        // Award points if eligible
         if (canEarnToday) {
           try {
-            console.log('🔍 Awarding points...');
-            const success = await awardPoints(authenticatedUser.uid, POINTS_CONFIG.SAVE_FEEDBACK, 'Feedback Saved');
+            console.log('🎁 Awarding points...');
+            const pointsAwarded = await awardPoints(
+              authenticatedUser.uid, 
+              POINTS_CONFIG.SAVE_FEEDBACK, 
+              'save_feedback'
+            );
             
-            if (success) {
-              earnedPoints = POINTS_CONFIG.SAVE_FEEDBACK;
-              setPointsEarned(earnedPoints);
-              
-              console.log('✅ Points awarded:', earnedPoints);
-              
-              const pointsData = await getUserPoints(authenticatedUser.uid);
-              setCurrentPoints(pointsData.totalPoints);
+            if (pointsAwarded) {
+              setPointsEarned(POINTS_CONFIG.SAVE_FEEDBACK);
+              setCurrentPoints(prev => prev + POINTS_CONFIG.SAVE_FEEDBACK);
               setShowPointsModal(true);
-              
-              console.log('Updated points total:', pointsData.totalPoints);
+              console.log('✅ Points awarded successfully');
             }
           } catch (pointsError) {
-            console.error('❌ Error awarding points:', pointsError);
+            console.error('❌ Points error (non-critical):', pointsError);
           }
-        } else {
-          console.log('⚠️ Cannot earn points today (daily limit reached)');
         }
-        
-        setSaved(true);
         
         if (onSave) {
           onSave(result);
         }
         
-        console.log('✅ Save process completed successfully');
+        // Show success message
+        alert('Review saved successfully!');
+        
       } else {
-        console.error('❌ Save result indicates failure:', result);
+        throw new Error('Save operation returned unsuccessful result');
       }
       
-    } catch (error) {
-      console.error('❌ ========== SAVE ERROR ==========');
-      console.error('Error message:', error.message);
-      console.error('Error code:', error.code);
-      console.error('Error stack:', error.stack);
-      console.error('Full error object:', error);
-      console.error('========== END SAVE ERROR ==========');
+    } catch (saveError) {
+      console.error('❌ Save operation failed:', saveError);
       
-      alert('Failed to save review: ' + error.message);
+      // Enhanced error messaging based on error type
+      let userMessage = 'Failed to save review. ';
+      
+      if (saveError.message.includes('permission-denied')) {
+        userMessage += 'Permission denied. This usually means:\n';
+        userMessage += '1. You need to log in again\n';
+        userMessage += '2. Firestore security rules need updating\n';
+        userMessage += '3. Your session has expired\n\n';
+        userMessage += 'Please log out and log back in.';
+      } else if (saveError.message.includes('unauthenticated')) {
+        userMessage += 'You are not authenticated. Please log in and try again.';
+      } else if (saveError.message.includes('network') || saveError.message.includes('offline')) {
+        userMessage += 'Network error. Please check your internet connection and try again.';
+      } else if (saveError.message.includes('invalid-argument')) {
+        userMessage += 'Invalid data format. Please try recording your review again.';
+      } else {
+        userMessage += 'Error: ' + saveError.message;
+      }
+      
+      alert(userMessage);
     } finally {
       setSaving(false);
-      console.log('🔍 Save process finished (finally block)');
+      console.log('🔍 ========== SAVE DEBUG - Complete ==========');
     }
   };
 
-  // Handle Google Review copy with bonus points
-  const handleCopyToGoogle = async () => {
+  // Test connection function
+  const testFirestoreConnection = async () => {
     try {
+      console.log('🧪 Testing Firestore connection...');
+      
       const authenticatedUser = getAuthenticatedUser();
       
-      // Copy review to clipboard
-      await navigator.clipboard.writeText(formattedReviewText);
-      setCopySuccess(true);
-      
-      // Award additional points if eligible
-      if (canEarnToday && authenticatedUser && pointsEarned > 0) {
-        try {
-          const success = await awardPoints(authenticatedUser.uid, POINTS_CONFIG.COPY_TO_GOOGLE, 'Copied to Google Reviews');
-          if (success) {
-            const extraPoints = POINTS_CONFIG.COPY_TO_GOOGLE;
-            setPointsEarned(prev => prev + extraPoints);
-            
-            // Update current points display
-            const pointsData = await getUserPoints(authenticatedUser.uid);
-            setCurrentPoints(pointsData.totalPoints);
-            
-            alert(`Review copied! You earned ${extraPoints} more points!`);
-          }
-        } catch (error) {
-          console.error('Error awarding Google review points:', error);
-          alert('Review copied to clipboard!');
-        }
-      } else {
-        alert('Review copied to clipboard!');
+      if (!authenticatedUser) {
+        alert('❌ No authenticated user found. Please log in first.');
+        return;
       }
       
-      // Clear success message after 2 seconds
-      setTimeout(() => setCopySuccess(false), 2000);
+      console.log('Testing with user:', authenticatedUser.uid);
+      
+      const result = await testReviewPermissions(authenticatedUser);
+      
+      if (result.success) {
+        alert('✅ Firestore connection test PASSED! You should be able to save reviews.');
+        console.log('✅ Test passed:', result.message);
+      } else {
+        alert('❌ Firestore test FAILED: ' + result.message);
+      }
       
     } catch (error) {
-      console.error('Error copying to clipboard:', error);
-      alert('Failed to copy review to clipboard');
+      console.error('❌ Test error:', error);
+      alert('❌ Test failed: ' + error.message);
     }
   };
 
-  // Open Google Reviews
-  const handleOpenGoogleReviews = () => {
-    if (googleReviewLink) {
-      window.open(googleReviewLink, '_blank', 'noopener,noreferrer');
+  // Copy to clipboard function
+  const copyToClipboard = async (text) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+      
+      // Award points for copying to Google
+      const authenticatedUser = getAuthenticatedUser();
+      if (authenticatedUser && canEarnToday) {
+        try {
+          await awardPoints(authenticatedUser.uid, POINTS_CONFIG.COPY_TO_GOOGLE, 'copy_to_google');
+          console.log('✅ Copy points awarded');
+        } catch (error) {
+          console.error('Copy points error:', error);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to copy text: ', err);
+      alert('Failed to copy to clipboard');
     }
   };
 
-  // Handle back to sharing view
-  const handleBackToSharing = () => {
-    setShowAnalysisView(false);
-    setShowSharingSection(true);
+  // Render sentiment score stars
+  const renderSentimentStars = (score) => {
+    return (
+      <div className="flex items-center gap-1">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <Star
+            key={star}
+            size={16}
+            className={`${
+              star <= score
+                ? 'text-yellow-400 fill-current'
+                : 'text-gray-300'
+            }`}
+          />
+        ))}
+        <span className="ml-2 text-sm text-gray-600">
+          {score}/5
+        </span>
+      </div>
+    );
   };
 
-  // Analysis section component
-  const AnalysisSection = () => (
+  // Loading state
+  if (authLoading) {
+    return (
+      <div className="glass-card rounded-2xl p-8 text-center">
+        <RefreshCw className="animate-spin mx-auto mb-4 text-blue-500" size={32} />
+        <p className="body-md text-gray-600">Loading authentication...</p>
+      </div>
+    );
+  }
+
+  // Auth error state
+  if (authError && !getAuthenticatedUser()) {
+    return (
+      <div className="glass-card rounded-2xl p-8 text-center">
+        <AlertTriangle className="mx-auto mb-4 text-red-500" size={32} />
+        <h3 className="heading-sm mb-4 text-red-600">Authentication Required</h3>
+        <p className="body-md text-gray-600 mb-6">
+          You must be logged in to save reviews. Please log in and try again.
+        </p>
+        <button
+          onClick={() => window.location.reload()}
+          className="btn-primary focus-ring"
+        >
+          Refresh Page
+        </button>
+      </div>
+    );
+  }
+
+  return (
     <motion.div
       className="space-y-6"
       variants={containerVariants}
       initial="hidden"
       animate="visible"
     >
-      {/* NEW: Authentication Status Display (for debugging) */}
-      {authLoading ? (
-        <motion.div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg" variants={itemVariants}>
-          <p className="text-yellow-200">🔄 Checking authentication...</p>
-        </motion.div>
-      ) : !getAuthenticatedUser() ? (
-        <motion.div className="p-4 bg-red-500/10 border border-red-500/20 rounded-lg" variants={itemVariants}>
-          <p className="text-red-200 font-medium">❌ Authentication Error</p>
-          <p className="text-red-300 text-sm mb-3">
-            No authenticated user found. Please refresh the page and log in again.
-          </p>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-3 py-1 bg-red-500 text-white rounded text-sm hover:bg-red-600"
-            >
-              Refresh Page
-            </button>
-            <button 
-              onClick={() => console.log('Auth Debug:', { user, firebaseUser, currentUser: auth.currentUser })}
-              className="px-3 py-1 bg-yellow-500 text-white rounded text-sm hover:bg-yellow-600"
-            >
-              Debug Auth
-            </button>
-          </div>
-        </motion.div>
-      ) : (
-        <motion.div className="p-4 bg-green-500/10 border border-green-500/20 rounded-lg" variants={itemVariants}>
-          <p className="text-green-200">✅ Authenticated as: {getAuthenticatedUser().email || getAuthenticatedUser().uid}</p>
-        </motion.div>
-      )}
-
-      {/* Points Status Banner */}
-      {getAuthenticatedUser() && (
-        <motion.div 
-          className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 rounded-lg"
-          variants={itemVariants}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Zap className="text-purple-400" size={20} />
+      {/* Analysis View */}
+      <AnimatePresence mode="wait">
+        {showAnalysisView && (
+          <motion.div
+            className="glass-card rounded-2xl p-8"
+            variants={itemVariants}
+            initial="hidden"
+            animate="visible"
+            exit="hidden"
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                <Star className="text-white" size={24} />
+              </div>
               <div>
-                <p className="text-white font-medium">Your Points: {currentPoints}</p>
-                <p className="text-slate-300 text-sm">
-                  {canEarnToday 
-                    ? `Earn ${POINTS_CONFIG.SAVE_FEEDBACK}-${POINTS_CONFIG.SAVE_FEEDBACK + POINTS_CONFIG.COPY_TO_GOOGLE} points for this review`
-                    : 'Daily limit reached - come back tomorrow to earn more points'
-                  }
+                <h2 className="heading-md">Review Analysis</h2>
+                <p className="body-sm text-gray-600">
+                  AI-powered insights from your feedback
                 </p>
               </div>
             </div>
-            <button
-              onClick={() => window.location.href = '/rewards'}
-              className="text-purple-400 hover:text-purple-300 text-sm"
-            >
-              View Rewards →
-            </button>
-          </div>
-        </motion.div>
-      )}
 
-      {/* Review Summary */}
-      <motion.div className="text-center" variants={itemVariants}>
-        <div className="flex justify-center items-center gap-2 mb-4">
-          {[...Array(5)].map((_, i) => (
-            <Star
-              key={i}
-              size={24}
-              className={`${
-                i < (reviewData.sentiment_score || 0)
-                  ? 'text-amber-400 fill-amber-400 star-glow'
-                  : 'text-slate-600'
-              } transition-colors`}
-            />
-          ))}
-          <span className="text-2xl font-bold text-white ml-2">
-            {reviewData.sentiment_score}/5
-          </span>
-        </div>
-        
-        <h3 className="heading-lg mb-4">Your Review Analysis</h3>
-        <p className="body-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
-          {reviewData.summary}
-        </p>
-      </motion.div>
+            {/* Summary */}
+            <motion.div className="mb-6" variants={itemVariants}>
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">Summary</h3>
+              <p className="body-md text-gray-700 leading-relaxed">
+                {reviewData?.summary || 'No summary available'}
+              </p>
+            </motion.div>
 
-      {/* Detailed Analysis Grid */}
-      <motion.div className="grid md:grid-cols-2 gap-6" variants={itemVariants}>
-        <div className="glass-card-subtle rounded-xl p-6">
-          <h4 className="heading-sm mb-3 flex items-center gap-2">
-            🍽️ Food Quality
-          </h4>
-          <p className="body-md text-slate-300">
-            {reviewData.food_quality || 'No specific feedback provided'}
-          </p>
-        </div>
+            {/* Sentiment Score */}
+            <motion.div className="mb-6" variants={itemVariants}>
+              <h3 className="text-lg font-semibold mb-3 text-gray-800">Overall Rating</h3>
+              {renderSentimentStars(reviewData?.sentiment_score || 0)}
+            </motion.div>
 
-        <div className="glass-card-subtle rounded-xl p-6">
-          <h4 className="heading-sm mb-3 flex items-center gap-2">
-            👨‍🍳 Service
-          </h4>
-          <p className="body-md text-slate-300">
-            {reviewData.service || 'No specific feedback provided'}
-          </p>
-        </div>
-
-        <div className="glass-card-subtle rounded-xl p-6">
-          <h4 className="heading-sm mb-3 flex items-center gap-2">
-            🏮 Atmosphere
-          </h4>
-          <p className="body-md text-slate-300">
-            {reviewData.atmosphere || 'No specific feedback provided'}
-          </p>
-        </div>
-
-        <div className="glass-card-subtle rounded-xl p-6">
-          <h4 className="heading-sm mb-3 flex items-center gap-2">
-            🎵 Music & Entertainment
-          </h4>
-          <p className="body-md text-slate-300">
-            {reviewData.music_and_entertainment || 'No specific feedback provided'}
-          </p>
-        </div>
-      </motion.div>
-
-      {/* Key Points */}
-      {reviewData.specific_points && reviewData.specific_points.length > 0 && (
-        <motion.div className="glass-card-subtle rounded-xl p-6" variants={itemVariants}>
-          <h4 className="heading-sm mb-4 flex items-center gap-2">
-            🔑 Key Points
-          </h4>
-          <ul className="space-y-2">
-            {(Array.isArray(reviewData.specific_points) 
-              ? reviewData.specific_points 
-              : reviewData.specific_points.split(',')
-            ).map((point, index) => {
-              const cleanPoint = point.trim().replace(/^['"]|['"]$/g, '');
-              return cleanPoint && cleanPoint !== 'N/A' ? (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-slate-300">{cleanPoint}</span>
-                </li>
-              ) : null;
-            })}
-          </ul>
-        </motion.div>
-      )}
-
-      {/* Improvement Suggestions */}
-      {reviewData.improvement_suggestions && (
-        <motion.div className="glass-card-subtle rounded-xl p-6" variants={itemVariants}>
-          <h4 className="heading-sm mb-4 flex items-center gap-2">
-            💡 Suggestions for Improvement
-          </h4>
-          <ul className="space-y-2">
-            {(Array.isArray(reviewData.improvement_suggestions) 
-              ? reviewData.improvement_suggestions 
-              : reviewData.improvement_suggestions.split(',')
-            ).map((suggestion, index) => {
-              const cleanSuggestion = suggestion.trim().replace(/^['"]|['"]$/g, '');
-              return cleanSuggestion && cleanSuggestion !== 'N/A' ? (
-                <li key={index} className="flex items-start gap-3">
-                  <div className="w-2 h-2 bg-amber-400 rounded-full mt-2 flex-shrink-0"></div>
-                  <span className="text-slate-300">{cleanSuggestion}</span>
-                </li>
-              ) : null;
-            })}
-          </ul>
-        </motion.div>
-      )}
-
-      {/* Audio Recording */}
-      {reviewData.audio_url && (
-        <motion.div className="glass-card-subtle rounded-xl p-6" variants={itemVariants}>
-          <h4 className="heading-sm mb-4 flex items-center gap-2">
-            <Volume2 size={20} className="text-green-400" />
-            Original Audio Recording
-          </h4>
-          <audio src={reviewData.audio_url} controls className="w-full" />
-        </motion.div>
-      )}
-      
-      {/* Save Button */}
-      <motion.div className="pt-4" variants={itemVariants}>
-        {!saved ? (
-          <button
-            onClick={handleSaveReview}
-            disabled={saving || !getAuthenticatedUser()}
-            className={`w-full py-4 px-6 rounded-xl font-medium transition-all duration-200 focus-ring flex items-center justify-center gap-2 ${
-              saving || !getAuthenticatedUser()
-                ? 'bg-gray-600 cursor-not-allowed opacity-50'
-                : 'btn-primary hover:scale-105'
-            }`}
-          >
-            {saving ? (
-              <>
-                <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
-                Saving Your Feedback...
-              </>
-            ) : !getAuthenticatedUser() ? (
-              <>
-                ❌ Please Log In to Save
-              </>
-            ) : (
-              <>
-                <Check size={20} />
-                Save My Feedback
-              </>
-            )}
-          </button>
-        ) : (
-          <div className="flex gap-4">
-            <button
-              onClick={handleBackToSharing}
-              className="btn-primary flex-1 py-4 px-6 rounded-xl font-medium focus-ring flex items-center justify-center gap-2 hover:scale-105"
-            >
-              <Share2 size={20} />
-              Share Your Review
-            </button>
-            <button
-              onClick={onStartOver}
-              className="btn-secondary py-4 px-6 rounded-xl font-medium focus-ring flex items-center justify-center gap-2 hover:scale-105"
-            >
-              <RotateCcw size={20} />
-              New Review
-            </button>
-          </div>
-        )}
-      </motion.div>
-    </motion.div>
-  );
-
-  // Sharing section component
-  const SharingSection = () => (
-    <motion.div
-      className="space-y-6"
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-    >
-      <motion.div className="text-center" variants={itemVariants}>
-        <div className="text-6xl mb-4">🎉</div>
-        <h3 className="heading-lg mb-4">Review Saved Successfully!</h3>
-        <p className="body-lg text-slate-300">
-          Help others by sharing your experience
-        </p>
-      </motion.div>
-
-      {/* Sharing Options */}
-      <motion.div className="space-y-4" variants={itemVariants}>
-        <div className="glass-card rounded-xl p-6">
-          <h4 className="heading-sm mb-4">Share on Google Reviews</h4>
-          <p className="text-slate-300 mb-4 text-sm">
-            Copy your review and post it on Google to help other customers
-          </p>
-          
-          <div className="flex gap-3">
-            <button
-              onClick={handleCopyToGoogle}
-              className={`flex-1 py-3 px-4 rounded-lg font-medium transition-all duration-200 flex items-center justify-center gap-2 ${
-                copySuccess 
-                  ? 'bg-green-500 text-white' 
-                  : 'bg-blue-500 hover:bg-blue-600 text-white'
-              }`}
-            >
-              <Copy size={18} />
-              {copySuccess ? 'Copied!' : 'Copy Review Text'}
-            </button>
-            
-            <button
-              onClick={handleOpenGoogleReviews}
-              className="py-3 px-4 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors flex items-center gap-2"
-            >
-              <ExternalLink size={18} />
-              Open Google
-            </button>
-          </div>
-        </div>
-
-        {/* Preview of formatted review */}
-        <div className="glass-card-subtle rounded-xl p-6">
-          <h5 className="text-sm font-medium text-white mb-3">Review Preview:</h5>
-          <div className="bg-white/5 rounded-lg p-4 text-slate-300 text-sm whitespace-pre-wrap max-h-40 overflow-y-auto">
-            {formattedReviewText}
-          </div>
-        </div>
-      </motion.div>
-
-      {/* Back to Analysis */}
-      <motion.div className="flex gap-4" variants={itemVariants}>
-        <button
-          onClick={() => {
-            setShowSharingSection(false);
-            setShowAnalysisView(true);
-          }}
-          className="btn-secondary flex-1 py-3 px-6 rounded-xl font-medium focus-ring"
-        >
-          Back to Review
-        </button>
-        <button
-          onClick={onStartOver}
-          className="btn-primary flex-1 py-3 px-6 rounded-xl font-medium focus-ring"
-        >
-          Write Another Review
-        </button>
-      </motion.div>
-    </motion.div>
-  );
-
-  return (
-    <div className="glass-card rounded-2xl overflow-hidden max-w-4xl mx-auto">
-      <div className="p-8">
-        <AnimatePresence mode="wait">
-          {showAnalysisView ? (
-            <AnalysisSection key="analysis" />
-          ) : showSharingSection ? (
-            <SharingSection key="sharing" />
-          ) : null}
-        </AnimatePresence>
-
-        {/* Points Earned Modal */}
-        {showPointsModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <motion.div 
-              className="bg-slate-900 rounded-xl p-6 max-w-md w-full border border-white/10"
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-            >
-              <div className="text-center">
-                <div className="text-4xl mb-4">🎉</div>
-                <h3 className="text-xl font-bold text-white mb-2">Points Earned!</h3>
-                <p className="text-slate-300 mb-4">
-                  You earned <span className="text-purple-400 font-bold">{pointsEarned} points</span> for your review!
-                </p>
-                
-                <div className="bg-white/5 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-slate-400">Your Total Points:</span>
-                    <div className="flex items-center gap-2">
-                      <Zap className="text-purple-400" size={16} />
-                      <span className="text-white font-bold">{currentPoints}</span>
+            {/* Category Ratings */}
+            <motion.div className="mb-6" variants={itemVariants}>
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Category Breakdown</h3>
+              <div className="grid md:grid-cols-2 gap-4">
+                {[
+                  { key: 'food_quality', label: 'Food Quality' },
+                  { key: 'service', label: 'Service' },
+                  { key: 'atmosphere', label: 'Atmosphere' },
+                  { key: 'music_and_entertainment', label: 'Music & Entertainment' }
+                ].map(({ key, label }) => (
+                  <div key={key} className="bg-gray-50 rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="font-medium text-gray-700">{label}</span>
                     </div>
+                    <p className="text-sm text-gray-600">
+                      {reviewData?.[key] || 'No feedback provided'}
+                    </p>
                   </div>
-                </div>
-                
-                <div className="space-y-3">
-                  {formattedReviewText && (
-                    <button
-                      onClick={handleCopyToGoogle}
-                      className="w-full bg-blue-500 text-white px-4 py-3 rounded-lg hover:bg-blue-600 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Copy size={18} />
-                      Copy to Google Reviews (+{POINTS_CONFIG.COPY_TO_GOOGLE} point)
-                    </button>
-                  )}
-                  
-                  {googleReviewLink && (
-                    <button
-                      onClick={handleOpenGoogleReviews}
-                      className="w-full bg-green-500 text-white px-4 py-3 rounded-lg hover:bg-green-600 transition-colors flex items-center justify-center gap-2"
-                    >
-                      <ExternalLink size={18} />
-                      Open Google Reviews
-                    </button>
-                  )}
-                  
-                  <button
-                    onClick={() => setShowPointsModal(false)}
-                    className="w-full bg-white/10 text-white px-4 py-3 rounded-lg hover:bg-white/20 transition-colors"
-                  >
-                    Continue
-                  </button>
-                  
-                  <div className="text-center">
-                    <button
-                      onClick={() => window.location.href = '/rewards'}
-                      className="text-purple-400 hover:text-purple-300 text-sm inline-flex items-center gap-1"
-                    >
-                      <Gift size={14} />
-                      View Available Rewards
-                    </button>
-                  </div>
-                </div>
+                ))}
               </div>
             </motion.div>
-          </div>
+
+            {/* Specific Points */}
+            {reviewData?.specific_points && reviewData.specific_points.length > 0 && (
+              <motion.div className="mb-6" variants={itemVariants}>
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Key Points</h3>
+                <div className="space-y-2">
+                  {reviewData.specific_points.map((point, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      </div>
+                      <p className="body-sm text-gray-700">{point}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Improvement Suggestions */}
+            {reviewData?.improvement_suggestions && reviewData.improvement_suggestions.length > 0 && (
+              <motion.div className="mb-8" variants={itemVariants}>
+                <h3 className="text-lg font-semibold mb-3 text-gray-800">Suggestions for Improvement</h3>
+                <div className="space-y-2">
+                  {reviewData.improvement_suggestions.map((suggestion, index) => (
+                    <div key={index} className="flex items-start gap-3">
+                      <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      </div>
+                      <p className="body-sm text-gray-700">{suggestion}</p>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
+
+            {/* Action Buttons */}
+            <motion.div 
+              className="flex flex-col sm:flex-row gap-4 pt-6 border-t border-gray-200"
+              variants={itemVariants}
+            >
+              <button
+                onClick={handleSaveReview}
+                disabled={saving || saved || !getAuthenticatedUser()}
+                className={`
+                  flex items-center justify-center gap-3 px-6 py-3 rounded-xl font-medium transition-all duration-200 focus-ring
+                  ${saved 
+                    ? 'bg-green-500 text-white cursor-default' 
+                    : saving 
+                      ? 'bg-gray-400 text-white cursor-not-allowed'
+                      : !getAuthenticatedUser()
+                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                        : 'bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transform hover:scale-105'
+                  }
+                `}
+              >
+                {saving ? (
+                  <>
+                    <RefreshCw className="animate-spin" size={20} />
+                    Saving...
+                  </>
+                ) : saved ? (
+                  <>
+                    <Check size={20} />
+                    Saved!
+                  </>
+                ) : (
+                  <>
+                    <Check size={20} />
+                    Save Review
+                    {canEarnToday && (
+                      <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                        +{POINTS_CONFIG.SAVE_FEEDBACK} pts
+                      </span>
+                    )}
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={onStartOver}
+                className="flex items-center justify-center gap-3 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-xl font-medium hover:border-gray-400 hover:bg-gray-50 transition-all duration-200 focus-ring"
+              >
+                <RotateCcw size={20} />
+                Start Over
+              </button>
+            </motion.div>
+          </motion.div>
         )}
-      </div>
-    </div>
+      </AnimatePresence>
+
+      {/* Sharing Section */}
+      <AnimatePresence>
+        {showSharingSection && (
+          <motion.div
+            className="glass-card rounded-2xl p-8"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-blue-500 rounded-full flex items-center justify-center">
+                <Share2 className="text-white" size={24} />
+              </div>
+              <div>
+                <h2 className="heading-md">Share Your Review</h2>
+                <p className="body-sm text-gray-600">
+                  Help others discover this restaurant
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Google Reviews */}
+              <div className="border border-gray-200 rounded-xl p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <ExternalLink className="text-blue-500" size={24} />
+                  <h3 className="text-lg font-semibold">Post on Google Reviews</h3>
+                </div>
+                
+                <div className="bg-gray-50 rounded-lg p-4 mb-4">
+                  <p className="text-sm text-gray-700 mb-4">
+                    Your review text (click to copy):
+                  </p>
+                  <div 
+                    className="bg-white border rounded-lg p-3 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => copyToClipboard(formattedReviewText)}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{formattedReviewText}</p>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button
+                    onClick={() => copyToClipboard(formattedReviewText)}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors focus-ring"
+                  >
+                    <Copy size={16} />
+                    {copySuccess ? 'Copied!' : 'Copy Text'}
+                    {canEarnToday && (
+                      <span className="bg-white/20 px-2 py-1 rounded-full text-xs">
+                        +{POINTS_CONFIG.COPY_TO_GOOGLE} pt
+                      </span>
+                    )}
+                  </button>
+                  
+                  <a
+                    href={googleReviewLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors focus-ring"
+                  >
+                    <ExternalLink size={16} />
+                    Open Google Reviews
+                  </a>
+                </div>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Points Modal */}
+      <AnimatePresence>
+        {showPointsModal && (
+          <motion.div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setShowPointsModal(false)}
+          >
+            <motion.div
+              className="bg-white rounded-2xl p-8 max-w-md w-full"
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.8, y: 20 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <Zap className="text-white" size={32} />
+                </div>
+                
+                <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                  Points Earned!
+                </h3>
+                
+                <p className="text-lg text-gray-600 mb-4">
+                  You earned <span className="font-bold text-blue-600">+{pointsEarned} points</span> for saving your review!
+                </p>
+                
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <p className="text-sm text-gray-600">
+                    Total Points: <span className="font-bold text-gray-800">{currentPoints}</span>
+                  </p>
+                </div>
+                
+                <button
+                  onClick={() => setShowPointsModal(false)}
+                  className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-3 rounded-xl font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 focus-ring"
+                >
+                  Awesome!
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
 };
 
