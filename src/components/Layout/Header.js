@@ -1,8 +1,8 @@
-// src/components/Layout/Header.js - Food Review Themed Header
+// src/components/Layout/Header.js
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ChevronDown, User, LogOut, Settings, MessageSquare, BarChart3, Menu, X, Gift, Ticket, Star, Utensils } from 'lucide-react';
+import { ChevronDown, User, LogOut, Menu, X, MessageSquare, BarChart3, Gift, Ticket } from 'lucide-react';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -24,184 +24,90 @@ const Header = () => {
     return location.pathname === path;
   };
   
+  // All navigation items
   const navItems = [
     { 
       path: '/', 
       label: 'Home', 
-      icon: '🏠',
       show: true 
     },
     { 
       path: '/feedback', 
       label: 'Leave Review', 
-      icon: '🎤',
+      icon: MessageSquare,
       show: !!currentUser 
     },
     { 
       path: '/my-reviews', 
       label: 'My Reviews', 
-      icon: '📝',
       show: !!currentUser 
     },
     { 
       path: '/rewards', 
       label: 'Rewards', 
-      icon: '🎁',
+      icon: Gift,
       show: !!currentUser 
     },
     { 
       path: '/vouchers', 
       label: 'Vouchers', 
-      icon: '🎫',
+      icon: Ticket,
       show: !!currentUser 
     },
     { 
       path: '/dashboard', 
       label: 'Dashboard', 
-      icon: '👨‍🍳',
-      show: isOwner, 
-      highlight: true 
+      icon: BarChart3,
+      show: isOwner,
+      highlight: true
     },
+    { 
+      path: '/admin/rewards', 
+      label: 'Admin Rewards', 
+      show: isOwner
+    }
   ];
 
   const filteredNavItems = navItems.filter(item => item.show);
   
   return (
-    <header style={{
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-      backgroundColor: 'rgba(15, 23, 42, 0.9)',
-      backdropFilter: 'blur(20px)',
-      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
-      boxShadow: '0 8px 32px rgba(139, 92, 246, 0.1)'
-    }}>
-      <div style={{
-        maxWidth: '1200px',
-        margin: '0 auto',
-        padding: '0 20px'
-      }}>
-        <div style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          height: '70px'
-        }}>
+    <header className="sticky top-0 z-50 border-b border-white/10 glass-card">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
           {/* Logo and brand */}
-          <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div className="flex items-center">
             <Link 
               to="/" 
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                textDecoration: 'none',
-                color: 'white',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = 'scale(1.05)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = 'scale(1)';
-              }}
+              className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
             >
-              <div style={{
-                padding: '12px',
-                background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                borderRadius: '16px',
-                boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <span style={{ fontSize: '24px' }}>🍽️</span>
+              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+                <span className="text-white text-xl">🍽️</span>
               </div>
-              <div>
-                <h1 style={{
-                  fontSize: '20px',
-                  fontWeight: 'bold',
-                  margin: 0,
-                  background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text'
-                }}>
-                  FoodieVoice
-                </h1>
-                <p style={{
-                  fontSize: '12px',
-                  color: 'rgba(255, 255, 255, 0.6)',
-                  margin: 0,
-                  marginTop: '-2px'
-                }}>
-                  AI-Powered Reviews 🤖✨
-                </p>
+              <div className="hidden sm:block">
+                <h1 className="heading-sm">Restaurant Review</h1>
+                <p className="text-xs text-slate-400 -mt-1">AI-Powered Feedback</p>
               </div>
             </Link>
           </div>
           
           {/* Desktop Navigation */}
-          <nav style={{
-            display: 'none',
-            alignItems: 'center',
-            gap: '8px'
-          }}
-          className="lg:flex"
-          >
+          <nav className="hidden lg:flex items-center space-x-2">
             {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  textDecoration: 'none',
-                  transition: 'all 0.3s ease',
-                  background: isActivePath(item.path) 
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                  isActivePath(item.path) 
                     ? item.highlight 
-                      ? 'linear-gradient(45deg, #8b5cf6, #ec4899)'
-                      : 'rgba(255, 255, 255, 0.1)'
-                    : 'transparent',
-                  color: isActivePath(item.path) ? 'white' : 'rgba(255, 255, 255, 0.8)',
-                  border: item.highlight && isActivePath(item.path) 
-                    ? 'none' 
-                    : isActivePath(item.path) 
-                    ? '1px solid rgba(255, 255, 255, 0.2)' 
-                    : '1px solid transparent',
-                  boxShadow: item.highlight && isActivePath(item.path) 
-                    ? '0 4px 16px rgba(139, 92, 246, 0.4)' 
-                    : 'none'
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActivePath(item.path)) {
-                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                    e.target.style.color = 'white';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActivePath(item.path)) {
-                    e.target.style.backgroundColor = 'transparent';
-                    e.target.style.color = 'rgba(255, 255, 255, 0.8)';
-                  }
-                }}
+                      ? 'gradient-text bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30'
+                      : 'bg-white/10 text-white border border-white/20'
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
               >
-                <span style={{ fontSize: '16px' }}>{item.icon}</span>
+                {item.icon && <item.icon size={16} />}
                 {item.label}
-                {item.highlight && (
-                  <span style={{
-                    fontSize: '12px',
-                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                    color: '#34d399',
-                    padding: '2px 6px',
-                    borderRadius: '6px',
-                    fontWeight: 'bold'
-                  }}>
+                {item.highlight && isActivePath(item.path) && (
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-md font-bold">
                     Owner
                   </span>
                 )}
@@ -209,102 +115,36 @@ const Header = () => {
             ))}
           </nav>
           
-          {/* User section and mobile menu */}
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
+          {/* User section */}
+          <div className="flex items-center space-x-4">
             {currentUser ? (
-              <div style={{ position: 'relative' }}>
+              <div className="relative">
+                {/* User dropdown button */}
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px',
-                    padding: '8px 12px',
-                    borderRadius: '12px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: 'white',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    backdropFilter: 'blur(10px)'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-                    e.target.style.transform = 'translateY(-1px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-                    e.target.style.transform = 'translateY(0)';
-                  }}
+                  className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors focus-ring"
                 >
-                  {currentUser.photoURL ? (
-                    <img 
-                      src={currentUser.photoURL} 
-                      alt="Profile" 
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        border: '2px solid rgba(255, 255, 255, 0.2)',
-                        objectFit: 'cover'
-                      }}
-                      onError={(e) => {
-                        // Fallback to gradient avatar if image fails to load
-                        e.target.style.display = 'none';
-                        e.target.nextSibling.style.display = 'flex';
-                      }}
-                    />
-                  ) : null}
-                  {/* Fallback avatar - always rendered but hidden if photo loads */}
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                    display: currentUser.photoURL ? 'none' : 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    color: 'white'
-                  }}>
-                    {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                  <div className="flex items-center space-x-3">
+                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                      <span className="text-white text-sm font-medium">
+                        {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="hidden md:block text-left">
+                      <div className="text-sm font-medium text-white">
+                        {currentUser.displayName || currentUser.name || 'User'}
+                      </div>
+                      <div className="text-xs text-slate-400">
+                        {isOwner ? 'Restaurant Owner' : 'Customer'}
+                      </div>
+                    </div>
                   </div>
-                  <div style={{
-                    display: 'none',
-                    flexDirection: 'column',
-                    alignItems: 'flex-start'
-                  }}
-                  className="sm:flex"
-                  >
-                    <span style={{
-                      fontSize: '14px',
-                      fontWeight: '600',
-                      maxWidth: '120px',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap'
-                    }}>
-                      {currentUser.displayName || currentUser.email?.split('@')[0] || 'User'}
-                    </span>
-                    <span style={{
-                      fontSize: '12px',
-                      color: 'rgba(255, 255, 255, 0.6)'
-                    }}>
-                      {isOwner ? '👨‍🍳 Owner' : '🍽️ Foodie'}
-                    </span>
-                  </div>
+                  
                   <ChevronDown 
                     size={16} 
-                    style={{
-                      color: 'rgba(255, 255, 255, 0.6)',
-                      transition: 'transform 0.3s ease',
-                      transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)'
-                    }}
+                    className={`text-slate-400 transition-transform duration-200 ${
+                      userMenuOpen ? 'transform rotate-180' : ''
+                    }`} 
                   />
                 </button>
                 
@@ -313,109 +153,55 @@ const Header = () => {
                   <>
                     {/* Backdrop */}
                     <div 
-                      style={{
-                        position: 'fixed',
-                        inset: 0,
-                        zIndex: 10
-                      }}
+                      className="fixed inset-0 z-10" 
                       onClick={() => setUserMenuOpen(false)}
                     />
                     
                     {/* Menu */}
-                    <div style={{
-                      position: 'absolute',
-                      right: 0,
-                      marginTop: '8px',
-                      width: '280px',
-                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
-                      backdropFilter: 'blur(20px)',
-                      borderRadius: '16px',
-                      border: '1px solid rgba(255, 255, 255, 0.1)',
-                      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
-                      zIndex: 20,
-                      overflow: 'hidden'
-                    }}>
+                    <div className="absolute right-0 mt-2 w-64 glass-card rounded-xl border border-white/10 shadow-xl z-20">
                       {/* User info header */}
-                      <div style={{
-                        padding: '16px',
-                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))',
-                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
-                      }}>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '12px'
-                        }}>
-                          <div style={{
-                            width: '48px',
-                            height: '48px',
-                            borderRadius: '50%',
-                            background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '18px',
-                            fontWeight: 'bold',
-                            color: 'white'
-                          }}>
-                            {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                      <div className="px-4 py-3 border-b border-white/10">
+                        <div className="flex items-center space-x-3">
+                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
+                            <span className="text-white font-medium">
+                              {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                            </span>
                           </div>
                           <div>
-                            <div style={{
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              color: 'white',
-                              marginBottom: '2px'
-                            }}>
+                            <div className="text-sm font-medium text-white">
                               {currentUser.displayName || currentUser.name || 'User'}
                             </div>
-                            <div style={{
-                              fontSize: '13px',
-                              color: 'rgba(255, 255, 255, 0.6)',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              whiteSpace: 'nowrap'
-                            }}>
+                            <div className="text-xs text-slate-400 truncate">
                               {currentUser.email}
-                            </div>
-                            <div style={{
-                              fontSize: '12px',
-                              color: '#34d399',
-                              fontWeight: '600',
-                              marginTop: '4px'
-                            }}>
-                              {isOwner ? '👨‍🍳 Restaurant Owner' : '🍽️ Food Enthusiast'}
                             </div>
                           </div>
                         </div>
                       </div>
                       
                       {/* Menu items */}
-                      <div style={{ padding: '8px' }}>
+                      <div className="py-2">
+                        {/* Mobile navigation items */}
+                        <div className="lg:hidden">
+                          {filteredNavItems.map((item) => (
+                            <Link
+                              key={item.path}
+                              to={item.path}
+                              className={`flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/5 transition-colors ${
+                                isActivePath(item.path) ? 'text-blue-400 bg-white/5' : 'text-slate-300'
+                              }`}
+                              onClick={() => setUserMenuOpen(false)}
+                            >
+                              {item.icon && <item.icon size={16} />}
+                              {item.label}
+                            </Link>
+                          ))}
+                          <div className="border-t border-white/10 my-2"></div>
+                        </div>
+                        
                         {/* Profile action */}
                         <button
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            width: '100%',
-                            padding: '12px 16px',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            borderRadius: '12px',
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: 'rgba(255, 255, 255, 0.8)',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease'
-                          }}
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/5 transition-colors"
                           onClick={() => setUserMenuOpen(false)}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'transparent';
-                          }}
                         >
                           <User size={16} />
                           Profile Settings
@@ -427,27 +213,7 @@ const Header = () => {
                             handleLogout();
                             setUserMenuOpen(false);
                           }}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            width: '100%',
-                            padding: '12px 16px',
-                            fontSize: '14px',
-                            fontWeight: '500',
-                            borderRadius: '12px',
-                            backgroundColor: 'transparent',
-                            border: 'none',
-                            color: '#f87171',
-                            cursor: 'pointer',
-                            transition: 'all 0.3s ease'
-                          }}
-                          onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                          }}
-                          onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'transparent';
-                          }}
+                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
                         >
                           <LogOut size={16} />
                           Sign Out
@@ -460,56 +226,21 @@ const Header = () => {
             ) : (
               <Link
                 to="/login"
-                style={{
-                  display: 'inline-block',
-                  padding: '12px 24px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  textDecoration: 'none',
-                  borderRadius: '12px',
-                  background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-                  color: 'white',
-                  transition: 'all 0.3s ease',
-                  boxShadow: '0 4px 16px rgba(139, 92, 246, 0.4)'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.transform = 'translateY(-2px)';
-                  e.target.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.6)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.transform = 'translateY(0)';
-                  e.target.style.boxShadow = '0 4px 16px rgba(139, 92, 246, 0.4)';
-                }}
+                className="btn-primary text-sm px-4 py-2 focus-ring"
               >
-                🚀 Sign In
+                Sign In
               </Link>
             )}
             
             {/* Mobile menu button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              style={{
-                display: 'block',
-                padding: '8px',
-                borderRadius: '8px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: 'none',
-                color: 'rgba(255, 255, 255, 0.8)',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}
-              className="lg:hidden"
-              onMouseEnter={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
-              }}
-              onMouseLeave={(e) => {
-                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              }}
+              className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition-colors focus-ring"
             >
               {mobileMenuOpen ? (
-                <X size={20} />
+                <X size={20} className="text-slate-300" />
               ) : (
-                <Menu size={20} />
+                <Menu size={20} className="text-slate-300" />
               )}
             </button>
           </div>
@@ -518,132 +249,23 @@ const Header = () => {
       
       {/* Mobile menu */}
       {mobileMenuOpen && (
-        <div style={{
-          backgroundColor: 'rgba(15, 23, 42, 0.95)',
-          backdropFilter: 'blur(20px)',
-          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-          display: 'block'
-        }}
-        className="lg:hidden"
-        >
-          <div style={{
-            padding: '16px 20px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px'
-          }}>
+        <div className="lg:hidden border-t border-white/10 glass-card">
+          <div className="px-4 py-4 space-y-2">
             {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '16px 20px',
-                  borderRadius: '12px',
-                  fontSize: '16px',
-                  fontWeight: '600',
-                  textDecoration: 'none',
-                  transition: 'all 0.3s ease',
-                  background: isActivePath(item.path) 
-                    ? item.highlight 
-                      ? 'linear-gradient(45deg, #8b5cf6, #ec4899)'
-                      : 'rgba(255, 255, 255, 0.1)'
-                    : 'transparent',
-                  color: isActivePath(item.path) ? 'white' : 'rgba(255, 255, 255, 0.8)',
-                  border: isActivePath(item.path) && !item.highlight 
-                    ? '1px solid rgba(255, 255, 255, 0.2)' 
-                    : '1px solid transparent'
-                }}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                  isActivePath(item.path) 
+                    ? 'bg-white/10 text-white border border-white/20' 
+                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                }`}
                 onClick={() => setMobileMenuOpen(false)}
-                onMouseEnter={(e) => {
-                  if (!isActivePath(item.path)) {
-                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActivePath(item.path)) {
-                    e.target.style.backgroundColor = 'transparent';
-                  }
-                }}
               >
-                <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                {item.icon && <item.icon size={18} />}
                 {item.label}
-                {item.highlight && (
-                  <span style={{
-                    fontSize: '12px',
-                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                    color: '#34d399',
-                    padding: '2px 8px',
-                    borderRadius: '8px',
-                    fontWeight: 'bold'
-                  }}>
-                    Owner
-                  </span>
-                )}
               </Link>
             ))}
-            
-            {currentUser && (
-              <div style={{
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-                marginTop: '16px',
-                paddingTop: '16px'
-              }}>
-                <div style={{
-                  padding: '16px 20px',
-                  marginBottom: '8px'
-                }}>
-                  <p style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: 'white',
-                    margin: 0,
-                    marginBottom: '4px'
-                  }}>
-                    {currentUser.displayName || 'User'}
-                  </p>
-                  <p style={{
-                    fontSize: '14px',
-                    color: 'rgba(255, 255, 255, 0.6)',
-                    margin: 0
-                  }}>
-                    {currentUser.email}
-                  </p>
-                </div>
-                <button
-                  onClick={() => {
-                    setMobileMenuOpen(false);
-                    handleLogout();
-                  }}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '12px',
-                    width: '100%',
-                    padding: '16px 20px',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    borderRadius: '12px',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    color: '#f87171',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.backgroundColor = 'transparent';
-                  }}
-                >
-                  <LogOut size={18} />
-                  Sign Out
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
