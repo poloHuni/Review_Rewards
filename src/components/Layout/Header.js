@@ -1,8 +1,8 @@
-// src/components/Layout/Header.js - FIXED VERSION
+// src/components/Layout/Header.js - Food Review Themed Header
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { ChevronDown, User, LogOut, Settings, MessageSquare, BarChart3, Menu, X, Gift, Ticket } from 'lucide-react';
+import { ChevronDown, User, LogOut, Settings, MessageSquare, BarChart3, Menu, X, Gift, Ticket, Star, Utensils } from 'lucide-react';
 
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -24,211 +24,629 @@ const Header = () => {
     return location.pathname === path;
   };
   
-  // FIXED: Complete navigation items with all tabs
   const navItems = [
-    { path: '/', label: 'Home', show: true },
-    { path: '/feedback', label: 'Leave Feedback', icon: MessageSquare, show: !!currentUser },
-    { path: '/my-reviews', label: 'My Reviews', show: !!currentUser },
-    { path: '/rewards', label: 'Rewards', icon: Gift, show: !!currentUser }, // FIXED: Added back
-    { path: '/vouchers', label: 'Vouchers', icon: Ticket, show: !!currentUser }, // FIXED: Added back
-    { path: '/dashboard', label: 'Dashboard', icon: BarChart3, show: isOwner, highlight: true },
+    { 
+      path: '/', 
+      label: 'Home', 
+      icon: '🏠',
+      show: true 
+    },
+    { 
+      path: '/feedback', 
+      label: 'Leave Review', 
+      icon: '🎤',
+      show: !!currentUser 
+    },
+    { 
+      path: '/my-reviews', 
+      label: 'My Reviews', 
+      icon: '📝',
+      show: !!currentUser 
+    },
+    { 
+      path: '/rewards', 
+      label: 'Rewards', 
+      icon: '🎁',
+      show: !!currentUser 
+    },
+    { 
+      path: '/vouchers', 
+      label: 'Vouchers', 
+      icon: '🎫',
+      show: !!currentUser 
+    },
+    { 
+      path: '/dashboard', 
+      label: 'Dashboard', 
+      icon: '👨‍🍳',
+      show: isOwner, 
+      highlight: true 
+    },
   ];
 
   const filteredNavItems = navItems.filter(item => item.show);
   
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 glass-card">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+    <header style={{
+      position: 'sticky',
+      top: 0,
+      zIndex: 50,
+      backgroundColor: 'rgba(15, 23, 42, 0.9)',
+      backdropFilter: 'blur(20px)',
+      borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+      boxShadow: '0 8px 32px rgba(139, 92, 246, 0.1)'
+    }}>
+      <div style={{
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '0 20px'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          height: '70px'
+        }}>
           {/* Logo and brand */}
-          <div className="flex items-center">
+          <div style={{ display: 'flex', alignItems: 'center' }}>
             <Link 
               to="/" 
-              className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                textDecoration: 'none',
+                color: 'white',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
             >
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                <span className="text-white text-xl">🍽️</span>
+              <div style={{
+                padding: '12px',
+                background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                borderRadius: '16px',
+                boxShadow: '0 8px 24px rgba(139, 92, 246, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <span style={{ fontSize: '24px' }}>🍽️</span>
               </div>
-              <div className="hidden sm:block">
-                <h1 className="heading-sm">Restaurant Review</h1>
-                <p className="text-xs text-slate-400 -mt-1">AI-Powered Feedback</p>
+              <div>
+                <h1 style={{
+                  fontSize: '20px',
+                  fontWeight: 'bold',
+                  margin: 0,
+                  background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text'
+                }}>
+                  FoodieVoice
+                </h1>
+                <p style={{
+                  fontSize: '12px',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  margin: 0,
+                  marginTop: '-2px'
+                }}>
+                  AI-Powered Reviews 🤖✨
+                </p>
               </div>
             </Link>
           </div>
           
-          {/* Desktop Navigation - FIXED */}
-          <nav className="hidden lg:flex items-center space-x-1">
+          {/* Desktop Navigation */}
+          <nav style={{
+            display: 'none',
+            alignItems: 'center',
+            gap: '8px'
+          }}
+          className="lg:flex"
+          >
             {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`nav-link flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  isActivePath(item.path) 
-                    ? 'bg-white/10 text-white border border-white/20' 
-                    : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-                } ${item.highlight ? 'bg-gradient-to-r from-blue-500/20 to-purple-500/20' : ''}`}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 16px',
+                  borderRadius: '12px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s ease',
+                  background: isActivePath(item.path) 
+                    ? item.highlight 
+                      ? 'linear-gradient(45deg, #8b5cf6, #ec4899)'
+                      : 'rgba(255, 255, 255, 0.1)'
+                    : 'transparent',
+                  color: isActivePath(item.path) ? 'white' : 'rgba(255, 255, 255, 0.8)',
+                  border: item.highlight && isActivePath(item.path) 
+                    ? 'none' 
+                    : isActivePath(item.path) 
+                    ? '1px solid rgba(255, 255, 255, 0.2)' 
+                    : '1px solid transparent',
+                  boxShadow: item.highlight && isActivePath(item.path) 
+                    ? '0 4px 16px rgba(139, 92, 246, 0.4)' 
+                    : 'none'
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActivePath(item.path)) {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                    e.target.style.color = 'white';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActivePath(item.path)) {
+                    e.target.style.backgroundColor = 'transparent';
+                    e.target.style.color = 'rgba(255, 255, 255, 0.8)';
+                  }
+                }}
               >
-                {item.icon && <item.icon size={16} />}
+                <span style={{ fontSize: '16px' }}>{item.icon}</span>
                 {item.label}
+                {item.highlight && (
+                  <span style={{
+                    fontSize: '12px',
+                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                    color: '#34d399',
+                    padding: '2px 6px',
+                    borderRadius: '6px',
+                    fontWeight: 'bold'
+                  }}>
+                    Owner
+                  </span>
+                )}
               </Link>
             ))}
           </nav>
           
-          {/* Mobile menu button */}
-          <div className="lg:hidden">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/10"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
-          
-          {/* User section */}
-          <div className="hidden lg:flex items-center space-x-4">
+          {/* User section and mobile menu */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '12px'
+          }}>
             {currentUser ? (
-              <div className="relative">
+              <div style={{ position: 'relative' }}>
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-all duration-200"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    padding: '8px 12px',
+                    borderRadius: '12px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease',
+                    backdropFilter: 'blur(10px)'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+                    e.target.style.transform = 'translateY(-1px)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                    e.target.style.transform = 'translateY(0)';
+                  }}
                 >
                   {currentUser.photoURL ? (
                     <img 
                       src={currentUser.photoURL} 
                       alt="Profile" 
-                      className="w-8 h-8 rounded-full"
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '50%',
+                        border: '2px solid rgba(255, 255, 255, 0.2)',
+                        objectFit: 'cover'
+                      }}
+                      onError={(e) => {
+                        // Fallback to gradient avatar if image fails to load
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
                     />
-                  ) : (
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-                      <span className="text-white text-sm font-semibold">
-                        {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                  <span className="text-sm font-medium max-w-32 truncate">
-                    {currentUser.displayName || currentUser.email?.split('@')[0] || 'User'}
-                  </span>
-                  <ChevronDown size={16} className={`transition-transform ${userMenuOpen ? 'rotate-180' : ''}`} />
+                  ) : null}
+                  {/* Fallback avatar - always rendered but hidden if photo loads */}
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                    display: currentUser.photoURL ? 'none' : 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    color: 'white'
+                  }}>
+                    {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                  </div>
+                  <div style={{
+                    display: 'none',
+                    flexDirection: 'column',
+                    alignItems: 'flex-start'
+                  }}
+                  className="sm:flex"
+                  >
+                    <span style={{
+                      fontSize: '14px',
+                      fontWeight: '600',
+                      maxWidth: '120px',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {currentUser.displayName || currentUser.email?.split('@')[0] || 'User'}
+                    </span>
+                    <span style={{
+                      fontSize: '12px',
+                      color: 'rgba(255, 255, 255, 0.6)'
+                    }}>
+                      {isOwner ? '👨‍🍳 Owner' : '🍽️ Foodie'}
+                    </span>
+                  </div>
+                  <ChevronDown 
+                    size={16} 
+                    style={{
+                      color: 'rgba(255, 255, 255, 0.6)',
+                      transition: 'transform 0.3s ease',
+                      transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)'
+                    }}
+                  />
                 </button>
                 
-                {/* User dropdown menu */}
+                {/* Dropdown menu */}
                 {userMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-56 glass-card rounded-xl p-2 border border-white/20 shadow-xl">
-                    <div className="px-3 py-2 border-b border-white/10">
-                      <p className="text-sm font-medium text-white">
-                        {currentUser.displayName || 'User'}
-                      </p>
-                      <p className="text-xs text-slate-400 truncate">
-                        {currentUser.email}
-                      </p>
-                      {isOwner && (
-                        <span className="inline-block mt-1 px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">
-                          Restaurant Owner
-                        </span>
-                      )}
-                    </div>
+                  <>
+                    {/* Backdrop */}
+                    <div 
+                      style={{
+                        position: 'fixed',
+                        inset: 0,
+                        zIndex: 10
+                      }}
+                      onClick={() => setUserMenuOpen(false)}
+                    />
                     
-                    <div className="py-1">
-                      <Link
-                        to="/my-reviews"
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <User size={16} />
-                        My Reviews
-                      </Link>
-                      <Link
-                        to="/rewards"
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg"
-                        onClick={() => setUserMenuOpen(false)}
-                      >
-                        <Gift size={16} />
-                        Rewards
-                      </Link>
-                      {isOwner && (
-                        <Link
-                          to="/dashboard"
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/10 rounded-lg"
+                    {/* Menu */}
+                    <div style={{
+                      position: 'absolute',
+                      right: 0,
+                      marginTop: '8px',
+                      width: '280px',
+                      backgroundColor: 'rgba(15, 23, 42, 0.95)',
+                      backdropFilter: 'blur(20px)',
+                      borderRadius: '16px',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+                      zIndex: 20,
+                      overflow: 'hidden'
+                    }}>
+                      {/* User info header */}
+                      <div style={{
+                        padding: '16px',
+                        background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(236, 72, 153, 0.2))',
+                        borderBottom: '1px solid rgba(255, 255, 255, 0.1)'
+                      }}>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '12px'
+                        }}>
+                          <div style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                            background: 'linear-gradient(135deg, #8b5cf6, #ec4899)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            color: 'white'
+                          }}>
+                            {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                          </div>
+                          <div>
+                            <div style={{
+                              fontSize: '16px',
+                              fontWeight: '600',
+                              color: 'white',
+                              marginBottom: '2px'
+                            }}>
+                              {currentUser.displayName || currentUser.name || 'User'}
+                            </div>
+                            <div style={{
+                              fontSize: '13px',
+                              color: 'rgba(255, 255, 255, 0.6)',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {currentUser.email}
+                            </div>
+                            <div style={{
+                              fontSize: '12px',
+                              color: '#34d399',
+                              fontWeight: '600',
+                              marginTop: '4px'
+                            }}>
+                              {isOwner ? '👨‍🍳 Restaurant Owner' : '🍽️ Food Enthusiast'}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Menu items */}
+                      <div style={{ padding: '8px' }}>
+                        {/* Profile action */}
+                        <button
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            width: '100%',
+                            padding: '12px 16px',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            borderRadius: '12px',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: 'rgba(255, 255, 255, 0.8)',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                          }}
                           onClick={() => setUserMenuOpen(false)}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                          }}
                         >
-                          <BarChart3 size={16} />
-                          Dashboard
-                        </Link>
-                      )}
+                          <User size={16} />
+                          Profile Settings
+                        </button>
+                        
+                        {/* Logout */}
+                        <button
+                          onClick={() => {
+                            handleLogout();
+                            setUserMenuOpen(false);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            width: '100%',
+                            padding: '12px 16px',
+                            fontSize: '14px',
+                            fontWeight: '500',
+                            borderRadius: '12px',
+                            backgroundColor: 'transparent',
+                            border: 'none',
+                            color: '#f87171',
+                            cursor: 'pointer',
+                            transition: 'all 0.3s ease'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.backgroundColor = 'transparent';
+                          }}
+                        >
+                          <LogOut size={16} />
+                          Sign Out
+                        </button>
+                      </div>
                     </div>
-                    
-                    <div className="border-t border-white/10 pt-1">
-                      <button
-                        onClick={() => {
-                          setUserMenuOpen(false);
-                          handleLogout();
-                        }}
-                        className="flex items-center gap-2 w-full px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
-                      >
-                        <LogOut size={16} />
-                        Sign out
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 )}
               </div>
             ) : (
               <Link
                 to="/login"
-                className="btn-primary focus-ring"
+                style={{
+                  display: 'inline-block',
+                  padding: '12px 24px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  textDecoration: 'none',
+                  borderRadius: '12px',
+                  background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+                  color: 'white',
+                  transition: 'all 0.3s ease',
+                  boxShadow: '0 4px 16px rgba(139, 92, 246, 0.4)'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.transform = 'translateY(-2px)';
+                  e.target.style.boxShadow = '0 8px 24px rgba(139, 92, 246, 0.6)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.transform = 'translateY(0)';
+                  e.target.style.boxShadow = '0 4px 16px rgba(139, 92, 246, 0.4)';
+                }}
               >
-                Sign In
+                🚀 Sign In
               </Link>
+            )}
+            
+            {/* Mobile menu button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              style={{
+                display: 'block',
+                padding: '8px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                border: 'none',
+                color: 'rgba(255, 255, 255, 0.8)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
+              className="lg:hidden"
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.15)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+            >
+              {mobileMenuOpen ? (
+                <X size={20} />
+              ) : (
+                <Menu size={20} />
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+      
+      {/* Mobile menu */}
+      {mobileMenuOpen && (
+        <div style={{
+          backgroundColor: 'rgba(15, 23, 42, 0.95)',
+          backdropFilter: 'blur(20px)',
+          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+          display: 'block'
+        }}
+        className="lg:hidden"
+        >
+          <div style={{
+            padding: '16px 20px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px'
+          }}>
+            {filteredNavItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  padding: '16px 20px',
+                  borderRadius: '12px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  textDecoration: 'none',
+                  transition: 'all 0.3s ease',
+                  background: isActivePath(item.path) 
+                    ? item.highlight 
+                      ? 'linear-gradient(45deg, #8b5cf6, #ec4899)'
+                      : 'rgba(255, 255, 255, 0.1)'
+                    : 'transparent',
+                  color: isActivePath(item.path) ? 'white' : 'rgba(255, 255, 255, 0.8)',
+                  border: isActivePath(item.path) && !item.highlight 
+                    ? '1px solid rgba(255, 255, 255, 0.2)' 
+                    : '1px solid transparent'
+                }}
+                onClick={() => setMobileMenuOpen(false)}
+                onMouseEnter={(e) => {
+                  if (!isActivePath(item.path)) {
+                    e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActivePath(item.path)) {
+                    e.target.style.backgroundColor = 'transparent';
+                  }
+                }}
+              >
+                <span style={{ fontSize: '20px' }}>{item.icon}</span>
+                {item.label}
+                {item.highlight && (
+                  <span style={{
+                    fontSize: '12px',
+                    backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                    color: '#34d399',
+                    padding: '2px 8px',
+                    borderRadius: '8px',
+                    fontWeight: 'bold'
+                  }}>
+                    Owner
+                  </span>
+                )}
+              </Link>
+            ))}
+            
+            {currentUser && (
+              <div style={{
+                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                marginTop: '16px',
+                paddingTop: '16px'
+              }}>
+                <div style={{
+                  padding: '16px 20px',
+                  marginBottom: '8px'
+                }}>
+                  <p style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: 'white',
+                    margin: 0,
+                    marginBottom: '4px'
+                  }}>
+                    {currentUser.displayName || 'User'}
+                  </p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: 'rgba(255, 255, 255, 0.6)',
+                    margin: 0
+                  }}>
+                    {currentUser.email}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    handleLogout();
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    width: '100%',
+                    padding: '16px 20px',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    borderRadius: '12px',
+                    backgroundColor: 'transparent',
+                    border: 'none',
+                    color: '#f87171',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.target.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  <LogOut size={18} />
+                  Sign Out
+                </button>
+              </div>
             )}
           </div>
         </div>
-        
-        {/* Mobile menu - FIXED */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden border-t border-white/10 py-4">
-            <nav className="space-y-2">
-              {filteredNavItems.map((item) => (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                    isActivePath(item.path)
-                      ? 'bg-white/10 text-white'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5'
-                  }`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  {item.icon && <item.icon size={18} />}
-                  {item.label}
-                </Link>
-              ))}
-              
-              {currentUser && (
-                <div className="border-t border-white/10 pt-4 mt-4">
-                  <div className="px-4 py-2">
-                    <p className="text-sm font-medium text-white">
-                      {currentUser.displayName || 'User'}
-                    </p>
-                    <p className="text-xs text-slate-400">
-                      {currentUser.email}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      setMobileMenuOpen(false);
-                      handleLogout();
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-3 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg"
-                  >
-                    <LogOut size={18} />
-                    Sign out
-                  </button>
-                </div>
-              )}
-            </nav>
-          </div>
-        )}
-      </div>
+      )}
     </header>
   );
 };

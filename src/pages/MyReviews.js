@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '../firebase/config';
+import ReviewCategories from '../components/Reviews/ReviewCategories'; // ADD THIS LINE
 
 const MyReviews = () => {
   const { currentUser } = useAuth();
@@ -1130,52 +1131,18 @@ const MyReviews = () => {
                 paddingTop: '20px',
                 borderTop: '1px solid rgba(255, 255, 255, 0.1)'
               }}>
-                {/* Detailed Breakdown */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                  gap: '15px',
-                  marginBottom: '20px'
-                }}>
-                  {[
-                    { key: 'food_quality', label: '🍽️ Food Quality', emoji: '🍽️' },
-                    { key: 'service', label: '👥 Service', emoji: '👥' },
-                    { key: 'atmosphere', label: '🏪 Atmosphere', emoji: '🏪' },
-                    { key: 'music_and_entertainment', label: '🎵 Music & Entertainment', emoji: '🎵' }
-                  ].map(({ key, label, emoji }) => 
-                    review[key] && (
-                      <div
-                        key={key}
-                        style={{
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                          borderRadius: '10px',
-                          padding: '15px',
-                          border: '1px solid rgba(255, 255, 255, 0.1)'
-                        }}
-                      >
-                        <div style={{
-                          fontSize: '14px',
-                          fontWeight: 'bold',
-                          marginBottom: '8px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '5px'
-                        }}>
-                          {emoji} {label.replace(emoji + ' ', '')}
-                        </div>
-                        <p style={{
-                          fontSize: '13px',
-                          opacity: 0.9,
-                          lineHeight: '1.4',
-                          margin: 0
-                        }}>
-                          {review[key]}
-                        </p>
-                      </div>
-                    )
-                  )}
+                {/* Detailed Breakdown - Updated for Consistency */}
+                <div style={{ marginBottom: '20px' }}>
+                  <ReviewCategories 
+                    review={review} 
+                    layout="grid" 
+                    showEmptyCategories={true}
+                    style={{
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                      gap: '15px'
+                    }}
+                  />
                 </div>
-
                 {/* Specific Points */}
                 {review.specific_points && review.specific_points.length > 0 && (
                   <div style={{ marginBottom: '20px' }}>

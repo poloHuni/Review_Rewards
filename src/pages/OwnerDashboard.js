@@ -5,9 +5,13 @@ import {
   getRestaurantsByOwner, 
   saveRestaurant, 
   deleteRestaurant,
-  getOwnerAnalytics,
+  getRestaurantAnalytics,  // Fixed: changed from getOwnerAnalytics
   verifyOwnerPassword 
 } from '../services/restaurantService';
+import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { formatDate } from '../utils/dateUtils';
+import ReviewCategories from '../components/Reviews/ReviewCategories'; // ADD THIS LINE
 
 const OwnerDashboard = () => {
   const { currentUser, isOwner } = useAuth();
@@ -16,6 +20,7 @@ const OwnerDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [restaurants, setRestaurants] = useState([]);
   const [analytics, setAnalytics] = useState({});
+  const [allReviews, setAllReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -24,6 +29,14 @@ const OwnerDashboard = () => {
   const [passwordVerified, setPasswordVerified] = useState(false);
   const [ownerPassword, setOwnerPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Reviews filtering state
+  const [selectedRestaurantFilter, setSelectedRestaurantFilter] = useState('');
+  const [reviewSortBy, setReviewSortBy] = useState('date-desc');
+  const [reviewSearchTerm, setReviewSearchTerm] = useState('');
+  const [expandedReview, setExpandedReview] = useState(null);
+  const [selectedMonth, setSelectedMonth] = useState('');
+  const [selectedYear, setSelectedYear] = useState('');
   
   // Form data
   const [formData, setFormData] = useState({
@@ -44,46 +57,98 @@ const OwnerDashboard = () => {
     }
   });
 
-  // Calculate analytics
-  const calculateAnalytics = (reviews) => {
+  // Get all reviews for owner's restaurants
+  const getReviewsForOwnerRestaurants = async (restaurantIds) => {
     try {
-      const totalReviews = reviews.length;
+      if (!restaurantIds || restaurantIds.length === 0) {
+        return [];
+      }
+
+      const reviewsCollection = collection(db, 'reviews');
+      const reviewsQuery = query(
+        reviewsCollection,
+        where('restaurant_id', 'in', restaurantIds.slice(0, 10)), // Firestore 'in' limit is 10
+        orderBy('timestamp', 'desc')
+      );
+      
+      const querySnapshot = await getDocs(reviewsQuery);
+      const reviews = [];
+      
+      querySnapshot.forEach((doc) => {
+        reviews.push({ id: doc.id, ...doc.data() });
+      });
+      
+      // If we have more than 10 restaurants, we need to make additional queries
+      if (restaurantIds.length > 10) {
+        const remainingIds = restaurantIds.slice(10);
+        const additionalReviews = await getReviewsForOwnerRestaurants(remainingIds);
+        reviews.push(...additionalReviews);
+      }
+      
+      return reviews;
+    } catch (error) {
+      console.error('Error getting reviews for owner restaurants:', error);
+      return [];
+    }
+  };
+
+  // Calculate analytics from all restaurant data
+  const calculateOwnerAnalytics = (restaurantsData) => {
+    try {
+      let totalReviews = 0;
+      let totalSentiment = 0;
+      let sentimentCount = 0;
+      let thisMonthReviews = 0;
+      let positiveReviews = 0;
+      
       const thisMonth = new Date();
       thisMonth.setMonth(thisMonth.getMonth());
       
-      const thisMonthReviews = reviews.filter(review => {
-        const reviewDate = review.timestamp?.toDate ? review.timestamp.toDate() : new Date(review.timestamp);
-        return reviewDate.getMonth() === thisMonth.getMonth() && 
-               reviewDate.getFullYear() === thisMonth.getFullYear();
-      }).length;
+      restaurantsData.forEach(restaurant => {
+        if (restaurant.analytics && restaurant.analytics.reviews) {
+          const reviews = restaurant.analytics.reviews;
+          totalReviews += reviews.length;
+          
+          reviews.forEach(review => {
+            // Count this month's reviews
+            const reviewDate = review.timestamp?.toDate ? review.timestamp.toDate() : new Date(review.timestamp);
+            if (reviewDate.getMonth() === thisMonth.getMonth() && 
+                reviewDate.getFullYear() === thisMonth.getFullYear()) {
+              thisMonthReviews++;
+            }
+            
+            // Calculate sentiment/rating
+            const sentiment = review.sentiment_score || review.rating;
+            if (typeof sentiment === 'number' && sentiment > 0) {
+              totalSentiment += sentiment;
+              sentimentCount++;
+              
+              if (sentiment >= 4) {
+                positiveReviews++;
+              }
+            }
+          });
+        }
+      });
 
-      const sentimentScores = reviews
-        .map(r => r.sentiment_score || r.rating)
-        .filter(score => typeof score === 'number' && score > 0);
-
-      const averageRating = sentimentScores.length > 0
-        ? sentimentScores.reduce((sum, score) => sum + score, 0) / sentimentScores.length
-        : 0;
-
-      const positiveReviews = sentimentScores.filter(score => score >= 4).length;
+      const averageRating = sentimentCount > 0 ? totalSentiment / sentimentCount : 0;
+      const satisfactionRate = totalReviews > 0 ? Math.round((positiveReviews / totalReviews) * 100) : 0;
 
       return {
         totalReviews,
         thisMonthReviews,
         averageRating,
         positiveReviews,
-        satisfactionRate: totalReviews > 0 ? Math.round((positiveReviews / totalReviews) * 100) : 0,
-        reviews: reviews.slice(0, 10)
+        satisfactionRate
       };
     } catch (error) {
-      console.error('Error calculating analytics:', error);
+      console.error('Error calculating owner analytics:', error);
       return {
         totalReviews: 0,
         thisMonthReviews: 0,
         averageRating: 0,
         positiveReviews: 0,
-        satisfactionRate: 0,
-        reviews: []
+        satisfactionRate: 0
       };
     }
   };
@@ -100,19 +165,165 @@ const OwnerDashboard = () => {
       setLoading(true);
       const ownerId = currentUser.uid;
       
-      const [restaurantsData, analyticsData] = await Promise.all([
-        getRestaurantsByOwner(ownerId),
-        getOwnerAnalytics(ownerId)
-      ]);
+      // First get all restaurants owned by this owner
+      const restaurantsData = await getRestaurantsByOwner(ownerId);
       
-      setRestaurants(restaurantsData || []);
-      setAnalytics(analyticsData || {});
+      // Get restaurant IDs for fetching reviews
+      const restaurantIds = restaurantsData.map(r => r.restaurant_id || r.id);
+      
+      // Get all reviews for owner's restaurants
+      const allReviewsData = await getReviewsForOwnerRestaurants(restaurantIds);
+      
+      // Then get analytics for each restaurant
+      const restaurantsWithAnalytics = await Promise.all(
+        restaurantsData.map(async (restaurant) => {
+          try {
+            const restaurantAnalytics = await getRestaurantAnalytics(restaurant.restaurant_id || restaurant.id);
+            return {
+              ...restaurant,
+              analytics: restaurantAnalytics
+            };
+          } catch (error) {
+            console.error(`Error getting analytics for restaurant ${restaurant.restaurant_id}:`, error);
+            return {
+              ...restaurant,
+              analytics: {
+                totalReviews: 0,
+                averageRating: 0,
+                reviews: []
+              }
+            };
+          }
+        })
+      );
+      
+      // Calculate overall analytics
+      const ownerAnalytics = calculateOwnerAnalytics(restaurantsWithAnalytics);
+      
+      setRestaurants(restaurantsWithAnalytics || []);
+      setAnalytics(ownerAnalytics || {});
+      setAllReviews(allReviewsData || []);
     } catch (err) {
       console.error('Error loading dashboard data:', err);
       setError('Failed to load dashboard data. Please try again.');
     } finally {
       setLoading(false);
     }
+  };
+
+  // Get restaurant name by ID
+  const getRestaurantName = (restaurantId) => {
+    const restaurant = restaurants.find(r => (r.restaurant_id || r.id) === restaurantId);
+    return restaurant ? restaurant.name : 'Unknown Restaurant';
+  };
+
+  // Filter and sort reviews
+  const getFilteredAndSortedReviews = () => {
+    let filtered = allReviews;
+    
+    // Filter by restaurant
+    if (selectedRestaurantFilter) {
+      filtered = filtered.filter(review => review.restaurant_id === selectedRestaurantFilter);
+    }
+    
+    // Filter by search term
+    if (reviewSearchTerm) {
+      filtered = filtered.filter(review => 
+        review.summary?.toLowerCase().includes(reviewSearchTerm.toLowerCase()) ||
+        getRestaurantName(review.restaurant_id).toLowerCase().includes(reviewSearchTerm.toLowerCase()) ||
+        review.food_quality?.toLowerCase().includes(reviewSearchTerm.toLowerCase()) ||
+        review.service?.toLowerCase().includes(reviewSearchTerm.toLowerCase()) ||
+        review.user_email?.toLowerCase().includes(reviewSearchTerm.toLowerCase())
+      );
+    }
+    
+    // Filter by date
+    if (selectedYear || selectedMonth) {
+      filtered = filtered.filter(review => {
+        if (!review.timestamp) return true;
+        
+        let reviewDate;
+        if (review.timestamp.seconds) {
+          reviewDate = new Date(review.timestamp.seconds * 1000);
+        } else {
+          reviewDate = new Date(review.timestamp);
+        }
+        
+        if (selectedYear && reviewDate.getFullYear() !== parseInt(selectedYear)) {
+          return false;
+        }
+        if (selectedMonth && reviewDate.getMonth() !== parseInt(selectedMonth)) {
+          return false;
+        }
+        return true;
+      });
+    }
+    
+    // Sort reviews
+    filtered.sort((a, b) => {
+      switch (reviewSortBy) {
+        case 'date-desc':
+          const dateA = a.timestamp ? new Date(a.timestamp.seconds * 1000) : new Date(0);
+          const dateB = b.timestamp ? new Date(b.timestamp.seconds * 1000) : new Date(0);
+          return dateB - dateA;
+        case 'date-asc':
+          const dateA2 = a.timestamp ? new Date(a.timestamp.seconds * 1000) : new Date(0);
+          const dateB2 = b.timestamp ? new Date(b.timestamp.seconds * 1000) : new Date(0);
+          return dateA2 - dateB2;
+        case 'rating-desc':
+          return (b.sentiment_score || 0) - (a.sentiment_score || 0);
+        case 'rating-asc':
+          return (a.sentiment_score || 0) - (b.sentiment_score || 0);
+        case 'restaurant':
+          return getRestaurantName(a.restaurant_id).localeCompare(getRestaurantName(b.restaurant_id));
+        default:
+          return 0;
+      }
+    });
+    
+    return filtered;
+  };
+
+  // Get available years from reviews
+  const getAvailableYears = () => {
+    const years = allReviews
+      .map(review => {
+        if (!review.timestamp) return null;
+        let date;
+        if (review.timestamp.seconds) {
+          date = new Date(review.timestamp.seconds * 1000);
+        } else {
+          date = new Date(review.timestamp);
+        }
+        return date.getFullYear();
+      })
+      .filter(year => year !== null)
+      .filter((year, index, arr) => arr.indexOf(year) === index)
+      .sort((a, b) => b - a);
+    return years;
+  };
+
+  // Get available months for selected year
+  const getAvailableMonths = () => {
+    if (!selectedYear) return [];
+    
+    const months = allReviews
+      .map(review => {
+        if (!review.timestamp) return null;
+        let date;
+        if (review.timestamp.seconds) {
+          date = new Date(review.timestamp.seconds * 1000);
+        } else {
+          date = new Date(review.timestamp);
+        }
+        if (date.getFullYear() !== parseInt(selectedYear)) return null;
+        return date.getMonth();
+      })
+      .filter(month => month !== null)
+      .filter((month, index, arr) => arr.indexOf(month) === index)
+      .sort((a, b) => b - a);
+    
+    return months;
   };
 
   // Handle form submission
@@ -137,6 +348,53 @@ const OwnerDashboard = () => {
     }
   };
 
+  // Handle password verification
+  const handlePasswordSubmit = (e) => {
+    e.preventDefault();
+    
+    if (verifyOwnerPassword(ownerPassword)) {
+      setPasswordVerified(true);
+      setError(null);
+    } else {
+      setError('Incorrect password. Please try again.');
+    }
+  };
+
+  // Handle restaurant deletion
+  const handleDelete = async (restaurantId) => {
+    try {
+      await deleteRestaurant(restaurantId);
+      await loadDashboardData();
+      setConfirmDelete(null);
+    } catch (err) {
+      console.error('Error deleting restaurant:', err);
+      setError('Failed to delete restaurant. Please try again.');
+    }
+  };
+
+  // Handle edit
+  const handleEdit = (restaurant) => {
+    setEditingRestaurant(restaurant);
+    setFormData({
+      name: restaurant.name || '',
+      address: restaurant.address || '',
+      phone: restaurant.phone || '',
+      description: restaurant.description || '',
+      cuisine_type: restaurant.cuisine_type || '',
+      price_range: restaurant.price_range || '$',
+      operating_hours: restaurant.operating_hours || {
+        monday: { open: '09:00', close: '21:00', closed: false },
+        tuesday: { open: '09:00', close: '21:00', closed: false },
+        wednesday: { open: '09:00', close: '21:00', closed: false },
+        thursday: { open: '09:00', close: '21:00', closed: false },
+        friday: { open: '09:00', close: '22:00', closed: false },
+        saturday: { open: '09:00', close: '22:00', closed: false },
+        sunday: { open: '10:00', close: '20:00', closed: false }
+      }
+    });
+    setShowAddForm(true);
+  };
+
   // Reset form
   const resetForm = () => {
     setFormData({
@@ -158,135 +416,61 @@ const OwnerDashboard = () => {
     });
   };
 
-  // Handle edit
-  const handleEdit = (restaurant) => {
-    setEditingRestaurant(restaurant);
-    setFormData({
-      name: restaurant.name || '',
-      address: restaurant.address || '',
-      phone: restaurant.phone || '',
-      description: restaurant.description || '',
-      cuisine_type: restaurant.cuisine_type || '',
-      price_range: restaurant.price_range || '$',
-      operating_hours: restaurant.operating_hours || formData.operating_hours
-    });
-    setShowAddForm(true);
-  };
-
-  // Handle delete
-  const handleDeleteRestaurant = async (restaurantId) => {
-    try {
-      await deleteRestaurant(restaurantId);
-      await loadDashboardData();
-      setConfirmDelete(null);
-    } catch (err) {
-      console.error('Error deleting restaurant:', err);
-      setError('Failed to delete restaurant. Please try again.');
-    }
-  };
-
-  // Format date
-  const formatDate = (dateString) => {
-    if (!dateString) return 'Unknown date';
-    try {
-      const date = dateString.toDate ? dateString.toDate() : new Date(dateString);
-      return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return 'Invalid date';
-    }
-  };
-
-  // Handle owner verification
-  const handleOwnerVerification = (e) => {
-    e.preventDefault();
-    if (verifyOwnerPassword(ownerPassword)) {
-      setPasswordVerified(true);
-      setError(null);
-    } else {
-      setError('Incorrect owner password. Please try again.');
-    }
-  };
-
-  // Check if user is owner but not verified
-  if (!isOwner || !passwordVerified) {
+  // Password verification screen
+  if (!passwordVerified) {
     return (
       <div style={{
-        maxWidth: '600px',
-        margin: '40px auto',
-        padding: '20px',
+        maxWidth: '500px',
+        margin: '100px auto',
+        padding: '40px 20px',
         color: 'white'
       }}>
         <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           borderRadius: '20px',
           padding: '40px',
-          textAlign: 'center',
           backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          textAlign: 'center'
         }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            background: 'linear-gradient(45deg, #f59e0b, #f97316)',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 30px auto',
-            fontSize: '40px'
-          }}>
-            🏪
-          </div>
-          
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>🔐</div>
           <h2 style={{
             fontSize: '28px',
             fontWeight: 'bold',
-            marginBottom: '15px'
+            marginBottom: '10px',
+            background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent'
           }}>
-            🔐 Restaurant Owner Access
+            Owner Access Required
           </h2>
-          <p style={{
-            fontSize: '16px',
-            opacity: 0.8,
-            marginBottom: '30px',
-            lineHeight: '1.6'
+          <p style={{ 
+            fontSize: '16px', 
+            opacity: 0.8, 
+            marginBottom: '30px' 
           }}>
-            Please enter the owner password to access your restaurant dashboard and manage your food establishments.
+            Please enter the owner password to access the dashboard
           </p>
           
-          <form onSubmit={handleOwnerVerification} style={{ textAlign: 'left' }}>
-            <div style={{ position: 'relative', marginBottom: '20px' }}>
+          <form onSubmit={handlePasswordSubmit}>
+            <div style={{ position: 'relative', marginBottom: '25px' }}>
               <input
-                type={showPassword ? "text" : "password"}
+                type={showPassword ? 'text' : 'password'}
                 value={ownerPassword}
                 onChange={(e) => setOwnerPassword(e.target.value)}
                 placeholder="Enter owner password"
-                required
                 style={{
                   width: '100%',
                   padding: '15px 50px 15px 15px',
                   fontSize: '16px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
                   borderRadius: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
                   color: 'white',
-                  outline: 'none',
-                  backdropFilter: 'blur(10px)'
+                  backdropFilter: 'blur(10px)',
+                  outline: 'none'
                 }}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#8b5cf6';
-                  e.target.style.boxShadow = '0 0 0 2px rgba(139, 92, 246, 0.2)';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
-                  e.target.style.boxShadow = 'none';
-                }}
+                required
               />
               <button
                 type="button"
@@ -362,60 +546,41 @@ const OwnerDashboard = () => {
             animation: 'spin 1s linear infinite'
           }} />
           <p style={{ fontSize: '16px', opacity: 0.8 }}>
-            🏪 Loading restaurant dashboard...
+            Loading your restaurant data...
           </p>
-          
-          <style>
-            {`
-              @keyframes spin {
-                0% { transform: rotate(0deg); }
-                100% { transform: rotate(360deg); }
-              }
-            `}
-          </style>
         </div>
       </div>
     );
   }
-  
+
   // Error state
-  if (error) {
+  if (error && !passwordVerified) {
     return (
       <div style={{
-        maxWidth: '800px',
-        margin: '40px auto',
-        padding: '20px',
-        color: 'white'
+        maxWidth: '600px',
+        margin: '100px auto',
+        padding: '40px 20px',
+        color: 'white',
+        textAlign: 'center'
       }}>
         <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          backgroundColor: 'rgba(220, 38, 38, 0.1)',
           borderRadius: '20px',
           padding: '40px',
-          textAlign: 'center',
           backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
+          border: '1px solid rgba(220, 38, 38, 0.3)'
         }}>
-          <div style={{ fontSize: '60px', marginBottom: '20px' }}>🚨</div>
-          <h2 style={{
-            fontSize: '24px',
-            fontWeight: 'bold',
-            marginBottom: '15px',
-            color: '#ef4444'
-          }}>
-            Dashboard Error
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>⚠️</div>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '15px' }}>
+            Oops! Something went wrong
           </h2>
-          <p style={{
-            fontSize: '16px',
-            opacity: 0.8,
-            marginBottom: '30px',
-            lineHeight: '1.6'
-          }}>
+          <p style={{ fontSize: '16px', opacity: 0.8, marginBottom: '25px' }}>
             {error}
           </p>
-          <button 
+          <button
             onClick={() => window.location.reload()}
             style={{
-              padding: '15px 30px',
+              padding: '12px 24px',
               fontSize: '16px',
               fontWeight: 'bold',
               border: 'none',
@@ -474,15 +639,15 @@ const OwnerDashboard = () => {
               padding: '4px 8px',
               borderRadius: '12px'
             }}>
-              +12% this month
+              +{analytics.thisMonthReviews || 0} this month
             </span>
           </div>
-          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Total Food Reviews</p>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
-            {analytics?.totalReviews || 0}
-          </p>
+          <h3 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '5px' }}>
+            {analytics.totalReviews || 0}
+          </h3>
+          <p style={{ fontSize: '14px', opacity: 0.8 }}>Total Reviews</p>
         </div>
-        
+
         <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           borderRadius: '15px',
@@ -510,20 +675,20 @@ const OwnerDashboard = () => {
             </div>
             <span style={{
               fontSize: '12px',
-              backgroundColor: 'rgba(34, 197, 94, 0.2)',
-              color: '#34d399',
+              backgroundColor: 'rgba(245, 158, 11, 0.2)',
+              color: '#fbbf24',
               padding: '4px 8px',
               borderRadius: '12px'
             }}>
-              +0.2 this month
+              rating
             </span>
           </div>
-          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Average Rating</p>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
-            {analytics?.averageRating ? analytics.averageRating.toFixed(1) : '0.0'}
-          </p>
+          <h3 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '5px' }}>
+            {analytics.averageRating ? analytics.averageRating.toFixed(1) : '0.0'}
+          </h3>
+          <p style={{ fontSize: '14px', opacity: 0.8 }}>Average Rating</p>
         </div>
-        
+
         <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           borderRadius: '15px',
@@ -556,15 +721,15 @@ const OwnerDashboard = () => {
               padding: '4px 8px',
               borderRadius: '12px'
             }}>
-              +18% this month
+              satisfaction
             </span>
           </div>
-          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Happy Customers</p>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
-            {analytics?.positiveReviews || 0}
-          </p>
+          <h3 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '5px' }}>
+            {analytics.satisfactionRate || 0}%
+          </h3>
+          <p style={{ fontSize: '14px', opacity: 0.8 }}>Satisfaction Rate</p>
         </div>
-        
+
         <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           borderRadius: '15px',
@@ -581,177 +746,29 @@ const OwnerDashboard = () => {
             <div style={{
               width: '50px',
               height: '50px',
-              backgroundColor: 'rgba(168, 85, 247, 0.2)',
+              backgroundColor: 'rgba(139, 92, 246, 0.2)',
               borderRadius: '12px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               fontSize: '24px'
             }}>
-              📊
+              🏪
             </div>
             <span style={{
               fontSize: '12px',
-              backgroundColor: 'rgba(59, 130, 246, 0.2)',
-              color: '#60a5fa',
+              backgroundColor: 'rgba(139, 92, 246, 0.2)',
+              color: '#a78bfa',
               padding: '4px 8px',
               borderRadius: '12px'
             }}>
-              Goal: 95%
+              active
             </span>
           </div>
-          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Satisfaction Rate</p>
-          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
-            {analytics?.satisfactionRate ? `${analytics.satisfactionRate}%` : '0%'}
-          </p>
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: '15px',
-        padding: '25px',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <h3 style={{
-          fontSize: '20px',
-          fontWeight: 'bold',
-          marginBottom: '20px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          🚀 Quick Actions
-        </h3>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '15px'
-        }}>
-          <button
-            onClick={() => setShowAddForm(true)}
-            style={{
-              padding: '20px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '12px',
-              color: 'white',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              textAlign: 'left'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              e.target.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px'
-              }}>
-                ➕
-              </div>
-              <div>
-                <h4 style={{ fontWeight: 'bold', marginBottom: '5px' }}>Add Restaurant</h4>
-                <p style={{ fontSize: '14px', opacity: 0.8 }}>Register a new food location</p>
-              </div>
-            </div>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('analytics')}
-            style={{
-              padding: '20px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '12px',
-              color: 'white',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              textAlign: 'left'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              e.target.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px'
-              }}>
-                📊
-              </div>
-              <div>
-                <h4 style={{ fontWeight: 'bold', marginBottom: '5px' }}>View Analytics</h4>
-                <p style={{ fontSize: '14px', opacity: 0.8 }}>Review food performance data</p>
-              </div>
-            </div>
-          </button>
-          
-          <button
-            onClick={() => setActiveTab('restaurants')}
-            style={{
-              padding: '20px',
-              backgroundColor: 'rgba(255, 255, 255, 0.05)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '12px',
-              color: 'white',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              textAlign: 'left'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
-              e.target.style.transform = 'translateY(-2px)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
-              e.target.style.transform = 'translateY(0)';
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: 'rgba(168, 85, 247, 0.2)',
-                borderRadius: '10px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '20px'
-              }}>
-                🏪
-              </div>
-              <div>
-                <h4 style={{ fontWeight: 'bold', marginBottom: '5px' }}>Manage Restaurants</h4>
-                <p style={{ fontSize: '14px', opacity: 0.8 }}>Edit your food establishments</p>
-              </div>
-            </div>
-          </button>
+          <h3 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '5px' }}>
+            {restaurants.length}
+          </h3>
+          <p style={{ fontSize: '14px', opacity: 0.8 }}>Restaurants</p>
         </div>
       </div>
     </div>
@@ -760,7 +777,6 @@ const OwnerDashboard = () => {
   // Restaurants Tab Component
   const RestaurantsTab = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Header */}
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -768,18 +784,17 @@ const OwnerDashboard = () => {
         flexWrap: 'wrap',
         gap: '15px'
       }}>
-        <div>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>
-            🏪 Your Food Establishments
-          </h2>
-          <p style={{ fontSize: '16px', opacity: 0.8 }}>
-            Manage your restaurant locations and information
-          </p>
-        </div>
+        <h2 style={{ fontSize: '24px', fontWeight: 'bold' }}>
+          🏪 Your Restaurants ({restaurants.length})
+        </h2>
         <button
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setEditingRestaurant(null);
+            resetForm();
+            setShowAddForm(true);
+          }}
           style={{
-            padding: '12px 25px',
+            padding: '12px 24px',
             fontSize: '16px',
             fontWeight: 'bold',
             border: 'none',
@@ -787,184 +802,14 @@ const OwnerDashboard = () => {
             background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
             color: 'white',
             cursor: 'pointer',
-            transition: 'all 0.3s ease',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px'
+            transition: 'all 0.3s ease'
           }}
         >
           ➕ Add Restaurant
         </button>
       </div>
 
-      {/* Restaurants Grid */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
-        gap: '20px'
-      }}>
-        {restaurants.map((restaurant, index) => (
-          <div 
-            key={restaurant.id || index}
-            style={{
-              backgroundColor: 'rgba(255, 255, 255, 0.1)',
-              borderRadius: '15px',
-              padding: '25px',
-              backdropFilter: 'blur(10px)',
-              border: '1px solid rgba(255, 255, 255, 0.2)',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.target.style.transform = 'translateY(-5px)';
-              e.target.style.boxShadow = '0 10px 25px rgba(139, 92, 246, 0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = 'none';
-            }}
-          >
-            {/* Restaurant Header */}
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '15px'
-            }}>
-              <div style={{ fontSize: '40px', marginRight: '15px' }}>🍽️</div>
-              <div style={{ flex: 1 }}>
-                <h3 style={{
-                  fontSize: '18px',
-                  fontWeight: 'bold',
-                  marginBottom: '5px',
-                  color: 'white'
-                }}>
-                  {restaurant.name}
-                </h3>
-                {restaurant.cuisine_type && (
-                  <p style={{
-                    fontSize: '14px',
-                    color: '#f59e0b',
-                    opacity: 0.9
-                  }}>
-                    {restaurant.cuisine_type} Cuisine
-                  </p>
-                )}
-              </div>
-              <div style={{
-                padding: '4px 8px',
-                backgroundColor: 'rgba(34, 197, 94, 0.2)',
-                color: '#34d399',
-                borderRadius: '8px',
-                fontSize: '12px',
-                fontWeight: 'bold'
-              }}>
-                Active
-              </div>
-            </div>
-
-            {/* Restaurant Details */}
-            <div style={{ marginBottom: '20px' }}>
-              {restaurant.address && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  opacity: 0.8
-                }}>
-                  <span>📍</span>
-                  <span>{restaurant.address}</span>
-                </div>
-              )}
-              
-              {restaurant.phone && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                  fontSize: '14px',
-                  opacity: 0.8
-                }}>
-                  <span>📞</span>
-                  <span>{restaurant.phone}</span>
-                </div>
-              )}
-
-              {restaurant.price_range && (
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  fontSize: '14px',
-                  opacity: 0.8
-                }}>
-                  <span>💰</span>
-                  <span>{restaurant.price_range}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Action Buttons */}
-            <div style={{
-              display: 'flex',
-              gap: '10px',
-              paddingTop: '15px',
-              borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-            }}>
-              <button
-                onClick={() => handleEdit(restaurant)}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  border: '1px solid rgba(59, 130, 246, 0.4)',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(59, 130, 246, 0.2)',
-                  color: '#60a5fa',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
-                }}
-              >
-                ✏️ Edit
-              </button>
-              <button
-                onClick={() => setConfirmDelete(restaurant)}
-                style={{
-                  flex: 1,
-                  padding: '10px',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  border: '1px solid rgba(239, 68, 68, 0.4)',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
-                  color: '#fca5a5',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-                onMouseEnter={(e) => {
-                  e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.3)';
-                }}
-                onMouseLeave={(e) => {
-                  e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
-                }}
-              >
-                🗑️ Delete
-              </button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Empty State */}
-      {restaurants.length === 0 && (
+      {restaurants.length === 0 ? (
         <div style={{
           backgroundColor: 'rgba(255, 255, 255, 0.1)',
           borderRadius: '15px',
@@ -973,25 +818,21 @@ const OwnerDashboard = () => {
           backdropFilter: 'blur(10px)',
           border: '1px solid rgba(255, 255, 255, 0.2)'
         }}>
-          <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏪</div>
-          <h3 style={{
-            fontSize: '20px',
-            fontWeight: 'bold',
-            marginBottom: '10px'
-          }}>
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>🍽️</div>
+          <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>
             No Restaurants Yet
           </h3>
-          <p style={{
-            fontSize: '16px',
-            opacity: 0.8,
-            marginBottom: '25px'
-          }}>
-            Add your first restaurant to start collecting delicious feedback from customers!
+          <p style={{ fontSize: '16px', opacity: 0.8, marginBottom: '25px' }}>
+            Add your first restaurant to start collecting customer feedback!
           </p>
           <button
-            onClick={() => setShowAddForm(true)}
+            onClick={() => {
+              setEditingRestaurant(null);
+              resetForm();
+              setShowAddForm(true);
+            }}
             style={{
-              padding: '15px 30px',
+              padding: '12px 24px',
               fontSize: '16px',
               fontWeight: 'bold',
               border: 'none',
@@ -1002,8 +843,141 @@ const OwnerDashboard = () => {
               transition: 'all 0.3s ease'
             }}
           >
-            🏪 Add Your First Restaurant
+            ➕ Add Your First Restaurant
           </button>
+        </div>
+      ) : (
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))',
+          gap: '20px'
+        }}>
+          {restaurants.map((restaurant) => (
+            <div
+              key={restaurant.restaurant_id || restaurant.id}
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                borderRadius: '15px',
+                padding: '25px',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                transition: 'all 0.3s ease'
+              }}
+            >
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'flex-start',
+                marginBottom: '15px'
+              }}>
+                <div>
+                  <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    marginBottom: '5px'
+                  }}>
+                    {restaurant.name}
+                  </h3>
+                  <p style={{
+                    fontSize: '14px',
+                    opacity: 0.8,
+                    marginBottom: '10px'
+                  }}>
+                    📍 {restaurant.address}
+                  </p>
+                  <div style={{
+                    display: 'flex',
+                    gap: '10px',
+                    flexWrap: 'wrap',
+                    marginBottom: '15px'
+                  }}>
+                    <span style={{
+                      fontSize: '12px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                      color: '#60a5fa',
+                      padding: '4px 8px',
+                      borderRadius: '12px'
+                    }}>
+                      {restaurant.cuisine_type || 'Various'}
+                    </span>
+                    <span style={{
+                      fontSize: '12px',
+                      backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                      color: '#34d399',
+                      padding: '4px 8px',
+                      borderRadius: '12px'
+                    }}>
+                      {restaurant.price_range || '$'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '15px',
+                marginBottom: '20px'
+              }}>
+                <div>
+                  <p style={{ fontSize: '12px', opacity: 0.6, marginBottom: '5px' }}>
+                    Reviews
+                  </p>
+                  <p style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                    {restaurant.analytics?.totalReviews || 0}
+                  </p>
+                </div>
+                <div>
+                  <p style={{ fontSize: '12px', opacity: 0.6, marginBottom: '5px' }}>
+                    Rating
+                  </p>
+                  <p style={{ fontSize: '18px', fontWeight: 'bold' }}>
+                    ⭐ {restaurant.analytics?.averageRating?.toFixed(1) || '0.0'}
+                  </p>
+                </div>
+              </div>
+
+              <div style={{
+                display: 'flex',
+                gap: '10px'
+              }}>
+                <button
+                  onClick={() => handleEdit(restaurant)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '8px',
+                    backgroundColor: 'transparent',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  onClick={() => setConfirmDelete(restaurant.restaurant_id || restaurant.id)}
+                  style={{
+                    flex: 1,
+                    padding: '10px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    border: '1px solid rgba(220, 38, 38, 0.5)',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(220, 38, 38, 0.1)',
+                    color: '#fca5a5',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
+                >
+                  🗑️ Delete
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
@@ -1017,58 +991,28 @@ const OwnerDashboard = () => {
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
-          padding: '20px'
+          alignItems: 'center',
+          zIndex: 1000
         }}>
           <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
             borderRadius: '20px',
             padding: '30px',
-            maxWidth: '400px',
-            width: '100%',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            color: '#1f2937',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            maxWidth: '400px',
+            width: '90%',
             textAlign: 'center'
           }}>
             <div style={{ fontSize: '50px', marginBottom: '20px' }}>⚠️</div>
-            <h3 style={{
-              fontSize: '20px',
-              fontWeight: 'bold',
-              marginBottom: '10px'
-            }}>
+            <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '15px' }}>
               Delete Restaurant?
             </h3>
-            <p style={{
-              fontSize: '16px',
-              marginBottom: '30px',
-              opacity: 0.8
-            }}>
-              Are you sure you want to delete "{confirmDelete.name}"? This action cannot be undone.
+            <p style={{ fontSize: '16px', opacity: 0.8, marginBottom: '25px' }}>
+              This action cannot be undone. All associated data will be permanently removed.
             </p>
-            <div style={{
-              display: 'flex',
-              gap: '15px'
-            }}>
-              <button
-                onClick={() => handleDeleteRestaurant(confirmDelete.restaurant_id || confirmDelete.id)}
-                style={{
-                  flex: 1,
-                  padding: '12px',
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  border: 'none',
-                  borderRadius: '10px',
-                  backgroundColor: '#ef4444',
-                  color: 'white',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease'
-                }}
-              >
-                Yes, Delete
-              </button>
+            <div style={{ display: 'flex', gap: '15px' }}>
               <button
                 onClick={() => setConfirmDelete(null)}
                 style={{
@@ -1076,22 +1020,39 @@ const OwnerDashboard = () => {
                   padding: '12px',
                   fontSize: '16px',
                   fontWeight: 'bold',
-                  border: '2px solid #6b7280',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
                   borderRadius: '10px',
                   backgroundColor: 'transparent',
-                  color: '#6b7280',
+                  color: 'white',
                   cursor: 'pointer',
                   transition: 'all 0.3s ease'
                 }}
               >
                 Cancel
               </button>
+              <button
+                onClick={() => handleDelete(confirmDelete)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  border: 'none',
+                  borderRadius: '10px',
+                  backgroundColor: '#dc2626',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Add/Edit Form Modal */}
+      {/* Add/Edit Restaurant Form */}
       {showAddForm && (
         <div style={{
           position: 'fixed',
@@ -1101,199 +1062,207 @@ const OwnerDashboard = () => {
           bottom: 0,
           backgroundColor: 'rgba(0, 0, 0, 0.8)',
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'center',
+          alignItems: 'center',
           zIndex: 1000,
-          padding: '20px'
+          overflow: 'auto'
         }}>
           <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
             borderRadius: '20px',
-            padding: '40px',
-            maxWidth: '600px',
-            width: '100%',
-            maxHeight: '80vh',
-            overflow: 'auto',
+            padding: '30px',
             backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.3)',
-            color: '#1f2937'
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            maxWidth: '600px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto'
           }}>
-            <h3 style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              marginBottom: '20px',
-              textAlign: 'center'
-            }}>
-              {editingRestaurant ? '🏪 Edit Restaurant' : '🏪 Add New Restaurant'}
-            </h3>
-            
-            <form onSubmit={handleSubmit} style={{
+            <div style={{
               display: 'flex',
-              flexDirection: 'column',
-              gap: '20px'
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '25px'
             }}>
+              <h3 style={{ fontSize: '24px', fontWeight: 'bold' }}>
+                {editingRestaurant ? '✏️ Edit Restaurant' : '➕ Add Restaurant'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowAddForm(false);
+                  setEditingRestaurant(null);
+                  resetForm();
+                }}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'white',
+                  fontSize: '24px',
+                  cursor: 'pointer'
+                }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  marginBottom: '8px'
-                }}>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
                   Restaurant Name *
                 </label>
                 <input
                   type="text"
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Enter restaurant name"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
+                    outline: 'none'
+                  }}
                   required
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    fontSize: '16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    outline: 'none'
-                  }}
                 />
               </div>
-              
+
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  marginBottom: '8px'
-                }}>
-                  Cuisine Type
-                </label>
-                <input
-                  type="text"
-                  value={formData.cuisine_type}
-                  onChange={(e) => setFormData({...formData, cuisine_type: e.target.value})}
-                  placeholder="e.g., Italian, Chinese, American"
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    fontSize: '16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
-                    outline: 'none'
-                  }}
-                />
-              </div>
-              
-              <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  marginBottom: '8px'
-                }}>
-                  Address
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                  Address *
                 </label>
                 <input
                   type="text"
                   value={formData.address}
-                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  placeholder="Enter full address"
                   style={{
                     width: '100%',
                     padding: '12px',
                     fontSize: '16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
                     outline: 'none'
                   }}
+                  required
                 />
               </div>
-              
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: '15px'
-              }}>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    marginBottom: '8px'
-                  }}>
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
                     Phone Number
                   </label>
                   <input
                     type="tel"
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    placeholder="Phone number"
                     style={{
                       width: '100%',
                       padding: '12px',
                       fontSize: '16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
+                      border: '2px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '10px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      backdropFilter: 'blur(10px)',
                       outline: 'none'
                     }}
                   />
                 </div>
-                
+
                 <div>
-                  <label style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: 'bold',
-                    marginBottom: '8px'
-                  }}>
-                    Price Range
+                  <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                    Cuisine Type
                   </label>
                   <select
-                    value={formData.price_range}
-                    onChange={(e) => setFormData({...formData, price_range: e.target.value})}
+                    value={formData.cuisine_type}
+                    onChange={(e) => setFormData({ ...formData, cuisine_type: e.target.value })}
                     style={{
                       width: '100%',
                       padding: '12px',
                       fontSize: '16px',
-                      border: '1px solid #d1d5db',
-                      borderRadius: '8px',
+                      border: '2px solid rgba(255, 255, 255, 0.2)',
+                      borderRadius: '10px',
+                      backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                      color: 'white',
+                      backdropFilter: 'blur(10px)',
                       outline: 'none'
                     }}
                   >
-                    <option value="$">$ - Budget Friendly</option>
-                    <option value="$$">$$ - Moderate</option>
-                    <option value="$$$">$$$ - Upscale</option>
-                    <option value="$$$$">$$$$ - Fine Dining</option>
+                    <option value="" style={{ backgroundColor: '#1f2937' }}>Select cuisine type</option>
+                    <option value="American" style={{ backgroundColor: '#1f2937' }}>American</option>
+                    <option value="Italian" style={{ backgroundColor: '#1f2937' }}>Italian</option>
+                    <option value="Chinese" style={{ backgroundColor: '#1f2937' }}>Chinese</option>
+                    <option value="Japanese" style={{ backgroundColor: '#1f2937' }}>Japanese</option>
+                    <option value="Mexican" style={{ backgroundColor: '#1f2937' }}>Mexican</option>
+                    <option value="Indian" style={{ backgroundColor: '#1f2937' }}>Indian</option>
+                    <option value="French" style={{ backgroundColor: '#1f2937' }}>French</option>
+                    <option value="Thai" style={{ backgroundColor: '#1f2937' }}>Thai</option>
+                    <option value="Mediterranean" style={{ backgroundColor: '#1f2937' }}>Mediterranean</option>
+                    <option value="Other" style={{ backgroundColor: '#1f2937' }}>Other</option>
                   </select>
                 </div>
               </div>
-              
+
               <div>
-                <label style={{
-                  display: 'block',
-                  fontSize: '14px',
-                  fontWeight: 'bold',
-                  marginBottom: '8px'
-                }}>
-                  Description
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                  Price Range
                 </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  rows={3}
-                  placeholder="Describe your restaurant's unique features and atmosphere"
+                <select
+                  value={formData.price_range}
+                  onChange={(e) => setFormData({ ...formData, price_range: e.target.value })}
                   style={{
                     width: '100%',
                     padding: '12px',
                     fontSize: '16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '8px',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
+                    outline: 'none'
+                  }}
+                >
+                  <option value="$" style={{ backgroundColor: '#1f2937' }}>$ - Budget Friendly</option>
+                  <option value="$$" style={{ backgroundColor: '#1f2937' }}>$$ - Moderate</option>
+                  <option value="$$$" style={{ backgroundColor: '#1f2937' }}>$$$ - Upscale</option>
+                  <option value="$$$$" style={{ backgroundColor: '#1f2937' }}>$$$$ - Fine Dining</option>
+                </select>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  placeholder="Describe your restaurant..."
+                  rows="3"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '2px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    color: 'white',
+                    backdropFilter: 'blur(10px)',
                     outline: 'none',
                     resize: 'vertical'
                   }}
                 />
               </div>
-              
-              <div style={{
-                display: 'flex',
-                gap: '15px'
-              }}>
+
+              <div style={{ display: 'flex', gap: '15px', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -1302,14 +1271,13 @@ const OwnerDashboard = () => {
                     resetForm();
                   }}
                   style={{
-                    flex: 1,
-                    padding: '12px',
+                    padding: '12px 24px',
                     fontSize: '16px',
                     fontWeight: 'bold',
-                    border: '2px solid #6b7280',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
                     borderRadius: '10px',
                     backgroundColor: 'transparent',
-                    color: '#6b7280',
+                    color: 'white',
                     cursor: 'pointer',
                     transition: 'all 0.3s ease'
                   }}
@@ -1319,8 +1287,7 @@ const OwnerDashboard = () => {
                 <button
                   type="submit"
                   style={{
-                    flex: 1,
-                    padding: '12px',
+                    padding: '12px 24px',
                     fontSize: '16px',
                     fontWeight: 'bold',
                     border: 'none',
@@ -1340,6 +1307,454 @@ const OwnerDashboard = () => {
       )}
     </div>
   );
+
+  // Reviews Tab Component
+  const ReviewsTab = () => {
+    const filteredReviews = getFilteredAndSortedReviews();
+    const availableYears = getAvailableYears();
+    const availableMonths = getAvailableMonths();
+    
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+        <div>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>
+            💬 Customer Reviews
+          </h2>
+          <p style={{ fontSize: '16px', opacity: 0.8 }}>
+            All reviews from customers across your restaurants
+          </p>
+        </div>
+
+        {/* Reviews Statistics */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+          gap: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '15px',
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '24px', marginRight: '10px' }}>📝</span>
+              <span style={{ fontSize: '14px', opacity: 0.8 }}>Total Reviews</span>
+            </div>
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold' }}>{allReviews.length}</h3>
+          </div>
+          
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '15px',
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '24px', marginRight: '10px' }}>⭐</span>
+              <span style={{ fontSize: '14px', opacity: 0.8 }}>Avg Rating</span>
+            </div>
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold' }}>
+              {allReviews.length > 0 
+                ? (allReviews.reduce((sum, r) => sum + (r.sentiment_score || 0), 0) / allReviews.length).toFixed(1)
+                : '0.0'
+              }
+            </h3>
+          </div>
+          
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '15px',
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px' }}>
+              <span style={{ fontSize: '24px', marginRight: '10px' }}>📊</span>
+              <span style={{ fontSize: '14px', opacity: 0.8 }}>Filtered</span>
+            </div>
+            <h3 style={{ fontSize: '24px', fontWeight: 'bold' }}>{filteredReviews.length}</h3>
+          </div>
+        </div>
+
+        {/* Filters */}
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '15px',
+          padding: '25px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px'
+          }}>
+            {/* Search */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                🔍 Search Reviews
+              </label>
+              <input
+                type="text"
+                value={reviewSearchTerm}
+                onChange={(e) => setReviewSearchTerm(e.target.value)}
+                placeholder="Search by content, restaurant, or customer..."
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)',
+                  outline: 'none'
+                }}
+              />
+            </div>
+
+            {/* Restaurant Filter */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                🏪 Restaurant
+              </label>
+              <select
+                value={selectedRestaurantFilter}
+                onChange={(e) => setSelectedRestaurantFilter(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)',
+                  outline: 'none'
+                }}
+              >
+                <option value="" style={{ backgroundColor: '#1f2937' }}>All Restaurants</option>
+                {restaurants.map((restaurant) => (
+                  <option 
+                    key={restaurant.restaurant_id || restaurant.id} 
+                    value={restaurant.restaurant_id || restaurant.id}
+                    style={{ backgroundColor: '#1f2937' }}
+                  >
+                    {restaurant.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Year Filter */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                📅 Year
+              </label>
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  setSelectedYear(e.target.value);
+                  setSelectedMonth(''); // Reset month when year changes
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)',
+                  outline: 'none'
+                }}
+              >
+                <option value="" style={{ backgroundColor: '#1f2937' }}>All Years</option>
+                {availableYears.map(year => (
+                  <option key={year} value={year} style={{ backgroundColor: '#1f2937' }}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Month Filter */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                📆 Month
+              </label>
+              <select
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                disabled={!selectedYear}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '10px',
+                  backgroundColor: selectedYear ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                  color: selectedYear ? 'white' : 'rgba(255, 255, 255, 0.5)',
+                  backdropFilter: 'blur(10px)',
+                  outline: 'none',
+                  cursor: selectedYear ? 'pointer' : 'not-allowed'
+                }}
+              >
+                <option value="" style={{ backgroundColor: '#1f2937' }}>All Months</option>
+                {availableMonths.map(month => (
+                  <option key={month} value={month} style={{ backgroundColor: '#1f2937' }}>
+                    {new Date(2000, month, 1).toLocaleString('default', { month: 'long' })}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Sort */}
+            <div>
+              <label style={{ display: 'block', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                📈 Sort By
+              </label>
+              <select
+                value={reviewSortBy}
+                onChange={(e) => setReviewSortBy(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  border: '2px solid rgba(255, 255, 255, 0.2)',
+                  borderRadius: '10px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  color: 'white',
+                  backdropFilter: 'blur(10px)',
+                  outline: 'none'
+                }}
+              >
+                <option value="date-desc" style={{ backgroundColor: '#1f2937' }}>Newest First</option>
+                <option value="date-asc" style={{ backgroundColor: '#1f2937' }}>Oldest First</option>
+                <option value="rating-desc" style={{ backgroundColor: '#1f2937' }}>Highest Rating</option>
+                <option value="rating-asc" style={{ backgroundColor: '#1f2937' }}>Lowest Rating</option>
+                <option value="restaurant" style={{ backgroundColor: '#1f2937' }}>Restaurant Name</option>
+              </select>
+            </div>
+
+            {/* Clear Filters */}
+            <div style={{ display: 'flex', alignItems: 'end' }}>
+              <button
+                onClick={() => {
+                  setSelectedRestaurantFilter('');
+                  setReviewSearchTerm('');
+                  setSelectedYear('');
+                  setSelectedMonth('');
+                }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '10px',
+                  backgroundColor: 'transparent',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                🗑️ Clear Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Reviews List */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          {filteredReviews.length === 0 ? (
+            <div style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '15px',
+              padding: '40px',
+              textAlign: 'center',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)'
+            }}>
+              <div style={{ fontSize: '60px', marginBottom: '20px' }}>💬</div>
+              <h3 style={{ fontSize: '20px', fontWeight: 'bold', marginBottom: '10px' }}>
+                No Reviews Found
+              </h3>
+              <p style={{ fontSize: '16px', opacity: 0.8 }}>
+                {allReviews.length === 0 
+                  ? 'No reviews have been submitted for your restaurants yet.'
+                  : 'Try adjusting your filters to see more reviews.'
+                }
+              </p>
+            </div>
+          ) : (
+            filteredReviews.map((review) => (
+              <div
+                key={review.id}
+                style={{
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '15px',
+                  padding: '25px',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255, 255, 255, 0.2)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                {/* Review Header */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'flex-start',
+                  marginBottom: '15px',
+                  flexWrap: 'wrap',
+                  gap: '10px'
+                }}>
+                  <div>
+                    <h3 style={{
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      marginBottom: '5px'
+                    }}>
+                      {getRestaurantName(review.restaurant_id)}
+                    </h3>
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '15px',
+                      fontSize: '14px',
+                      opacity: 0.8,
+                      flexWrap: 'wrap'
+                    }}>
+                      <span>👤 {review.user_email || review.user_name || 'Anonymous'}</span>
+                      <span>📅 {review.timestamp ? formatDate(review.timestamp) : 'Unknown date'}</span>
+                      {review.sentiment_score && (
+                        <span style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '5px',
+                          backgroundColor: review.sentiment_score >= 4 
+                            ? 'rgba(34, 197, 94, 0.2)' 
+                            : review.sentiment_score >= 3 
+                            ? 'rgba(245, 158, 11, 0.2)' 
+                            : 'rgba(239, 68, 68, 0.2)',
+                          color: review.sentiment_score >= 4 
+                            ? '#34d399' 
+                            : review.sentiment_score >= 3 
+                            ? '#fbbf24' 
+                            : '#f87171',
+                          padding: '4px 8px',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          fontWeight: 'bold'
+                        }}>
+                          ⭐ {review.sentiment_score.toFixed(1)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <button
+                    onClick={() => setExpandedReview(expandedReview === review.id ? null : review.id)}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '14px',
+                      fontWeight: 'bold',
+                      border: '1px solid rgba(255, 255, 255, 0.3)',
+                      borderRadius: '8px',
+                      backgroundColor: 'transparent',
+                      color: 'white',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {expandedReview === review.id ? '👁️ Less' : '👁️ More'}
+                  </button>
+                </div>
+
+                {/* Review Summary */}
+                <div style={{ marginBottom: '15px' }}>
+                  <p style={{
+                    fontSize: '16px',
+                    lineHeight: '1.6',
+                    marginBottom: '10px'
+                  }}>
+                    {review.summary || 'No summary provided'}
+                  </p>
+                </div>
+
+                {/* Expanded Content */}
+                {expandedReview === review.id && (
+                  <div style={{
+                    borderTop: '1px solid rgba(255, 255, 255, 0.2)',
+                    paddingTop: '15px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '15px'
+                  }}>
+                    {/* Categories - Updated for Consistency */}
+                    <ReviewCategories 
+                      review={review} 
+                      layout="grid" 
+                      showEmptyCategories={true}
+                      style={{
+                        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+                        gap: '10px'
+                      }}
+                    />
+
+                    {/* Specific Points */}
+                    {review.specific_points && Array.isArray(review.specific_points) && review.specific_points.length > 0 && (
+                      <div style={{
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderRadius: '10px',
+                        padding: '15px',
+                        border: '1px solid rgba(59, 130, 246, 0.2)'
+                      }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
+                          💡 Key Points Mentioned:
+                        </h4>
+                        <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                          {review.specific_points.map((point, index) => (
+                            <li key={index} style={{ fontSize: '14px', marginBottom: '4px' }}>
+                              {point}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Improvement Suggestions */}
+                    {review.improvement_suggestions && Array.isArray(review.improvement_suggestions) && review.improvement_suggestions.length > 0 && (
+                      <div style={{
+                        backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                        borderRadius: '10px',
+                        padding: '15px',
+                        border: '1px solid rgba(245, 158, 11, 0.2)'
+                      }}>
+                        <h4 style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '8px' }}>
+                          🔧 Suggestions for Improvement:
+                        </h4>
+                        <ul style={{ paddingLeft: '20px', margin: 0 }}>
+                          {review.improvement_suggestions.map((suggestion, index) => (
+                            <li key={index} style={{ fontSize: '14px', marginBottom: '4px' }}>
+                              {suggestion}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    );
+  };
 
   // Analytics Tab Component
   const AnalyticsTab = () => (
@@ -1372,7 +1787,7 @@ const OwnerDashboard = () => {
         </h3>
         <p style={{
           fontSize: '16px',
-          opacity: 0.8',
+          opacity: 0.8,
           lineHeight: '1.6'
         }}>
           Detailed charts, customer insights, and performance trends will be available here soon!
@@ -1486,6 +1901,25 @@ const OwnerDashboard = () => {
             🏪 Restaurants
           </button>
           <button
+            onClick={() => setActiveTab('reviews')}
+            style={{
+              flex: 1,
+              padding: '15px 25px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '10px',
+              background: activeTab === 'reviews' 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : 'transparent',
+              color: activeTab === 'reviews' ? 'white' : 'rgba(255, 255, 255, 0.6)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            💬 Reviews ({allReviews.length})
+          </button>
+          <button
             onClick={() => setActiveTab('analytics')}
             style={{
               flex: 1,
@@ -1510,6 +1944,7 @@ const OwnerDashboard = () => {
       {/* Tab Content */}
       {activeTab === 'overview' && <OverviewTab />}
       {activeTab === 'restaurants' && <RestaurantsTab />}
+      {activeTab === 'reviews' && <ReviewsTab />}
       {activeTab === 'analytics' && <AnalyticsTab />}
     </div>
   );
