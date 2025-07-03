@@ -1,53 +1,31 @@
-// src/pages/OwnerDashboard.js - CORRECTED VERSION using existing services
+// src/pages/OwnerDashboard.js - Food Review Themed Design
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  Building, 
-  Users, 
-  MessageSquare, 
-  TrendingUp,
-  Star,
-  Plus,
-  Edit,
-  Trash2,
-  Eye,
-  EyeOff,
-  BarChart3,
-  ChevronRight,
-  CheckCircle,
-  AlertTriangle,
-  Calendar,
-  Award,
-  Target
-} from 'lucide-react';
-// FIXED: Using correct function names from your existing services
 import { 
   getRestaurantsByOwner, 
   saveRestaurant, 
-  deleteRestaurant, 
-  getRestaurantAnalytics,
+  deleteRestaurant,
+  getOwnerAnalytics,
   verifyOwnerPassword 
 } from '../services/restaurantService';
-import { collection, getDocs, query, where } from 'firebase/firestore';
-import { db } from '../firebase/config';
 
 const OwnerDashboard = () => {
+  const { currentUser, isOwner } = useAuth();
+  
+  // State management
   const [activeTab, setActiveTab] = useState('overview');
   const [restaurants, setRestaurants] = useState([]);
-  const [analytics, setAnalytics] = useState(null);
+  const [analytics, setAnalytics] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingRestaurant, setEditingRestaurant] = useState(null);
-  const [ownerPassword, setOwnerPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(null);
   const [passwordVerified, setPasswordVerified] = useState(false);
+  const [ownerPassword, setOwnerPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   
-  const { currentUser, isOwner } = useAuth();
-
-  // Form state for restaurant data
+  // Form data
   const [formData, setFormData] = useState({
     name: '',
     address: '',
@@ -66,34 +44,23 @@ const OwnerDashboard = () => {
     }
   });
 
-  // FIXED: Create analytics function using your existing services
-  const getOwnerAnalytics = async (ownerId) => {
+  // Calculate analytics
+  const calculateAnalytics = (reviews) => {
     try {
-      // Get all reviews for owner's restaurants
-      const reviewsRef = collection(db, 'reviews');
-      const reviewsQuery = query(reviewsRef, where('owner_id', '==', ownerId));
-      const reviewsSnapshot = await getDocs(reviewsQuery);
-      
-      const reviews = [];
-      reviewsSnapshot.forEach((doc) => {
-        reviews.push({ id: doc.id, ...doc.data() });
-      });
-
-      // Calculate analytics
       const totalReviews = reviews.length;
       const thisMonth = new Date();
-      thisMonth.setDate(1);
+      thisMonth.setMonth(thisMonth.getMonth());
       
       const thisMonthReviews = reviews.filter(review => {
-        if (!review.timestamp) return false;
-        const reviewDate = review.timestamp.toDate ? review.timestamp.toDate() : new Date(review.timestamp);
-        return reviewDate >= thisMonth;
+        const reviewDate = review.timestamp?.toDate ? review.timestamp.toDate() : new Date(review.timestamp);
+        return reviewDate.getMonth() === thisMonth.getMonth() && 
+               reviewDate.getFullYear() === thisMonth.getFullYear();
       }).length;
 
       const sentimentScores = reviews
-        .map(r => r.sentiment_score)
-        .filter(score => typeof score === 'number' && !isNaN(score));
-      
+        .map(r => r.sentiment_score || r.rating)
+        .filter(score => typeof score === 'number' && score > 0);
+
       const averageRating = sentimentScores.length > 0
         ? sentimentScores.reduce((sum, score) => sum + score, 0) / sentimentScores.length
         : 0;
@@ -106,7 +73,7 @@ const OwnerDashboard = () => {
         averageRating,
         positiveReviews,
         satisfactionRate: totalReviews > 0 ? Math.round((positiveReviews / totalReviews) * 100) : 0,
-        reviews: reviews.slice(0, 10) // Latest 10 reviews
+        reviews: reviews.slice(0, 10)
       };
     } catch (error) {
       console.error('Error calculating analytics:', error);
@@ -118,27 +85,6 @@ const OwnerDashboard = () => {
         satisfactionRate: 0,
         reviews: []
       };
-    }
-  };
-
-  // Animation variants
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-        delayChildren: 0.2
-      }
-    }
-  };
-
-  const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.5, ease: "easeOut" }
     }
   };
 
@@ -154,7 +100,6 @@ const OwnerDashboard = () => {
       setLoading(true);
       const ownerId = currentUser.uid;
       
-      // FIXED: Using correct function names
       const [restaurantsData, analyticsData] = await Promise.all([
         getRestaurantsByOwner(ownerId),
         getOwnerAnalytics(ownerId)
@@ -178,13 +123,10 @@ const OwnerDashboard = () => {
       const restaurantData = {
         ...formData,
         owner_id: currentUser.uid,
-        // FIXED: If editing, include the restaurant_id
         ...(editingRestaurant && { restaurant_id: editingRestaurant.restaurant_id || editingRestaurant.id })
       };
 
-      // FIXED: Use saveRestaurant for both add and update
       await saveRestaurant(restaurantData, currentUser.uid);
-
       await loadDashboardData();
       setShowAddForm(false);
       setEditingRestaurant(null);
@@ -263,7 +205,6 @@ const OwnerDashboard = () => {
   // Handle owner verification
   const handleOwnerVerification = (e) => {
     e.preventDefault();
-    // FIXED: Use the correct password verification function
     if (verifyOwnerPassword(ownerPassword)) {
       setPasswordVerified(true);
       setError(null);
@@ -275,45 +216,124 @@ const OwnerDashboard = () => {
   // Check if user is owner but not verified
   if (!isOwner || !passwordVerified) {
     return (
-      <div className="max-w-2xl mx-auto mt-8">
-        <div className="glass-card rounded-2xl p-8 text-center">
-          <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Building className="text-white" size={32} />
+      <div style={{
+        maxWidth: '600px',
+        margin: '40px auto',
+        padding: '20px',
+        color: 'white'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '20px',
+          padding: '40px',
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            width: '80px',
+            height: '80px',
+            background: 'linear-gradient(45deg, #f59e0b, #f97316)',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            margin: '0 auto 30px auto',
+            fontSize: '40px'
+          }}>
+            🏪
           </div>
           
-          <h2 className="heading-lg mb-4">Owner Access Required</h2>
-          <p className="body-md mb-8">
-            Please enter the owner password to access the dashboard.
+          <h2 style={{
+            fontSize: '28px',
+            fontWeight: 'bold',
+            marginBottom: '15px'
+          }}>
+            🔐 Restaurant Owner Access
+          </h2>
+          <p style={{
+            fontSize: '16px',
+            opacity: 0.8,
+            marginBottom: '30px',
+            lineHeight: '1.6'
+          }}>
+            Please enter the owner password to access your restaurant dashboard and manage your food establishments.
           </p>
           
-          <form onSubmit={handleOwnerVerification} className="space-y-6">
-            <div className="relative">
+          <form onSubmit={handleOwnerVerification} style={{ textAlign: 'left' }}>
+            <div style={{ position: 'relative', marginBottom: '20px' }}>
               <input
                 type={showPassword ? "text" : "password"}
                 value={ownerPassword}
                 onChange={(e) => setOwnerPassword(e.target.value)}
-                className="input-field pr-10"
                 placeholder="Enter owner password"
                 required
+                style={{
+                  width: '100%',
+                  padding: '15px 50px 15px 15px',
+                  fontSize: '16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  border: '1px solid rgba(255, 255, 255, 0.3)',
+                  borderRadius: '10px',
+                  color: 'white',
+                  outline: 'none',
+                  backdropFilter: 'blur(10px)'
+                }}
+                onFocus={(e) => {
+                  e.target.style.borderColor = '#8b5cf6';
+                  e.target.style.boxShadow = '0 0 0 2px rgba(139, 92, 246, 0.2)';
+                }}
+                onBlur={(e) => {
+                  e.target.style.borderColor = 'rgba(255, 255, 255, 0.3)';
+                  e.target.style.boxShadow = 'none';
+                }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-300"
+                style={{
+                  position: 'absolute',
+                  right: '15px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'rgba(255, 255, 255, 0.6)',
+                  cursor: 'pointer',
+                  fontSize: '18px'
+                }}
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                {showPassword ? '🙈' : '👁️'}
               </button>
             </div>
             
             <button
               type="submit"
-              className="btn-primary w-full focus-ring"
+              style={{
+                width: '100%',
+                padding: '15px',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                border: 'none',
+                borderRadius: '10px',
+                background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease'
+              }}
             >
-              Verify Access
+              🚀 Access Dashboard
             </button>
             
             {error && (
-              <div className="text-red-400 text-sm mt-2">{error}</div>
+              <div style={{
+                color: '#fca5a5',
+                fontSize: '14px',
+                marginTop: '15px',
+                textAlign: 'center'
+              }}>
+                {error}
+              </div>
             )}
           </form>
         </div>
@@ -324,10 +344,35 @@ const OwnerDashboard = () => {
   // Loading state
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-[60vh]">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="body-md">Loading dashboard...</p>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        minHeight: '60vh',
+        color: 'white'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid rgba(139, 92, 246, 0.3)',
+            borderTop: '4px solid #8b5cf6',
+            borderRadius: '50%',
+            margin: '0 auto 20px auto',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ fontSize: '16px', opacity: 0.8 }}>
+            🏪 Loading restaurant dashboard...
+          </p>
+          
+          <style>
+            {`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}
+          </style>
         </div>
       </div>
     );
@@ -336,598 +381,880 @@ const OwnerDashboard = () => {
   // Error state
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto mt-8">
-        <div className="glass-card rounded-2xl p-8 text-center status-error">
-          <h2 className="heading-md mb-4">Dashboard Error</h2>
-          <p className="body-md mb-6">{error}</p>
+      <div style={{
+        maxWidth: '800px',
+        margin: '40px auto',
+        padding: '20px',
+        color: 'white'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '20px',
+          padding: '40px',
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>🚨</div>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            marginBottom: '15px',
+            color: '#ef4444'
+          }}>
+            Dashboard Error
+          </h2>
+          <p style={{
+            fontSize: '16px',
+            opacity: 0.8,
+            marginBottom: '30px',
+            lineHeight: '1.6'
+          }}>
+            {error}
+          </p>
           <button 
             onClick={() => window.location.reload()}
-            className="btn-primary focus-ring"
+            style={{
+              padding: '15px 30px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '10px',
+              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
           >
-            Retry
+            🔄 Retry
           </button>
         </div>
       </div>
     );
   }
 
-  // FIXED: Complete Analytics Tab Component
-  const AnalyticsTab = () => (
-    <div className="space-y-8">
-      {/* Analytics Header */}
-      <div>
-        <h2 className="heading-lg mb-2">Analytics & Insights</h2>
-        <p className="body-lg">Detailed performance metrics for your restaurants</p>
-      </div>
-
-      {/* Key Metrics Grid */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <MessageSquare className="text-blue-400" size={24} />
+  // Overview Tab Component
+  const OverviewTab = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+      {/* Key Metrics */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '20px'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '15px',
+          padding: '25px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '15px'
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px'
+            }}>
+              📝
             </div>
-            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">
+            <span style={{
+              fontSize: '12px',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              color: '#34d399',
+              padding: '4px 8px',
+              borderRadius: '12px'
+            }}>
               +12% this month
             </span>
           </div>
-          <p className="body-sm mb-1">Total Reviews</p>
-          <p className="text-3xl font-bold text-white">{analytics?.totalReviews || 0}</p>
+          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Total Food Reviews</p>
+          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
+            {analytics?.totalReviews || 0}
+          </p>
         </div>
         
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-              <Star className="text-yellow-400" size={24} />
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '15px',
+          padding: '25px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '15px'
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              backgroundColor: 'rgba(245, 158, 11, 0.2)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px'
+            }}>
+              ⭐
             </div>
-            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">
+            <span style={{
+              fontSize: '12px',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              color: '#34d399',
+              padding: '4px 8px',
+              borderRadius: '12px'
+            }}>
               +0.2 this month
             </span>
           </div>
-          <p className="body-sm mb-1">Average Rating</p>
-          <p className="text-3xl font-bold text-white">
+          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Average Rating</p>
+          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
             {analytics?.averageRating ? analytics.averageRating.toFixed(1) : '0.0'}
           </p>
         </div>
         
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-emerald-400" size={24} />
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '15px',
+          padding: '25px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '15px'
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px'
+            }}>
+              😊
             </div>
-            <span className="text-xs bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded-full">
+            <span style={{
+              fontSize: '12px',
+              backgroundColor: 'rgba(34, 197, 94, 0.2)',
+              color: '#34d399',
+              padding: '4px 8px',
+              borderRadius: '12px'
+            }}>
               +18% this month
             </span>
           </div>
-          <p className="body-sm mb-1">Positive Reviews</p>
-          <p className="text-3xl font-bold text-white">
+          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Happy Customers</p>
+          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
             {analytics?.positiveReviews || 0}
           </p>
         </div>
         
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <Target className="text-purple-400" size={24} />
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '15px',
+          padding: '25px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '15px'
+          }}>
+            <div style={{
+              width: '50px',
+              height: '50px',
+              backgroundColor: 'rgba(168, 85, 247, 0.2)',
+              borderRadius: '12px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '24px'
+            }}>
+              📊
             </div>
-            <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-1 rounded-full">
+            <span style={{
+              fontSize: '12px',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              color: '#60a5fa',
+              padding: '4px 8px',
+              borderRadius: '12px'
+            }}>
               Goal: 95%
             </span>
           </div>
-          <p className="body-sm mb-1">Customer Satisfaction</p>
-          <p className="text-3xl font-bold text-white">
+          <p style={{ fontSize: '14px', opacity: 0.8, marginBottom: '5px' }}>Satisfaction Rate</p>
+          <p style={{ fontSize: '28px', fontWeight: 'bold', color: 'white' }}>
             {analytics?.satisfactionRate ? `${analytics.satisfactionRate}%` : '0%'}
           </p>
         </div>
       </div>
 
-      {/* Review Trends Chart */}
-      <div className="glass-card-subtle rounded-xl p-6">
-        <h3 className="heading-sm mb-6">Review Trends (Last 30 Days)</h3>
-        <div className="h-64 flex items-end justify-center space-x-2">
-          {/* Simple bar chart representation */}
-          {Array.from({ length: 7 }, (_, i) => (
-            <div key={i} className="flex flex-col items-center space-y-2">
-              <div
-                className="w-8 bg-gradient-to-t from-blue-500 to-purple-500 rounded-t"
-                style={{ height: `${Math.random() * 200 + 50}px` }}
-              ></div>
-              <span className="text-xs text-slate-400">
-                {new Date(Date.now() - (6 - i) * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { weekday: 'short' })}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Performance by Restaurant */}
-      {restaurants.length > 0 && (
-        <div className="glass-card-subtle rounded-xl p-6">
-          <h3 className="heading-sm mb-6">Performance by Restaurant</h3>
-          <div className="space-y-4">
-            {restaurants.map((restaurant) => (
-              <div key={restaurant.restaurant_id || restaurant.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg">
-                <div>
-                  <h4 className="font-medium text-white">{restaurant.name}</h4>
-                  <p className="text-sm text-slate-400">{restaurant.cuisine_type || 'Restaurant'}</p>
-                </div>
-                <div className="flex items-center space-x-6">
-                  <div className="text-center">
-                    <p className="text-sm text-slate-400">Reviews</p>
-                    <p className="font-bold text-white">{Math.floor(Math.random() * 50) + 10}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-slate-400">Rating</p>
-                    <p className="font-bold text-white">{(Math.random() * 2 + 3).toFixed(1)}</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="text-sm text-slate-400">Trend</p>
-                    <p className="font-bold text-emerald-400">↗ +8%</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Recent Feedback Highlights */}
-      {analytics?.reviews && analytics.reviews.length > 0 && (
-        <div className="glass-card-subtle rounded-xl p-6">
-          <h3 className="heading-sm mb-6">Recent Feedback Highlights</h3>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <h4 className="font-medium text-emerald-400 mb-3">👍 Positive Highlights</h4>
-              <div className="space-y-3">
-                <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                  <p className="text-sm text-emerald-300">"Amazing service and delicious food!"</p>
-                  <p className="text-xs text-slate-400 mt-1">- Customer review</p>
-                </div>
-                <div className="p-3 bg-emerald-500/10 rounded-lg border border-emerald-500/20">
-                  <p className="text-sm text-emerald-300">"Great atmosphere and friendly staff"</p>
-                  <p className="text-xs text-slate-400 mt-1">- Customer review</p>
-                </div>
-              </div>
-            </div>
-            <div>
-              <h4 className="font-medium text-yellow-400 mb-3">💡 Areas for Improvement</h4>
-              <div className="space-y-3">
-                <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                  <p className="text-sm text-yellow-300">"Could improve wait times during peak hours"</p>
-                  <p className="text-xs text-slate-400 mt-1">- Customer feedback</p>
-                </div>
-                <div className="p-3 bg-yellow-500/10 rounded-lg border border-yellow-500/20">
-                  <p className="text-sm text-yellow-300">"More vegetarian options would be great"</p>
-                  <p className="text-xs text-slate-400 mt-1">- Customer suggestion</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-
-  // Tab content components
-  const OverviewTab = () => (
-    <div className="space-y-8">
-      {/* Stats Cards */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="body-sm mb-1">Total Restaurants</p>
-              <p className="text-3xl font-bold text-white">{restaurants.length}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-500/20 rounded-lg flex items-center justify-center">
-              <Building className="text-blue-400" size={24} />
-            </div>
-          </div>
-        </div>
-        
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="body-sm mb-1">Total Reviews</p>
-              <p className="text-3xl font-bold text-white">{analytics?.totalReviews || 0}</p>
-            </div>
-            <div className="w-12 h-12 bg-emerald-500/20 rounded-lg flex items-center justify-center">
-              <MessageSquare className="text-emerald-400" size={24} />
-            </div>
-          </div>
-        </div>
-        
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="body-sm mb-1">Average Rating</p>
-              <p className="text-3xl font-bold text-white">
-                {analytics?.averageRating ? analytics.averageRating.toFixed(1) : '0.0'}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-              <Star className="text-yellow-400" size={24} />
-            </div>
-          </div>
-        </div>
-        
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="body-sm mb-1">This Month</p>
-              <p className="text-3xl font-bold text-white">
-                {analytics?.thisMonthReviews || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <TrendingUp className="text-purple-400" size={24} />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Quick Actions */}
-      <div className="glass-card-subtle rounded-xl p-6">
-        <h3 className="heading-sm mb-6">Quick Actions</h3>
-        <div className="grid md:grid-cols-3 gap-4">
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '15px',
+        padding: '25px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          🚀 Quick Actions
+        </h3>
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '15px'
+        }}>
           <button
             onClick={() => setShowAddForm(true)}
-            className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-200 text-left group"
+            style={{
+              padding: '20px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              textAlign: 'left'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              e.target.style.transform = 'translateY(0)';
+            }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-blue-500/20 rounded-lg flex items-center justify-center group-hover:bg-blue-500/30 transition-colors">
-                <Plus className="text-blue-400" size={20} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px'
+              }}>
+                ➕
               </div>
               <div>
-                <h4 className="font-medium text-white">Add Restaurant</h4>
-                <p className="body-sm">Register a new location</p>
+                <h4 style={{ fontWeight: 'bold', marginBottom: '5px' }}>Add Restaurant</h4>
+                <p style={{ fontSize: '14px', opacity: 0.8 }}>Register a new food location</p>
               </div>
             </div>
           </button>
           
           <button
             onClick={() => setActiveTab('analytics')}
-            className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-200 text-left group"
+            style={{
+              padding: '20px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              textAlign: 'left'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              e.target.style.transform = 'translateY(0)';
+            }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-500/20 rounded-lg flex items-center justify-center group-hover:bg-emerald-500/30 transition-colors">
-                <BarChart3 className="text-emerald-400" size={20} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px'
+              }}>
+                📊
               </div>
               <div>
-                <h4 className="font-medium text-white">View Analytics</h4>
-                <p className="body-sm">Review performance data</p>
+                <h4 style={{ fontWeight: 'bold', marginBottom: '5px' }}>View Analytics</h4>
+                <p style={{ fontSize: '14px', opacity: 0.8 }}>Review food performance data</p>
               </div>
             </div>
           </button>
           
           <button
             onClick={() => setActiveTab('restaurants')}
-            className="p-4 bg-white/5 hover:bg-white/10 rounded-lg border border-white/10 transition-all duration-200 text-left group"
+            style={{
+              padding: '20px',
+              backgroundColor: 'rgba(255, 255, 255, 0.05)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '12px',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              textAlign: 'left'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              e.target.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.05)';
+              e.target.style.transform = 'translateY(0)';
+            }}
           >
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center group-hover:bg-purple-500/30 transition-colors">
-                <Building className="text-purple-400" size={20} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div style={{
+                width: '40px',
+                height: '40px',
+                backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                borderRadius: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px'
+              }}>
+                🏪
               </div>
               <div>
-                <h4 className="font-medium text-white">Manage Restaurants</h4>
-                <p className="body-sm">Edit locations and details</p>
+                <h4 style={{ fontWeight: 'bold', marginBottom: '5px' }}>Manage Restaurants</h4>
+                <p style={{ fontSize: '14px', opacity: 0.8 }}>Edit your food establishments</p>
               </div>
             </div>
           </button>
         </div>
       </div>
-
-      {/* Recent Activity */}
-      {analytics?.reviews && analytics.reviews.length > 0 && (
-        <div className="glass-card-subtle rounded-xl p-6">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="heading-sm">Recent Reviews</h3>
-            <button
-              onClick={() => setActiveTab('analytics')}
-              className="text-blue-400 hover:text-blue-300 text-sm font-medium flex items-center gap-1"
-            >
-              View All
-              <ChevronRight size={16} />
-            </button>
-          </div>
-          
-          <div className="space-y-4">
-            {analytics.reviews.slice(0, 3).map((review, index) => (
-              <div key={review.id || index} className="p-4 bg-white/5 rounded-lg border border-white/10">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h4 className="font-medium text-white">
-                      {review.customer_name || 'Anonymous'}
-                    </h4>
-                    <p className="body-sm">
-                      {review.timestamp ? formatDate(review.timestamp) : 'Unknown date'}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: 5 }, (_, i) => (
-                      <Star
-                        key={i}
-                        size={16}
-                        className={i < (review.sentiment_score || 0) ? 'text-yellow-400 fill-current' : 'text-gray-600'}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <p className="text-slate-300 text-sm line-clamp-2">{review.summary || 'No summary available'}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 
+  // Restaurants Tab Component
   const RestaurantsTab = () => (
-    <div className="space-y-6">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <h2 className="heading-lg">Restaurant Management</h2>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '15px'
+      }}>
+        <div>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>
+            🏪 Your Food Establishments
+          </h2>
+          <p style={{ fontSize: '16px', opacity: 0.8 }}>
+            Manage your restaurant locations and information
+          </p>
+        </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="btn-primary flex items-center gap-2 focus-ring"
+          style={{
+            padding: '12px 25px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            border: 'none',
+            borderRadius: '10px',
+            background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+            color: 'white',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px'
+          }}
         >
-          <Plus size={18} />
-          Add Restaurant
+          ➕ Add Restaurant
         </button>
       </div>
 
-      {/* Restaurant List */}
-      <div className="grid gap-6">
-        {restaurants.length === 0 ? (
-          <div className="glass-card-subtle rounded-xl p-12 text-center">
-            <Building className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-            <h3 className="heading-sm mb-2">No Restaurants Yet</h3>
-            <p className="body-md mb-6">Add your first restaurant to start collecting feedback</p>
-            <button
-              onClick={() => setShowAddForm(true)}
-              className="btn-primary focus-ring"
-            >
-              Add Restaurant
-            </button>
-          </div>
-        ) : (
-          restaurants.map((restaurant) => (
-            <div key={restaurant.restaurant_id || restaurant.id} className="glass-card-subtle rounded-xl p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-3">
-                    <h3 className="heading-sm">{restaurant.name}</h3>
-                    <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full">
-                      {restaurant.cuisine_type || 'Restaurant'}
-                    </span>
-                    <span className="px-2 py-1 bg-emerald-500/20 text-emerald-300 text-xs rounded-full">
-                      {restaurant.price_range || '$'}
-                    </span>
-                  </div>
-                  
-                  <div className="space-y-2 mb-4">
-                    {restaurant.address && (
-                      <p className="body-sm flex items-center gap-2">
-                        📍 {restaurant.address}
-                      </p>
-                    )}
-                    {restaurant.phone && (
-                      <p className="body-sm flex items-center gap-2">
-                        📞 {restaurant.phone}
-                      </p>
-                    )}
-                    {restaurant.description && (
-                      <p className="body-sm text-slate-300">
-                        {restaurant.description}
-                      </p>
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center gap-4 text-sm">
-                    <div className="flex items-center gap-1">
-                      <Star className="text-yellow-400" size={16} />
-                      <span className="text-white font-medium">
-                        {restaurant.average_rating ? restaurant.average_rating.toFixed(1) : '0.0'}
-                      </span>
-                    </div>
-                    <div className="text-slate-400">
-                      {restaurant.review_count || 0} reviews
-                    </div>
-                    <div className="text-slate-400">
-                      Added {formatDate(restaurant.created_at)}
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center gap-2 ml-4">
-                  <button
-                    onClick={() => handleEdit(restaurant)}
-                    className="p-2 text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 rounded-lg transition-colors"
-                    title="Edit restaurant"
-                  >
-                    <Edit size={18} />
-                  </button>
-                  <button
-                    onClick={() => setConfirmDelete(restaurant.restaurant_id || restaurant.id)}
-                    className="p-2 text-slate-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                    title="Delete restaurant"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-              
-              {/* Delete confirmation */}
-              {confirmDelete === (restaurant.restaurant_id || restaurant.id) && (
-                <div className="mt-4 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-                  <h4 className="font-medium text-red-400 mb-2">Confirm Deletion</h4>
-                  <p className="text-sm text-red-300 mb-4">
-                    Are you sure you want to delete "{restaurant.name}"? This action cannot be undone.
+      {/* Restaurants Grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))',
+        gap: '20px'
+      }}>
+        {restaurants.map((restaurant, index) => (
+          <div 
+            key={restaurant.id || index}
+            style={{
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              borderRadius: '15px',
+              padding: '25px',
+              backdropFilter: 'blur(10px)',
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-5px)';
+              e.target.style.boxShadow = '0 10px 25px rgba(139, 92, 246, 0.15)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0)';
+              e.target.style.boxShadow = 'none';
+            }}
+          >
+            {/* Restaurant Header */}
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '15px'
+            }}>
+              <div style={{ fontSize: '40px', marginRight: '15px' }}>🍽️</div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  marginBottom: '5px',
+                  color: 'white'
+                }}>
+                  {restaurant.name}
+                </h3>
+                {restaurant.cuisine_type && (
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#f59e0b',
+                    opacity: 0.9
+                  }}>
+                    {restaurant.cuisine_type} Cuisine
                   </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => handleDeleteRestaurant(restaurant.restaurant_id || restaurant.id)}
-                      className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition-colors focus-ring"
-                    >
-                      Yes, Delete
-                    </button>
-                    <button
-                      onClick={() => setConfirmDelete(null)}
-                      className="btn-secondary focus-ring"
-                    >
-                      Cancel
-                    </button>
-                  </div>
+                )}
+              </div>
+              <div style={{
+                padding: '4px 8px',
+                backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                color: '#34d399',
+                borderRadius: '8px',
+                fontSize: '12px',
+                fontWeight: 'bold'
+              }}>
+                Active
+              </div>
+            </div>
+
+            {/* Restaurant Details */}
+            <div style={{ marginBottom: '20px' }}>
+              {restaurant.address && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  opacity: 0.8
+                }}>
+                  <span>📍</span>
+                  <span>{restaurant.address}</span>
+                </div>
+              )}
+              
+              {restaurant.phone && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  fontSize: '14px',
+                  opacity: 0.8
+                }}>
+                  <span>📞</span>
+                  <span>{restaurant.phone}</span>
+                </div>
+              )}
+
+              {restaurant.price_range && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  fontSize: '14px',
+                  opacity: 0.8
+                }}>
+                  <span>💰</span>
+                  <span>{restaurant.price_range}</span>
                 </div>
               )}
             </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
 
-  // Main render
-  return (
-    <div className="max-w-7xl mx-auto space-y-8">
-      {/* Dashboard Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="heading-xl">Owner Dashboard</h1>
-          <p className="body-lg">Manage your restaurants and monitor feedback analytics</p>
+            {/* Action Buttons */}
+            <div style={{
+              display: 'flex',
+              gap: '10px',
+              paddingTop: '15px',
+              borderTop: '1px solid rgba(255, 255, 255, 0.1)'
+            }}>
+              <button
+                onClick={() => handleEdit(restaurant)}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  border: '1px solid rgba(59, 130, 246, 0.4)',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                  color: '#60a5fa',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+                }}
+              >
+                ✏️ Edit
+              </button>
+              <button
+                onClick={() => setConfirmDelete(restaurant)}
+                style={{
+                  flex: 1,
+                  padding: '10px',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  borderRadius: '8px',
+                  backgroundColor: 'rgba(239, 68, 68, 0.2)',
+                  color: '#fca5a5',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+                onMouseEnter={(e) => {
+                  e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.3)';
+                }}
+                onMouseLeave={(e) => {
+                  e.target.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                }}
+              >
+                🗑️ Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Empty State */}
+      {restaurants.length === 0 && (
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '15px',
+          padding: '40px',
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>🏪</div>
+          <h3 style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            marginBottom: '10px'
+          }}>
+            No Restaurants Yet
+          </h3>
+          <p style={{
+            fontSize: '16px',
+            opacity: 0.8,
+            marginBottom: '25px'
+          }}>
+            Add your first restaurant to start collecting delicious feedback from customers!
+          </p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            style={{
+              padding: '15px 30px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '10px',
+              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            🏪 Add Your First Restaurant
+          </button>
         </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="status-success px-3 py-1 rounded-full text-sm font-medium flex items-center gap-2">
-            <CheckCircle size={16} />
-            Verified Owner
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {confirmDelete && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: '20px',
+            padding: '30px',
+            maxWidth: '400px',
+            width: '100%',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            color: '#1f2937',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '50px', marginBottom: '20px' }}>⚠️</div>
+            <h3 style={{
+              fontSize: '20px',
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}>
+              Delete Restaurant?
+            </h3>
+            <p style={{
+              fontSize: '16px',
+              marginBottom: '30px',
+              opacity: 0.8
+            }}>
+              Are you sure you want to delete "{confirmDelete.name}"? This action cannot be undone.
+            </p>
+            <div style={{
+              display: 'flex',
+              gap: '15px'
+            }}>
+              <button
+                onClick={() => handleDeleteRestaurant(confirmDelete.restaurant_id || confirmDelete.id)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  border: 'none',
+                  borderRadius: '10px',
+                  backgroundColor: '#ef4444',
+                  color: 'white',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Yes, Delete
+              </button>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                style={{
+                  flex: 1,
+                  padding: '12px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  border: '2px solid #6b7280',
+                  borderRadius: '10px',
+                  backgroundColor: 'transparent',
+                  color: '#6b7280',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      
-      {/* FIXED: Navigation Tabs */}
-      <div className="glass-card-subtle rounded-xl p-1">
-        <nav className="flex">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'overview'
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-            }`}
-          >
-            Overview
-          </button>
-          <button
-            onClick={() => setActiveTab('restaurants')}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'restaurants'
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-            }`}
-          >
-            Restaurants
-          </button>
-          <button
-            onClick={() => setActiveTab('analytics')}
-            className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all duration-200 ${
-              activeTab === 'analytics'
-                ? 'bg-white/10 text-white border border-white/20'
-                : 'text-slate-400 hover:text-slate-300 hover:bg-white/5'
-            }`}
-          >
-            Analytics
-          </button>
-        </nav>
-      </div>
-      
-      {/* FIXED: Tab Content */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={activeTab}
-          initial="hidden"
-          animate="visible"
-          exit="hidden"
-          variants={containerVariants}
-        >
-          <motion.div variants={itemVariants}>
-            {activeTab === 'overview' && <OverviewTab />}
-            {activeTab === 'restaurants' && <RestaurantsTab />}
-            {activeTab === 'analytics' && <AnalyticsTab />}
-          </motion.div>
-        </motion.div>
-      </AnimatePresence>
+      )}
 
-      {/* Add/Edit Restaurant Form Modal */}
+      {/* Add/Edit Form Modal */}
       {showAddForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="glass-card rounded-2xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h3 className="heading-sm mb-6">
-              {editingRestaurant ? 'Edit Restaurant' : 'Add New Restaurant'}
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          padding: '20px'
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+            borderRadius: '20px',
+            padding: '40px',
+            maxWidth: '600px',
+            width: '100%',
+            maxHeight: '80vh',
+            overflow: 'auto',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            color: '#1f2937'
+          }}>
+            <h3 style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              marginBottom: '20px',
+              textAlign: 'center'
+            }}>
+              {editingRestaurant ? '🏪 Edit Restaurant' : '🏪 Add New Restaurant'}
             </h3>
             
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Restaurant Name *
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="input-field"
-                    required
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Cuisine Type
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.cuisine_type}
-                    onChange={(e) => setFormData({...formData, cuisine_type: e.target.value})}
-                    className="input-field"
-                    placeholder="e.g., Italian, Mexican, Asian"
-                  />
-                </div>
+            <form onSubmit={handleSubmit} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}>
+                  Restaurant Name *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  required
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                />
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}>
+                  Cuisine Type
+                </label>
+                <input
+                  type="text"
+                  value={formData.cuisine_type}
+                  onChange={(e) => setFormData({...formData, cuisine_type: e.target.value})}
+                  placeholder="e.g., Italian, Chinese, American"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              
+              <div>
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}>
                   Address
                 </label>
                 <input
                   type="text"
                   value={formData.address}
                   onChange={(e) => setFormData({...formData, address: e.target.value})}
-                  className="input-field"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    outline: 'none'
+                  }}
                 />
               </div>
               
-              <div className="grid md:grid-cols-2 gap-4">
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '15px'
+              }}>
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    marginBottom: '8px'
+                  }}>
                     Phone Number
                   </label>
                   <input
                     type="tel"
                     value={formData.phone}
                     onChange={(e) => setFormData({...formData, phone: e.target.value})}
-                    className="input-field"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      fontSize: '16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      outline: 'none'
+                    }}
                   />
                 </div>
                 
                 <div>
-                  <label className="block text-sm font-medium text-white mb-2">
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                    marginBottom: '8px'
+                  }}>
                     Price Range
                   </label>
                   <select
                     value={formData.price_range}
                     onChange={(e) => setFormData({...formData, price_range: e.target.value})}
-                    className="input-field"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      fontSize: '16px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '8px',
+                      outline: 'none'
+                    }}
                   >
                     <option value="$">$ - Budget Friendly</option>
                     <option value="$$">$$ - Moderate</option>
@@ -938,19 +1265,35 @@ const OwnerDashboard = () => {
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-white mb-2">
+                <label style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: 'bold',
+                  marginBottom: '8px'
+                }}>
                   Description
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({...formData, description: e.target.value})}
-                  className="input-field"
                   rows={3}
                   placeholder="Describe your restaurant's unique features and atmosphere"
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    fontSize: '16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    outline: 'none',
+                    resize: 'vertical'
+                  }}
                 />
               </div>
               
-              <div className="flex gap-4">
+              <div style={{
+                display: 'flex',
+                gap: '15px'
+              }}>
                 <button
                   type="button"
                   onClick={() => {
@@ -958,13 +1301,35 @@ const OwnerDashboard = () => {
                     setEditingRestaurant(null);
                     resetForm();
                   }}
-                  className="btn-secondary flex-1 focus-ring"
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    border: '2px solid #6b7280',
+                    borderRadius: '10px',
+                    backgroundColor: 'transparent',
+                    color: '#6b7280',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="btn-primary flex-1 focus-ring"
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    fontSize: '16px',
+                    fontWeight: 'bold',
+                    border: 'none',
+                    borderRadius: '10px',
+                    background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+                    color: 'white',
+                    cursor: 'pointer',
+                    transition: 'all 0.3s ease'
+                  }}
                 >
                   {editingRestaurant ? 'Update Restaurant' : 'Add Restaurant'}
                 </button>
@@ -973,6 +1338,179 @@ const OwnerDashboard = () => {
           </div>
         </div>
       )}
+    </div>
+  );
+
+  // Analytics Tab Component
+  const AnalyticsTab = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+      <div>
+        <h2 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>
+          📊 Food Analytics & Insights
+        </h2>
+        <p style={{ fontSize: '16px', opacity: 0.8 }}>
+          Detailed performance metrics for your restaurants
+        </p>
+      </div>
+
+      {/* Placeholder for advanced analytics */}
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '15px',
+        padding: '40px',
+        textAlign: 'center',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <div style={{ fontSize: '60px', marginBottom: '20px' }}>📈</div>
+        <h3 style={{
+          fontSize: '20px',
+          fontWeight: 'bold',
+          marginBottom: '10px'
+        }}>
+          Advanced Analytics Coming Soon
+        </h3>
+        <p style={{
+          fontSize: '16px',
+          opacity: 0.8',
+          lineHeight: '1.6'
+        }}>
+          Detailed charts, customer insights, and performance trends will be available here soon!
+        </p>
+      </div>
+    </div>
+  );
+
+  // Main render
+  return (
+    <div style={{
+      maxWidth: '1200px',
+      margin: '0 auto',
+      padding: '40px 20px',
+      color: 'white',
+      minHeight: '100vh'
+    }}>
+      {/* Dashboard Header */}
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '15px',
+        marginBottom: '40px'
+      }}>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          flexWrap: 'wrap',
+          gap: '15px'
+        }}>
+          <div>
+            <h1 style={{
+              fontSize: '36px',
+              fontWeight: 'bold',
+              marginBottom: '5px',
+              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent'
+            }}>
+              🏪 Restaurant Owner Dashboard
+            </h1>
+            <p style={{ fontSize: '18px', opacity: 0.8 }}>
+              Manage your food establishments and monitor customer feedback
+            </p>
+          </div>
+          
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            padding: '8px 16px',
+            backgroundColor: 'rgba(34, 197, 94, 0.2)',
+            color: '#34d399',
+            borderRadius: '20px',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+            <span>✅</span>
+            <span>Verified Owner</span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Navigation Tabs */}
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '15px',
+        padding: '5px',
+        marginBottom: '30px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <div style={{ display: 'flex' }}>
+          <button
+            onClick={() => setActiveTab('overview')}
+            style={{
+              flex: 1,
+              padding: '15px 25px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '10px',
+              background: activeTab === 'overview' 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : 'transparent',
+              color: activeTab === 'overview' ? 'white' : 'rgba(255, 255, 255, 0.6)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            📊 Overview
+          </button>
+          <button
+            onClick={() => setActiveTab('restaurants')}
+            style={{
+              flex: 1,
+              padding: '15px 25px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '10px',
+              background: activeTab === 'restaurants' 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : 'transparent',
+              color: activeTab === 'restaurants' ? 'white' : 'rgba(255, 255, 255, 0.6)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            🏪 Restaurants
+          </button>
+          <button
+            onClick={() => setActiveTab('analytics')}
+            style={{
+              flex: 1,
+              padding: '15px 25px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '10px',
+              background: activeTab === 'analytics' 
+                ? 'rgba(255, 255, 255, 0.1)' 
+                : 'transparent',
+              color: activeTab === 'analytics' ? 'white' : 'rgba(255, 255, 255, 0.6)',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
+          >
+            📈 Analytics
+          </button>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'overview' && <OverviewTab />}
+      {activeTab === 'restaurants' && <RestaurantsTab />}
+      {activeTab === 'analytics' && <AnalyticsTab />}
     </div>
   );
 };

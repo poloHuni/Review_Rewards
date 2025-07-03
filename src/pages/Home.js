@@ -1,10 +1,9 @@
-// src/pages/Home.js
+// src/pages/Home.js - Food Review Themed Design
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getAllRestaurants } from '../services/restaurantService';
 import { useAuth } from '../contexts/AuthContext';
 import { createSlug } from '../utils/stringUtils';
-import { MessageSquare, BarChart3, Mic, FileText, ArrowRight, Star, MapPin, Phone, ExternalLink, Users, TrendingUp, Shield } from 'lucide-react';
 
 const Home = () => {
   const [restaurants, setRestaurants] = useState([]);
@@ -36,14 +35,51 @@ const Home = () => {
     
     fetchRestaurants();
   }, []);
+
+  const handleRecordFeedback = (restaurant) => {
+    if (!currentUser) {
+      // Redirect to login if not authenticated
+      navigate('/login');
+      return;
+    }
+    
+    // Navigate to feedback page for specific restaurant
+    const slug = createSlug ? createSlug(restaurant.name) : restaurant.name.toLowerCase().replace(/\s+/g, '-');
+    navigate(`/feedback/${slug}`, { state: { restaurant } });
+  };
   
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="body-md">Loading restaurants...</p>
+      <div style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{
+            width: '60px',
+            height: '60px',
+            border: '4px solid rgba(139, 92, 246, 0.3)',
+            borderTop: '4px solid #8b5cf6',
+            borderRadius: '50%',
+            margin: '0 auto 20px auto',
+            animation: 'spin 1s linear infinite'
+          }} />
+          <p style={{ fontSize: '16px', opacity: 0.8 }}>
+            🍽️ Loading delicious restaurants...
+          </p>
+          
+          <style>
+            {`
+              @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+              }
+            `}
+          </style>
         </div>
       </div>
     );
@@ -52,15 +88,52 @@ const Home = () => {
   // Error state
   if (error) {
     return (
-      <div className="max-w-4xl mx-auto mt-8">
-        <div className="glass-card rounded-2xl p-8 text-center status-error">
-          <h2 className="heading-md mb-4">Unable to Load Restaurants</h2>
-          <p className="body-md mb-6">{error}</p>
+      <div style={{
+        maxWidth: '800px',
+        margin: '40px auto',
+        padding: '20px',
+        color: 'white'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '20px',
+          padding: '40px',
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{ fontSize: '60px', marginBottom: '20px' }}>🚨</div>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            marginBottom: '15px',
+            color: '#ef4444'
+          }}>
+            Unable to Load Restaurants
+          </h2>
+          <p style={{
+            fontSize: '16px',
+            opacity: 0.8,
+            marginBottom: '30px',
+            lineHeight: '1.6'
+          }}>
+            {error}
+          </p>
           <button 
-            onClick={() => window.location.reload()} 
-            className="btn-primary focus-ring"
+            onClick={() => window.location.reload()}
+            style={{
+              padding: '15px 30px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              border: 'none',
+              borderRadius: '10px',
+              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+              color: 'white',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease'
+            }}
           >
-            Try Again
+            🔄 Try Again
           </button>
         </div>
       </div>
@@ -70,337 +143,684 @@ const Home = () => {
   // No restaurants state
   if (restaurants.length === 0) {
     return (
-      <div className="max-w-4xl mx-auto mt-8">
-        <div className="glass-card rounded-2xl p-8 text-center">
-          <div className="text-6xl mb-6">🏪</div>
-          <h2 className="heading-md mb-4">No Restaurants Available</h2>
+      <div style={{
+        maxWidth: '800px',
+        margin: '40px auto',
+        padding: '20px',
+        color: 'white'
+      }}>
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '20px',
+          padding: '40px',
+          textAlign: 'center',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}>
+          <div style={{ fontSize: '80px', marginBottom: '20px' }}>🏪</div>
+          <h2 style={{
+            fontSize: '24px',
+            fontWeight: 'bold',
+            marginBottom: '15px'
+          }}>
+            No Restaurants Available
+          </h2>
           
           {isOwner ? (
             <div>
-              <p className="body-md mb-6">
+              <p style={{
+                fontSize: '16px',
+                opacity: 0.8,
+                marginBottom: '30px',
+                lineHeight: '1.6'
+              }}>
                 As a restaurant owner, you can add your first restaurant to start collecting feedback.
               </p>
-              <Link to="/dashboard" className="btn-primary focus-ring">
-                <BarChart3 size={18} className="mr-2" />
-                Go to Dashboard
+              <Link
+                to="/owner/dashboard"
+                style={{
+                  padding: '15px 30px',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  border: 'none',
+                  borderRadius: '10px',
+                  background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+                  color: 'white',
+                  textDecoration: 'none',
+                  display: 'inline-block',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                🏪 Add Restaurant
               </Link>
             </div>
           ) : (
-            <div>
-              <p className="body-md mb-6">
-                No restaurants are currently available for review. Please check back later.
-              </p>
-              <Link to="/my-reviews" className="btn-secondary focus-ring">
-                View My Reviews
-              </Link>
-            </div>
+            <p style={{
+              fontSize: '16px',
+              opacity: 0.8,
+              lineHeight: '1.6'
+            }}>
+              No restaurants are currently available for review. Please check back later!
+            </p>
           )}
         </div>
       </div>
     );
   }
-  
+
+  // Main content
   return (
-    <div className="space-y-12">
+    <div style={{
+      maxWidth: '1200px',
+      margin: '0 auto',
+      padding: '40px 20px',
+      color: 'white',
+      minHeight: '100vh'
+    }}>
       {/* Hero Section */}
-      <section className="text-center">
-        <div className="max-w-4xl mx-auto space-y-6">
-          <h1 className="heading-xl mb-6">
-            Share Your Dining Experience
-          </h1>
-          <p className="body-lg max-w-2xl mx-auto">
-            Help restaurants improve by sharing your honest feedback. Your voice matters in creating better dining experiences for everyone.
-          </p>
-          
-          {currentUser ? (
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/feedback" className="btn-primary text-lg px-8 py-4 focus-ring">
-                <MessageSquare size={20} className="mr-2" />
-                Leave Feedback
-              </Link>
-              <Link to="/my-reviews" className="btn-secondary text-lg px-8 py-4 focus-ring">
-                View My Reviews
-              </Link>
-            </div>
-          ) : (
-            <Link to="/login" className="btn-primary text-lg px-8 py-4 focus-ring">
-              Get Started
-              <ArrowRight size={20} className="ml-2" />
-            </Link>
-          )}
-        </div>
-      </section>
+      <div style={{
+        textAlign: 'center',
+        marginBottom: '60px'
+      }}>
+        <h1 style={{
+          fontSize: '48px',
+          fontWeight: 'bold',
+          marginBottom: '20px',
+          background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+          WebkitBackgroundClip: 'text',
+          WebkitTextFillColor: 'transparent'
+        }}>
+          🍽️ Food Review Hub
+        </h1>
+        <p style={{
+          fontSize: '20px',
+          opacity: 0.8,
+          marginBottom: '40px',
+          maxWidth: '600px',
+          margin: '0 auto 40px auto',
+          lineHeight: '1.6'
+        }}>
+          Share your dining experiences, discover amazing restaurants, and help fellow food lovers make the best choices
+        </p>
 
-      {/* Featured Restaurant Section */}
-      {selectedRestaurant && (
-        <section>
-          <div className="glass-card rounded-2xl overflow-hidden">
-            <div className="p-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="heading-lg">Featured Restaurant</h2>
-                <div className="px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full text-sm font-medium border border-blue-500/30">
-                  Now Open for Feedback
-                </div>
-              </div>
-              
-              <div className="grid lg:grid-cols-3 gap-8">
-                {/* Restaurant Image - UPDATED FOR YOUR ACTUAL FILES */}
-                <div className="lg:col-span-1">
-                  <div className="aspect-square bg-gradient-to-br from-slate-800 to-slate-900 rounded-xl overflow-hidden border border-white/10 relative">
-                    <img
-                      src={`/images/restaurants/restaurant${selectedRestaurant.restaurant_id}.jpg`}
-                      alt={`${selectedRestaurant.name} restaurant`}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                      onError={(e) => {
-                        // Fallback 1: Try your default-restaurant.jpg
-                        console.log(`Restaurant${selectedRestaurant.restaurant_id}.jpg not found, trying default`);
-                        e.target.src = '/images/restaurants/default-restaurant.jpg';
-                        e.target.onerror = function() {
-                          // Fallback 2: Hide image and show emoji
-                          console.log('Default restaurant image not found, showing emoji fallback');
-                          e.target.style.display = 'none';
-                          e.target.parentElement.querySelector('.emoji-fallback').style.display = 'flex';
-                        };
-                      }}
-                    />
-                    
-                    {/* Final fallback - emoji */}
-                    <div className="emoji-fallback hidden absolute inset-0 flex items-center justify-center">
-                      <span className="text-6xl">🍽️</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Restaurant Info */}
-                <div className="lg:col-span-2 space-y-6">
-                  <div>
-                    <h3 className="heading-md mb-3">{selectedRestaurant.name}</h3>
-                    <div className="space-y-2">
-                      {selectedRestaurant.address && (
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <MapPin size={16} className="text-slate-400" />
-                          <span className="body-md">{selectedRestaurant.address}</span>
-                        </div>
-                      )}
-                      {selectedRestaurant.phone && (
-                        <div className="flex items-center gap-2 text-slate-300">
-                          <Phone size={16} className="text-slate-400" />
-                          <span className="body-md">{selectedRestaurant.phone}</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div className="grid sm:grid-cols-2 gap-4">
-                    {currentUser ? (
-                      <>
-                        <Link
-                          to={`/feedback/${createSlug(selectedRestaurant.name)}`}
-                          className="btn-primary flex items-center justify-center gap-2 focus-ring"
-                        >
-                          <MessageSquare size={18} />
-                          Leave Feedback
-                        </Link>
-                        <Link
-                          to={`/my-reviews`}
-                          className="btn-secondary flex items-center justify-center gap-2 focus-ring"
-                        >
-                          <FileText size={18} />
-                          My Reviews
-                        </Link>
-                      </>
-                    ) : (
-                      <Link
-                        to={`/login?restaurant_id=${selectedRestaurant.restaurant_id}`}
-                        className="btn-primary flex items-center justify-center gap-2 focus-ring sm:col-span-2"
-                      >
-                        Sign In to Leave Feedback
-                        <ArrowRight size={18} />
-                      </Link>
-                    )}
-                  </div>
-                </div>
-              </div>
+        {/* Quick Stats */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '20px',
+          maxWidth: '600px',
+          margin: '0 auto'
+        }}>
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '15px',
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <div style={{ fontSize: '32px', marginBottom: '5px' }}>🏪</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>
+              {restaurants.length}
             </div>
+            <div style={{ fontSize: '14px', opacity: 0.8 }}>Restaurants</div>
           </div>
-        </section>
-      )}
-
-      {/* All Restaurants Grid */}
-      <section>
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="p-8">
-            <div className="flex items-center justify-between mb-8">
-              <h2 className="heading-lg">All Restaurants</h2>
-              <div className="text-slate-400 body-sm">
-                {restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''} available
-              </div>
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '15px',
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <div style={{ fontSize: '32px', marginBottom: '5px' }}>📝</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>
+              Easy
             </div>
-            
-            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
-              {restaurants.map((restaurant) => (
-                <div 
-                  key={restaurant.restaurant_id} 
-                  className={`glass-card-subtle rounded-xl overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer ${
-                    selectedRestaurant && selectedRestaurant.restaurant_id === restaurant.restaurant_id
-                      ? 'ring-2 ring-blue-500/50 bg-blue-500/5'
-                      : 'hover:bg-white/5'
-                  }`}
-                  onClick={() => setSelectedRestaurant(restaurant)}
-                >
-                  {/* Restaurant Image - UPDATED FOR YOUR ACTUAL FILES */}
-                  <div className="aspect-video bg-gradient-to-br from-slate-800 to-slate-900 overflow-hidden relative">
-                    {/* Try to load restaurant-specific image based on restaurant_id */}
-                    <img
-                      src={`/images/restaurants/restaurant${restaurant.restaurant_id}.jpg`}
-                      alt={`${restaurant.name} restaurant`}
-                      className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
-                      onError={(e) => {
-                        // Fallback 1: Try your default-restaurant.jpg
-                        console.log(`Restaurant${restaurant.restaurant_id}.jpg not found, trying default`);
-                        e.target.src = '/images/restaurants/default-restaurant.jpg';
-                        e.target.onerror = function() {
-                          // Fallback 2: Hide image and show emoji
-                          console.log('Default restaurant image not found, showing emoji fallback');
-                          e.target.style.display = 'none';
-                          e.target.parentElement.querySelector('.emoji-fallback').style.display = 'flex';
-                        };
-                      }}
-                    />
-                    
-                    {/* Final fallback - emoji */}
-                    <div className="emoji-fallback hidden absolute inset-0 flex items-center justify-center">
-                      <span className="text-4xl">🍽️</span>
-                    </div>
-                    
-                    {/* Image overlay for better text contrast */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
-                    
-                    {/* Optional: Restaurant status badge */}
-                    {restaurant.status && (
-                      <div className="absolute top-3 right-3">
-                        <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                          restaurant.status === 'open' 
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                            : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                        }`}>
-                          {restaurant.status === 'open' ? 'Open' : 'Closed'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Restaurant Info */}
-                  <div className="p-6">
-                    <h3 className="heading-sm mb-2">{restaurant.name}</h3>
-                    <p className="body-sm mb-4 line-clamp-2">
-                      {restaurant.description || restaurant.address || 'Experience great food and atmosphere'}
+            <div style={{ fontSize: '14px', opacity: 0.8 }}>Voice Reviews</div>
+          </div>
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+            borderRadius: '15px',
+            padding: '20px',
+            backdropFilter: 'blur(10px)',
+            border: '1px solid rgba(255, 255, 255, 0.2)'
+          }}>
+            <div style={{ fontSize: '32px', marginBottom: '5px' }}>🎁</div>
+            <div style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '5px' }}>
+              Rewards
+            </div>
+            <div style={{ fontSize: '14px', opacity: 0.8 }}>Earn Points</div>
+          </div>
+        </div>
+      </div>
+
+      {/* How It Works */}
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '20px',
+        padding: '40px',
+        marginBottom: '50px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <h2 style={{
+          fontSize: '28px',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          marginBottom: '40px'
+        }}>
+          🚀 How It Works
+        </h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '30px'
+        }}>
+          {/* Step 1 */}
+          <div style={{
+            textAlign: 'center',
+            padding: '20px'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              backgroundColor: 'rgba(59, 130, 246, 0.2)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px auto',
+              fontSize: '36px',
+              border: '2px solid rgba(59, 130, 246, 0.4)'
+            }}>
+              🏪
+            </div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}>
+              Choose Restaurant
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              opacity: 0.8,
+              lineHeight: '1.5'
+            }}>
+              Select from our curated list of amazing restaurants to review
+            </p>
+          </div>
+
+          {/* Step 2 */}
+          <div style={{
+            textAlign: 'center',
+            padding: '20px'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              backgroundColor: 'rgba(139, 92, 246, 0.2)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px auto',
+              fontSize: '36px',
+              border: '2px solid rgba(139, 92, 246, 0.4)'
+            }}>
+              🎤
+            </div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}>
+              Record Your Experience
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              opacity: 0.8,
+              lineHeight: '1.5'
+            }}>
+              Use voice recording or text to share your dining experience
+            </p>
+          </div>
+
+          {/* Step 3 */}
+          <div style={{
+            textAlign: 'center',
+            padding: '20px'
+          }}>
+            <div style={{
+              width: '80px',
+              height: '80px',
+              backgroundColor: 'rgba(236, 72, 153, 0.2)',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto 20px auto',
+              fontSize: '36px',
+              border: '2px solid rgba(236, 72, 153, 0.4)'
+            }}>
+              🎁
+            </div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}>
+              Earn Rewards
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              opacity: 0.8,
+              lineHeight: '1.5'
+            }}>
+              Get points for reviews and redeem them for delicious rewards
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Restaurant Selection */}
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '20px',
+        padding: '40px',
+        marginBottom: '50px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <h2 style={{
+          fontSize: '28px',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          marginBottom: '40px'
+        }}>
+          🍽️ Choose Your Restaurant
+        </h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gap: '20px'
+        }}>
+          {restaurants.map((restaurant, index) => (
+            <div 
+              key={restaurant.id || index}
+              style={{
+                backgroundColor: selectedRestaurant?.id === restaurant.id 
+                  ? 'rgba(34, 197, 94, 0.15)' 
+                  : 'rgba(255, 255, 255, 0.05)',
+                borderRadius: '15px',
+                padding: '25px',
+                border: selectedRestaurant?.id === restaurant.id 
+                  ? '2px solid rgba(34, 197, 94, 0.4)' 
+                  : '1px solid rgba(255, 255, 255, 0.1)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                backdropFilter: 'blur(10px)'
+              }}
+              onClick={() => setSelectedRestaurant(restaurant)}
+              onMouseEnter={(e) => {
+                if (selectedRestaurant?.id !== restaurant.id) {
+                  e.target.style.transform = 'translateY(-5px)';
+                  e.target.style.boxShadow = '0 10px 25px rgba(139, 92, 246, 0.15)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = 'none';
+              }}
+            >
+              {/* Restaurant Header */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '15px'
+              }}>
+                <div style={{
+                  fontSize: '40px',
+                  marginRight: '15px'
+                }}>
+                  🍽️
+                </div>
+                <div>
+                  <h3 style={{
+                    fontSize: '20px',
+                    fontWeight: 'bold',
+                    marginBottom: '5px',
+                    color: 'white'
+                  }}>
+                    {restaurant.name}
+                  </h3>
+                  {restaurant.cuisine && (
+                    <p style={{
+                      fontSize: '14px',
+                      opacity: 0.7,
+                      color: '#f59e0b'
+                    }}>
+                      {restaurant.cuisine} Cuisine
                     </p>
-                    
-                    {/* Restaurant details */}
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex items-center gap-2 text-sm text-slate-400">
-                        <span>📍</span>
-                        <span className="truncate">{restaurant.address || 'Location available'}</span>
-                      </div>
-                      
-                      {/* Rating display (if you have ratings) */}
-                      {restaurant.rating && (
-                        <div className="flex items-center gap-1">
-                          <span className="text-yellow-400">⭐</span>
-                          <span className="text-sm font-medium text-white">{restaurant.rating}</span>
-                        </div>
-                      )}
-                    </div>
-                    
-                    <div className="flex justify-between items-center">
-                      {currentUser ? (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/feedback', { state: { restaurant } });
-                          }}
-                          className="btn-primary text-sm px-4 py-2"
-                        >
-                          Leave Review
-                        </button>
-                      ) : (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/login');
-                          }}
-                          className="btn-secondary text-sm px-4 py-2"
-                        >
-                          Sign in to Review
-                        </button>
-                      )}
-                      
-                      {/* Additional info button */}
-                      <button 
-                        className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // Add modal or expand functionality here
-                          console.log('Show more info for:', restaurant.name);
-                        }}
-                      >
-                        <span className="text-slate-400 text-sm">More Info</span>
-                      </button>
-                    </div>
-                  </div>
+                  )}
                 </div>
-              ))}
+              </div>
+
+              {/* Restaurant Details */}
+              <div style={{ marginBottom: '20px' }}>
+                {restaurant.address && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    fontSize: '14px',
+                    opacity: 0.8
+                  }}>
+                    <span>📍</span>
+                    <span>{restaurant.address}</span>
+                  </div>
+                )}
+                
+                {restaurant.phone && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    fontSize: '14px',
+                    opacity: 0.8
+                  }}>
+                    <span>📞</span>
+                    <span>{restaurant.phone}</span>
+                  </div>
+                )}
+
+                {restaurant.rating && (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    fontSize: '14px'
+                  }}>
+                    <span>⭐</span>
+                    <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>
+                      {restaurant.rating}/5
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Selection Indicator */}
+              {selectedRestaurant?.id === restaurant.id && (
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#22c55e',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}>
+                  <span>✅</span>
+                  <span>Selected</span>
+                </div>
+              )}
             </div>
-          </div>
+          ))}
         </div>
-      </section>
+
+        {/* Action Button */}
+        {selectedRestaurant && (
+          <div style={{
+            textAlign: 'center',
+            marginTop: '40px'
+          }}>
+            <button
+              onClick={() => handleRecordFeedback(selectedRestaurant)}
+              style={{
+                padding: '20px 40px',
+                fontSize: '20px',
+                fontWeight: 'bold',
+                border: 'none',
+                borderRadius: '15px',
+                background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+                color: 'white',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '15px',
+                margin: '0 auto',
+                boxShadow: '0 8px 25px rgba(139, 92, 246, 0.4)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-3px)';
+                e.target.style.boxShadow = '0 12px 30px rgba(139, 92, 246, 0.6)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.boxShadow = '0 8px 25px rgba(139, 92, 246, 0.4)';
+              }}
+            >
+              🎤 Share Your Experience at {selectedRestaurant.name}
+            </button>
+            
+            <p style={{
+              fontSize: '14px',
+              opacity: 0.7,
+              marginTop: '15px'
+            }}>
+              {currentUser ? '✨ Earn 10 points for each review' : '🔐 Please log in to start reviewing'}
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Features Section */}
-      <section>
-        <div className="glass-card rounded-2xl overflow-hidden">
-          <div className="p-8">
-            <div className="text-center mb-12">
-              <h2 className="heading-lg mb-4">Why Your Feedback Matters</h2>
-              <p className="body-md text-slate-300 max-w-2xl mx-auto">
-                Every review helps restaurants understand what they're doing well and where they can improve. Your honest feedback creates better experiences for everyone.
-              </p>
-            </div>
-            
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-blue-500/20 rounded-xl flex items-center justify-center mx-auto border border-blue-500/30">
-                  <MessageSquare size={24} className="text-blue-400" />
-                </div>
-                <h3 className="heading-sm">Voice & Text Reviews</h3>
-                <p className="body-sm text-slate-400">
-                  Share your experience through voice recordings or traditional text reviews
-                </p>
-              </div>
-              
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-green-500/20 rounded-xl flex items-center justify-center mx-auto border border-green-500/30">
-                  <TrendingUp size={24} className="text-green-400" />
-                </div>
-                <h3 className="heading-sm">AI-Powered Insights</h3>
-                <p className="body-sm text-slate-400">
-                  Advanced analysis helps restaurants understand patterns and improve service
-                </p>
-              </div>
-              
-              <div className="text-center space-y-4">
-                <div className="w-16 h-16 bg-purple-500/20 rounded-xl flex items-center justify-center mx-auto border border-purple-500/30">
-                  <Shield size={24} className="text-purple-400" />
-                </div>
-                <h3 className="heading-sm">Anonymous & Secure</h3>
-                <p className="body-sm text-slate-400">
-                  Your privacy is protected while your feedback helps improve dining experiences
-                </p>
-              </div>
-            </div>
+      <div style={{
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        borderRadius: '20px',
+        padding: '40px',
+        marginBottom: '50px',
+        backdropFilter: 'blur(10px)',
+        border: '1px solid rgba(255, 255, 255, 0.2)'
+      }}>
+        <h2 style={{
+          fontSize: '28px',
+          fontWeight: 'bold',
+          textAlign: 'center',
+          marginBottom: '40px'
+        }}>
+          ✨ Why Food Lovers Choose Us
+        </h2>
+        
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+          gap: '30px'
+        }}>
+          {/* Feature 1 */}
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '15px',
+            padding: '25px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '15px' }}>🎤</div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}>
+              Voice & Text Reviews
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              opacity: 0.8,
+              lineHeight: '1.5'
+            }}>
+              Record your thoughts naturally or type them out - we make sharing your experience effortless
+            </p>
+          </div>
+
+          {/* Feature 2 */}
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '15px',
+            padding: '25px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '15px' }}>🎁</div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}>
+              Delicious Rewards
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              opacity: 0.8,
+              lineHeight: '1.5'
+            }}>
+              Earn points for every review and redeem them for free coffee, meals, and exclusive discounts
+            </p>
+          </div>
+
+          {/* Feature 3 */}
+          <div style={{
+            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+            borderRadius: '15px',
+            padding: '25px',
+            border: '1px solid rgba(255, 255, 255, 0.1)',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '15px' }}>🤖</div>
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              marginBottom: '10px'
+            }}>
+              AI-Powered Analysis
+            </h3>
+            <p style={{
+              fontSize: '14px',
+              opacity: 0.8,
+              lineHeight: '1.5'
+            }}>
+              Our smart AI analyzes your feedback and formats it perfectly for sharing on Google Reviews
+            </p>
           </div>
         </div>
-      </section>
+      </div>
+
+      {/* Quick Navigation */}
+      {currentUser && (
+        <div style={{
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          borderRadius: '20px',
+          padding: '40px',
+          backdropFilter: 'blur(10px)',
+          border: '1px solid rgba(255, 255, 255, 0.2)',
+          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1))'
+        }}>
+          <h2 style={{
+            fontSize: '28px',
+            fontWeight: 'bold',
+            textAlign: 'center',
+            marginBottom: '30px'
+          }}>
+            🚀 Quick Access
+          </h2>
+          
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+            gap: '20px'
+          }}>
+            <Link
+              to="/my-reviews"
+              style={{
+                backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                borderRadius: '15px',
+                padding: '25px',
+                textDecoration: 'none',
+                color: 'white',
+                textAlign: 'center',
+                transition: 'all 0.3s ease',
+                border: '1px solid rgba(59, 130, 246, 0.3)',
+                display: 'block'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-5px)';
+                e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.backgroundColor = 'rgba(59, 130, 246, 0.2)';
+              }}
+            >
+              <div style={{ fontSize: '36px', marginBottom: '10px' }}>📝</div>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>My Food Adventures</h3>
+            </Link>
+
+            <Link
+              to="/rewards"
+              style={{
+                backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                borderRadius: '15px',
+                padding: '25px',
+                textDecoration: 'none',
+                color: 'white',
+                textAlign: 'center',
+                transition: 'all 0.3s ease',
+                border: '1px solid rgba(34, 197, 94, 0.3)',
+                display: 'block'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-5px)';
+                e.target.style.backgroundColor = 'rgba(34, 197, 94, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.backgroundColor = 'rgba(34, 197, 94, 0.2)';
+              }}
+            >
+              <div style={{ fontSize: '36px', marginBottom: '10px' }}>🎁</div>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Food Rewards Store</h3>
+            </Link>
+
+            <Link
+              to="/vouchers"
+              style={{
+                backgroundColor: 'rgba(168, 85, 247, 0.2)',
+                borderRadius: '15px',
+                padding: '25px',
+                textDecoration: 'none',
+                color: 'white',
+                textAlign: 'center',
+                transition: 'all 0.3s ease',
+                border: '1px solid rgba(168, 85, 247, 0.3)',
+                display: 'block'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.transform = 'translateY(-5px)';
+                e.target.style.backgroundColor = 'rgba(168, 85, 247, 0.3)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.transform = 'translateY(0)';
+                e.target.style.backgroundColor = 'rgba(168, 85, 247, 0.2)';
+              }}
+            >
+              <div style={{ fontSize: '36px', marginBottom: '10px' }}>🎫</div>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>My Food Vouchers</h3>
+            </Link>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
