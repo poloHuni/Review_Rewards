@@ -1,6 +1,4 @@
-// Enhanced Beautiful Recording Interface Component
-// Replace the recording section in your FeedbackForm.js
-
+// src/components/Feedback/EnhancedRecordingInterface.js - COMPLETE FIXED VERSION
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -87,59 +85,14 @@ const EnhancedRecordingInterface = ({
     }
   };
 
-  // Generate random audio levels for visualization
-  const generateAudioLevels = () => {
-    return Array.from({ length: 20 }, () => Math.random() * 100);
-  };
+  // Initialize audio levels array
+  useEffect(() => {
+    setAudioLevels(Array(20).fill(10));
+  }, []);
 
-  // Start recording with enhanced audio analysis
-  const startRecording = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
-        }
-      });
-      
-      // Setup audio analysis for visualization
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      analyserRef.current = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(stream);
-      source.connect(analyserRef.current);
-      analyserRef.current.fftSize = 256;
-      
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-      
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          chunksRef.current.push(event.data);
-        }
-      };
-      
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/wav' });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        setRecordingComplete(true);
-        
-        // Stop audio analysis
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-        
-        // Stop all tracks
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      mediaRecorder.start();
-      setIsRecording(true);
-      setRecordingTime(0);
-      
-      // Start timer
+  // Timer effect
+  useEffect(() => {
+    if (isRecording) {
       timerRef.current = setInterval(() => {
         setRecordingTime(prev => {
           if (prev >= MAX_RECORDING_TIME) {
@@ -149,34 +102,82 @@ const EnhancedRecordingInterface = ({
           return prev + 1;
         });
       }, 1000);
+    } else {
+      clearInterval(timerRef.current);
+    }
+
+    return () => clearInterval(timerRef.current);
+  }, [isRecording]);
+
+  // Audio level visualization
+  const updateAudioLevels = () => {
+    if (analyserRef.current && isRecording) {
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+      analyserRef.current.getByteFrequencyData(dataArray);
       
-      // Start audio visualization
-      startAudioVisualization();
+      const levels = [];
+      for (let i = 0; i < 20; i++) {
+        const value = dataArray[i * 5] || 0;
+        levels.push(Math.max(10, (value / 255) * 40 + 10));
+      }
       
-    } catch (err) {
-      console.error('Error starting recording:', err);
+      setAudioLevels(levels);
+      animationFrameRef.current = requestAnimationFrame(updateAudioLevels);
     }
   };
 
-  // Audio visualization
-  const startAudioVisualization = () => {
-    const updateAudioLevels = () => {
-      if (analyserRef.current && isRecording) {
-        const bufferLength = analyserRef.current.frequencyBinCount;
-        const dataArray = new Uint8Array(bufferLength);
-        analyserRef.current.getByteFrequencyData(dataArray);
+  // Start recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          sampleRate: 44100
+        } 
+      });
+      
+      // Set up audio context for visualization
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+      analyserRef.current.fftSize = 256;
+
+      // Set up media recorder
+      chunksRef.current = [];
+      mediaRecorderRef.current = new MediaRecorder(stream, {
+        mimeType: 'audio/webm;codecs=opus'
+      });
+
+      mediaRecorderRef.current.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          chunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorderRef.current.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm;codecs=opus' });
+        const url = URL.createObjectURL(blob);
+        setAudioBlob(blob);
+        setAudioUrl(url);
+        setRecordingComplete(true);
         
-        // Convert to percentage and create levels array
-        const levels = Array.from({ length: 20 }, (_, i) => {
-          const index = Math.floor((i / 20) * bufferLength);
-          return (dataArray[index] / 255) * 100;
-        });
-        
-        setAudioLevels(levels);
-        animationFrameRef.current = requestAnimationFrame(updateAudioLevels);
-      }
-    };
-    updateAudioLevels();
+        // Stop all tracks
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      // Start recording
+      mediaRecorderRef.current.start();
+      setIsRecording(true);
+      setRecordingTime(0);
+      setRecordingComplete(false);
+      updateAudioLevels();
+      
+    } catch (error) {
+      console.error('Error starting recording:', error);
+      alert('Could not access microphone. Please check your permissions and try again.');
+    }
   };
 
   // Stop recording
@@ -185,43 +186,30 @@ const EnhancedRecordingInterface = ({
       mediaRecorderRef.current.stop();
       setIsRecording(false);
       
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
       }
       
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
-      
-      if (audioContextRef.current) {
-        audioContextRef.current.close();
-      }
     }
-  };
-
-  // Format time display
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   // Reset recording
   const resetRecording = () => {
-    setRecordingComplete(false);
     setAudioBlob(null);
     setAudioUrl(null);
+    setRecordingComplete(false);
     setRecordingTime(0);
-    setAudioLevels([]);
-    
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
+    setAudioLevels(Array(20).fill(10));
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
   };
 
-  // Play/pause audio
+  // Handle audio playback
   const togglePlayback = () => {
     if (audioRef.current) {
       if (isPlaying) {
@@ -229,84 +217,69 @@ const EnhancedRecordingInterface = ({
       } else {
         audioRef.current.play();
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
-  // Handle audio submission
+  // Submit handlers
   const handleAudioSubmit = () => {
-    if (audioBlob && onAudioComplete) {
+    if (audioBlob && audioUrl) {
       onAudioComplete(audioBlob, audioUrl);
     }
   };
 
-  // Handle text submission
   const handleTextSubmit = () => {
-    if (textFeedback.trim() && onTextComplete) {
-      onTextComplete(textFeedback.trim());
+    if (textFeedback.trim().length >= 10) {
+      onTextComplete(textFeedback);
+    } else {
+      alert('Please provide at least 10 characters of feedback.');
     }
   };
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-      if (audioContextRef.current) audioContextRef.current.close();
-    };
-  }, []);
+  // Format time
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <motion.div
-      className="max-w-4xl mx-auto"
-      variants={containerVariants}
       initial="hidden"
       animate="visible"
+      variants={containerVariants}
+      className="max-w-4xl mx-auto space-y-8"
     >
-      {/* Header */}
-      <motion.div className="text-center mb-8" variants={itemVariants}>
-        <div className="inline-flex items-center gap-3 mb-4">
-          <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
-            <Sparkles className="text-white" size={24} />
-          </div>
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Share Your Experience
-          </h1>
-        </div>
-        <p className="text-lg text-gray-600">
-          Tell us about your visit to <span className="font-semibold text-purple-400">{restaurantName}</span>
+      {/* Method Selection */}
+      <motion.div variants={itemVariants} className="text-center">
+        <h2 className="text-3xl font-bold text-white mb-4">
+          Share Your Experience at {restaurantName}
+        </h2>
+        <p className="text-gray-300 mb-8">
+          Choose how you'd like to leave your feedback
         </p>
-      </motion.div>
-
-      {/* Input Method Selector */}
-      <motion.div 
-        className="flex justify-center mb-8"
-        variants={itemVariants}
-      >
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20">
-          <div className="flex gap-2">
-            <button
-              onClick={() => setInputMethod('audio')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
-                inputMethod === 'audio'
-                  ? 'bg-white text-gray-900 shadow-lg transform scale-105'
-                  : 'text-white hover:bg-white/10'
-              }`}
-            >
-              <Mic size={18} />
-              Voice Recording
-            </button>
-            <button
-              onClick={() => setInputMethod('text')}
-              className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
-                inputMethod === 'text'
-                  ? 'bg-white text-gray-900 shadow-lg transform scale-105'
-                  : 'text-white hover:bg-white/10'
-              }`}
-            >
-              ✍️ Write Review
-            </button>
-          </div>
+        
+        <div className="flex justify-center gap-4 p-2 glass-card rounded-2xl w-fit mx-auto">
+          <button
+            onClick={() => setInputMethod('audio')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
+              inputMethod === 'audio'
+                ? 'bg-white text-gray-900 shadow-lg transform scale-105'
+                : 'text-white hover:bg-white/10'
+            }`}
+          >
+            <Mic size={18} />
+            Voice Recording
+          </button>
+          <button
+            onClick={() => setInputMethod('text')}
+            className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
+              inputMethod === 'text'
+                ? 'bg-white text-gray-900 shadow-lg transform scale-105'
+                : 'text-white hover:bg-white/10'
+            }`}
+          >
+            ✍️ Write Review
+          </button>
         </div>
       </motion.div>
 
@@ -337,137 +310,77 @@ const EnhancedRecordingInterface = ({
                     whileTap={{ scale: 0.95 }}
                   >
                     {isRecording ? <MicOff size={48} /> : <Mic size={48} />}
-                    
-                    {/* Pulse rings during recording */}
-                    {isRecording && (
-                      <>
-                        <motion.div
-                          className="absolute inset-0 rounded-full border-4 border-red-400/30"
-                          animate={{ scale: [1, 1.5, 2], opacity: [0.8, 0.4, 0] }}
-                          transition={{ duration: 2, repeat: Infinity }}
-                        />
-                        <motion.div
-                          className="absolute inset-0 rounded-full border-4 border-red-400/50"
-                          animate={{ scale: [1, 1.3, 1.8], opacity: [0.6, 0.3, 0] }}
-                          transition={{ duration: 2, repeat: Infinity, delay: 0.5 }}
-                        />
-                      </>
-                    )}
                   </motion.button>
+                  
+                  {/* Audio level visualization */}
+                  {isRecording && (
+                    <div className="absolute -bottom-20 left-1/2 transform -translate-x-1/2 flex items-end gap-1">
+                      {audioLevels.map((level, index) => (
+                        <motion.div
+                          key={index}
+                          className="w-2 bg-gradient-to-t from-blue-400 to-purple-400 rounded-full"
+                          style={{ height: level }}
+                          animate={{ height: level }}
+                          transition={{ duration: 0.1 }}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {/* Recording Status */}
+                {/* Instructions and Timer */}
                 <div className="space-y-4">
                   <h3 className="text-2xl font-bold text-white">
-                    {isRecording ? (
-                      <motion.span
-                        animate={{ opacity: [1, 0.5, 1] }}
-                        transition={{ duration: 1, repeat: Infinity }}
-                        className="flex items-center justify-center gap-2"
-                      >
-                        🔴 Recording... {formatTime(recordingTime)}
-                      </motion.span>
-                    ) : (
-                      '🎙️ Ready to Record'
-                    )}
+                    {isRecording ? 'Recording...' : 'Ready to Record'}
                   </h3>
                   
-                  <p className="text-gray-300">
-                    {isRecording 
-                      ? 'Share your thoughts about the food, service, and atmosphere' 
-                      : 'Tap the microphone to start recording your review'
-                    }
-                  </p>
-                </div>
-
-                {/* Audio Visualization */}
-                {isRecording && (
-                  <motion.div 
-                    className="flex justify-center items-end gap-1 h-20"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                  >
-                    {Array.from({ length: 20 }, (_, i) => (
-                      <motion.div
-                        key={i}
-                        className="bg-gradient-to-t from-purple-500 to-pink-400 rounded-full w-2"
-                        animate={{
-                          height: audioLevels[i] ? `${Math.max(audioLevels[i], 10)}%` : "10%"
-                        }}
-                        transition={{ duration: 0.1 }}
-                        style={{
-                          minHeight: "8px",
-                          maxHeight: "60px"
-                        }}
-                      />
-                    ))}
-                  </motion.div>
-                )}
-
-                {/* Progress Bar */}
-                {isRecording && (
-                  <div className="bg-white/10 rounded-full h-2 overflow-hidden">
-                    <motion.div
-                      className="bg-gradient-to-r from-red-400 to-pink-400 h-full rounded-full"
-                      style={{ width: `${(recordingTime / MAX_RECORDING_TIME) * 100}%` }}
-                      transition={{ duration: 0.3 }}
-                    />
-                  </div>
-                )}
-
-                {/* Tips */}
-                <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
-                  <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-                    <Heart className="text-pink-400" size={20} />
-                    Quick Tips for Great Reviews
-                  </h4>
-                  <div className="grid md:grid-cols-2 gap-3 text-sm text-gray-300">
-                    <div className="flex items-center gap-2">
-                      <Star className="text-yellow-400" size={16} />
-                      Speak naturally and clearly
+                  {isRecording ? (
+                    <div className="space-y-2">
+                      <p className="text-gray-300">
+                        Share your thoughts about the food, service, and atmosphere
+                      </p>
+                      <div className="text-2xl font-mono text-blue-400">
+                        {formatTime(recordingTime)} / {formatTime(MAX_RECORDING_TIME)}
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Star className="text-yellow-400" size={16} />
-                      Mention specific dishes you tried
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-gray-300 max-w-2xl mx-auto">
+                        Tap the microphone to start recording your review. 
+                        Talk about what you loved, what could be improved, 
+                        and your overall experience.
+                      </p>
+                      <div className="flex items-center justify-center gap-4 text-sm text-gray-400">
+                        <div className="flex items-center gap-2">
+                          <Volume2 size={16} />
+                          High Quality Audio
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Sparkles size={16} />
+                          AI-Powered Analysis
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Star className="text-yellow-400" size={16} />
-                      Share what made your visit special
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Star className="text-yellow-400" size={16} />
-                      Include both positives and improvements
-                    </div>
-                  </div>
+                  )}
                 </div>
               </div>
             ) : (
-              /* Recording Complete Interface */
+              // Recording complete interface
               <div className="space-y-6">
-                <motion.div 
-                  className="text-center"
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-                >
-                  <div className="w-20 h-20 bg-gradient-to-r from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 0.5 }}
-                    >
-                      ✅
-                    </motion.div>
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Heart className="text-white" size={32} />
                   </div>
                   <h3 className="text-2xl font-bold text-white mb-2">Recording Complete!</h3>
-                  <p className="text-gray-300">Duration: {formatTime(recordingTime)}</p>
-                </motion.div>
+                  <p className="text-gray-300">Review your recording and submit when ready</p>
+                </div>
 
                 {/* Audio Player */}
-                <div className="bg-white/5 rounded-2xl p-6 border border-white/10">
+                <div className="glass-card-subtle rounded-2xl p-6">
                   <div className="flex items-center gap-4">
                     <button
                       onClick={togglePlayback}
-                      className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
+                      className="w-12 h-12 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-full flex items-center justify-center text-white hover:from-emerald-600 hover:to-teal-700 transition-all duration-300"
                     >
                       {isPlaying ? <Pause size={20} /> : <Play size={20} />}
                     </button>
@@ -535,39 +448,66 @@ const EnhancedRecordingInterface = ({
                 <textarea
                   value={textFeedback}
                   onChange={(e) => setTextFeedback(e.target.value)}
-                  placeholder="Tell us about your visit... What did you love? What could be improved? How was the food, service, and atmosphere?"
-                  className="w-full h-40 bg-white/5 border border-white/20 rounded-2xl p-6 text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all duration-300"
-                  rows={6}
+                  placeholder="Tell us about your visit... What did you love? What could be improved? How was the service, food quality, and atmosphere?"
+                  className="w-full h-48 p-4 bg-white/5 border border-white/20 rounded-2xl text-white placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-300"
+                  maxLength={2000}
                 />
                 
                 <div className="flex justify-between items-center text-sm">
                   <span className="text-gray-400">
-                    {textFeedback.length} characters
+                    {textFeedback.length >= 10 ? '✅' : '⏳'} 
+                    {textFeedback.length >= 10 ? 'Ready to submit' : `Need ${10 - textFeedback.length} more characters`}
                   </span>
                   <span className="text-gray-400">
-                    Minimum 50 characters recommended
+                    {textFeedback.length}/2000
                   </span>
                 </div>
               </div>
 
+              {/* Submit Button */}
               <motion.button
                 onClick={handleTextSubmit}
-                disabled={textFeedback.trim().length < 10}
-                className={`w-full py-4 px-6 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
-                  textFeedback.trim().length >= 10
+                disabled={textFeedback.length < 10}
+                className={`w-full py-4 px-8 rounded-2xl font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+                  textFeedback.length >= 10
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white shadow-lg transform hover:scale-105'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
                 }`}
-                whileTap={{ scale: 0.98 }}
+                whileTap={textFeedback.length >= 10 ? { scale: 0.98 } : {}}
               >
                 <Send size={20} />
                 Submit Review
-                {textFeedback.trim().length >= 10 && <Zap size={16} className="text-yellow-300" />}
+                <Zap size={16} className="text-yellow-300" />
               </motion.button>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Tips Section */}
+      <motion.div 
+        variants={itemVariants}
+        className="glass-card-subtle rounded-2xl p-6 border border-white/10"
+      >
+        <h4 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+          <Star className="text-yellow-400" size={20} />
+          Tips for Great Feedback
+        </h4>
+        <div className="grid md:grid-cols-3 gap-4 text-sm text-gray-300">
+          <div>
+            <h5 className="font-medium text-white mb-2">Food Quality</h5>
+            <p>Taste, presentation, temperature, freshness</p>
+          </div>
+          <div>
+            <h5 className="font-medium text-white mb-2">Service</h5>
+            <p>Staff friendliness, attentiveness, speed</p>
+          </div>
+          <div>
+            <h5 className="font-medium text-white mb-2">Atmosphere</h5>
+            <p>Ambiance, cleanliness, noise level</p>
+          </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
 };
