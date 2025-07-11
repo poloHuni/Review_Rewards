@@ -1,22 +1,189 @@
-// src/services/openaiService.js
+// src/services/openaiService.js - LangChain Version with Pydantic-like Structure
 import axios from 'axios';
 
-// Function to analyze transcribed text and generate review
-export const analyzeReview = async (transcribedText, restaurantName = 'this restaurant') => {
-  try {
-    // Get API key from environment or try fallback
-    const apiKey = process.env.REACT_APP_OPENAI_API_KEY || window.OPENAI_API_KEY;
-    
-    if (!apiKey) {
-      console.error('OpenAI API key not found');
-      return createFallbackReview(transcribedText);
+// Define the expected response structure (Pydantic-like schema)
+const REVIEW_SCHEMA = {
+  type: "object",
+  properties: {
+    sentiment: {
+      type: "number",
+      description: "Sentiment score from 1-5 where 1=very negative, 5=very positive",
+      minimum: 1,
+      maximum: 5
+    },
+    summary: {
+      type: "string",
+      description: "A brief 1-2 sentence summary of the overall dining experience"
+    },
+    food: {
+      type: "string",
+      description: "Summary of food quality feedback, or 'I have nothing to say about food' if not mentioned"
+    },
+    service: {
+      type: "string", 
+      description: "Summary of service quality feedback, or 'I have nothing to say about service' if not mentioned"
+    },
+    atmosphere: {
+      type: "string",
+      description: "Summary of atmosphere/ambiance feedback, or 'I have nothing to say about atmosphere' if not mentioned"
+    },
+    music: {
+      type: "string",
+      description: "Summary of music/entertainment feedback, or 'I have nothing to say about music' if not mentioned"
+    },
+    suggested_improvements: {
+      type: "array",
+      items: {
+        type: "string"
+      },
+      description: "Array of improvement suggestions, empty array if none"
+    },
+    key_points: {
+      type: "array", 
+      items: {
+        type: "string"
+      },
+      description: "Array of key highlights from the review, minimum 1 item"
     }
-    
-    // Set timeout to avoid waiting too long
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
-    
+  },
+  required: ["sentiment", "summary", "food", "service", "atmosphere", "music", "suggested_improvements", "key_points"]
+};
+
+// LangChain-style prompt template
+const REVIEW_ANALYSIS_PROMPT = `
+You are a professional restaurant review analyzer specializing in structuring customer feedback. Your objective is to extract key insights and sentiments in a clear, FIRST PERSON narrative.
+
+STRICT INSTRUCTIONS — Follow precisely:
+1. Return ONLY a valid JSON object that adheres EXACTLY to the schema provided below. No extra commentary.
+2. ALL summaries and key points must be written in FIRST PERSON (use "I", "me", "my"). Avoid third-person or generic statements.
+3. For each category (food, service, atmosphere, music):
+   - If the customer mentions it: summarize briefly IN FIRST PERSON.
+   - If it is not mentioned: return "I have nothing to say about [category]".
+4. The field 'sentiment' must be a number between 1-5 (1 = very negative, 5 = very positive).
+5. The 'key_points' list must contain AT LEAST ONE item, written in FIRST PERSON.
+6. If sentiment is 1, 2, or 3 (poor/negative experience): you MUST include at least one improvement suggestion in 'suggested_improvements'.
+7. If sentiment is 4 or 5 (positive experience): 'suggested_improvements' can be an empty list.
+
+EXAMPLES OF FIRST PERSON WRITING:
+-Good: "I enjoyed the delicious pasta"
+-Bad:  "The pasta was delicious"
+-Good: "I felt the service was slow"
+-Bad:  "The service was slow"
+
+INPUT VARIABLES:
+Customer feedback: "{transcript}"
+Restaurant: "{restaurant_name}"
+
+TASK:
+Analyze the feedback and output ONLY the following JSON object:
+
+{
+  "sentiment": <number 1-5>,
+  "summary": "<1-2 sentence overall summary in FIRST PERSON>",
+  "food": "<FIRST PERSON summary of food feedback OR 'I have nothing to say about food'>",
+  "service": "<FIRST PERSON summary of service feedback OR 'I have nothing to say about service'>", 
+  "atmosphere": "<FIRST PERSON summary of atmosphere feedback OR 'I have nothing to say about atmosphere'>",
+  "music": "<FIRST PERSON summary of music feedback OR 'I have nothing to say about music'>",
+  "suggested_improvements": ["<improvement 1>", "<improvement 2>"],
+  "key_points": ["<FIRST PERSON key point 1>", "<FIRST PERSON key point 2>", "<FIRST PERSON key point 3>"]
+}
+
+DO NOT include any explanations, notes, or text outside the JSON object.
+`;
+
+// Custom output parser (LangChain-style)
+class ReviewOutputParser {
+  parse(text) {
     try {
+      // Clean the response text
+      const cleanedText = text.trim();
+      
+      // Extract JSON from the response
+      let jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('No JSON found in response');
+      }
+      
+      const jsonStr = jsonMatch[0];
+      const parsed = JSON.parse(jsonStr);
+      
+      // Validate against schema
+      const validated = this.validateAndFix(parsed);
+      
+      return validated;
+    } catch (error) {
+      console.error('Error parsing LLM response:', error);
+      throw new Error(`Failed to parse response: ${error.message}`);
+    }
+  }
+  
+  validateAndFix(data) {
+    // Ensure all required fields exist with proper defaults
+    const validated = {
+      sentiment: this.validateSentiment(data.sentiment),
+      summary: this.validateString(data.summary, "I had an experience at this restaurant."),
+      food: this.validateCategoryString(data.food, "food"),
+      service: this.validateCategoryString(data.service, "service"),
+      atmosphere: this.validateCategoryString(data.atmosphere, "atmosphere"),
+      music: this.validateCategoryString(data.music, "music"),
+      suggested_improvements: this.validateArray(data.suggested_improvements),
+      key_points: this.validateArray(data.key_points, ["I wanted to share my experience"])
+    };
+    
+    return validated;
+  }
+  
+  validateSentiment(value) {
+    const num = Number(value);
+    if (isNaN(num) || num < 1 || num > 5) {
+      return 3; // Default neutral
+    }
+    return Math.round(num);
+  }
+  
+  validateString(value, defaultValue) {
+    if (typeof value === 'string' && value.trim()) {
+      return value.trim();
+    }
+    return defaultValue;
+  }
+  
+  validateCategoryString(value, category) {
+    if (typeof value === 'string' && value.trim()) {
+      const trimmed = value.trim();
+      // If it's empty or just says nothing, use standard format
+      if (trimmed.toLowerCase().includes('nothing') || trimmed.toLowerCase().includes('no mention')) {
+        return `I have nothing to say about ${category}`;
+      }
+      return trimmed;
+    }
+    return `I have nothing to say about ${category}`;
+  }
+  
+  validateArray(value, defaultValue = []) {
+    if (Array.isArray(value)) {
+      const filtered = value.filter(item => typeof item === 'string' && item.trim());
+      return filtered.length > 0 ? filtered : defaultValue;
+    }
+    return defaultValue;
+  }
+}
+
+// LangChain-style chain class
+class ReviewAnalysisChain {
+  constructor(apiKey) {
+    this.apiKey = apiKey;
+    this.outputParser = new ReviewOutputParser();
+  }
+  
+  async invoke({ transcript, restaurant_name }) {
+    try {
+      // Format the prompt
+      const prompt = REVIEW_ANALYSIS_PROMPT
+        .replace('{transcript}', transcript)
+        .replace('{restaurant_name}', restaurant_name || 'this restaurant');
+      
+      // Call OpenAI API with structured output
       const response = await axios.post(
         'https://api.openai.com/v1/chat/completions',
         {
@@ -24,133 +191,176 @@ export const analyzeReview = async (transcribedText, restaurantName = 'this rest
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful assistant that analyzes restaurant feedback and formats it as a structured review. You MUST always provide responses for all 4 categories, even if the customer did not mention them.'
+              content: 'You are a restaurant review analyzer that returns structured JSON responses. You must follow the exact schema provided and never deviate from the format.'
             },
             {
-              role: 'user',
-              content: `I want you to analyze my feedback for ${restaurantName}.
-The feedback was: "${transcribedText}"
-
-Format this feedback as a first-person review that I can copy and paste directly to Google Reviews.
-All assessments, opinions, and points should be written in first-person (using "I", "my", "me").
-
-CRITICAL REQUIREMENTS:
-1. You MUST provide responses for ALL 4 categories: food_quality, service, atmosphere, music_and_entertainment
-2. If I didn't mention a specific category, use this EXACT format: "Nothing to say about [category]"
-3. For example, if I didn't mention food, write: "Nothing to say about food"
-4. If I didn't mention service, write: "Nothing to say about service"
-5. If I didn't mention atmosphere, write: "Nothing to say about atmosphere"  
-6. If I didn't mention music/entertainment, write: "Nothing to say about music and entertainment"
-
-Provide your analysis in the following JSON format:
-{
-    "summary": "A brief first-person summary of my overall experience",
-    "food_quality": "My assessment of food and drinks OR 'Nothing to say about food' if not mentioned",
-    "service": "My assessment of service quality OR 'Nothing to say about service' if not mentioned",
-    "atmosphere": "My assessment of ambiance and environment OR 'Nothing to say about atmosphere' if not mentioned",
-    "music_and_entertainment": "My specific feedback on music, DJs, and entertainment OR 'Nothing to say about music and entertainment' if not mentioned",
-    "specific_points": ["My specific point 1", "My specific point 2", "My specific point 3"],
-    "sentiment_score": 4,
-    "improvement_suggestions": ["My suggestion 1 if any", "My suggestion 2 if any"]
-}
-
-MAKE SURE that:
-1. All text fields are properly enclosed in double quotes
-2. All arrays have square brackets and comma-separated values in double quotes
-3. The sentiment_score is a number between 1-5 without quotes
-4. There is no trailing comma after the last item in arrays or objects
-5. You use the EXACT "Nothing to say about..." format when a category wasn't mentioned
-6. All responses are in first-person perspective
-
-Remember: EVERY category must have a response - either actual feedback or "Nothing to say about [category]"`
+              role: 'user', 
+              content: prompt
             }
           ],
-          max_tokens: 800,
-          temperature: 0.3
+          max_tokens: 1000,
+          temperature: 0.1, // Low temperature for consistent structure
+          response_format: { type: "json_object" } // Force JSON response
         },
         {
-          signal: controller.signal,
+          headers: {
+            'Authorization': `Bearer ${this.apiKey}`,
+            'Content-Type': 'application/json'
+          },
           timeout: 15000
         }
       );
       
-      clearTimeout(timeoutId);
-      
       if (!response.data?.choices?.[0]?.message?.content) {
-        console.error('Invalid OpenAI response structure:', response.data);
-        return createFallbackReview(transcribedText);
+        throw new Error('Invalid OpenAI response structure');
       }
       
-      const aiResponse = response.data.choices[0].message.content;
-      console.log('Raw AI response:', aiResponse);
+      const rawResponse = response.data.choices[0].message.content;
+      console.log('Raw LLM response:', rawResponse);
       
-      // Try to parse JSON from the response
-      let parsedResult;
-      try {
-        // Extract JSON from the response (in case there's extra text)
-        const jsonMatch = aiResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          parsedResult = JSON.parse(jsonMatch[0]);
-        } else {
-          throw new Error('No JSON found in response');
-        }
-      } catch (parseError) {
-        console.error('Failed to parse AI response as JSON:', parseError);
-        console.error('AI response was:', aiResponse);
-        return createFallbackReview(transcribedText);
-      }
+      // Parse and validate using our custom parser
+      const structuredOutput = this.outputParser.parse(rawResponse);
       
-      // Validate the structure and ensure all required fields are present
-      const validatedResult = validateAndFixResult(parsedResult, transcribedText);
-      
-      console.log('Final validated result:', validatedResult);
-      return validatedResult;
+      console.log('Structured output:', structuredOutput);
+      return structuredOutput;
       
     } catch (error) {
-      clearTimeout(timeoutId);
-      
-      if (error.name === 'AbortError') {
-        console.error('OpenAI request timed out');
-      } else {
-        console.error('OpenAI API error:', error);
-      }
-      
+      console.error('Error in ReviewAnalysisChain:', error);
+      throw error;
+    }
+  }
+}
+
+// Main analysis function (LangChain-style interface)
+export const analyzeReview = async (transcribedText, restaurantName = 'this restaurant') => {
+  try {
+    // Get API key
+    const apiKey = process.env.REACT_APP_OPENAI_API_KEY || window.OPENAI_API_KEY;
+    
+    if (!apiKey) {
+      console.error('OpenAI API key not found');
       return createFallbackReview(transcribedText);
     }
     
+    console.log('🔗 Analyzing review with LangChain-style chain...');
+    
+    // Create the analysis chain
+    const chain = new ReviewAnalysisChain(apiKey);
+    
+    // Invoke the chain
+    const result = await chain.invoke({
+      transcript: transcribedText,
+      restaurant_name: restaurantName
+    });
+    
+    // Convert to the format expected by the rest of the application
+    const convertedResult = {
+      summary: result.summary,
+      food_quality: result.food,
+      service: result.service,
+      atmosphere: result.atmosphere, 
+      music_and_entertainment: result.music,
+      specific_points: result.key_points,
+      sentiment_score: result.sentiment,
+      improvement_suggestions: result.suggested_improvements,
+      raw_transcription: transcribedText
+    };
+    
+    console.log('✅ LangChain analysis completed:', convertedResult);
+    return convertedResult;
+    
   } catch (error) {
-    console.error('Error in analysis process:', error);
+    console.error('❌ Error in LangChain analysis:', error);
+    console.log('🔄 Falling back to traditional analysis...');
     return createFallbackReview(transcribedText);
   }
 };
 
-// Validate and fix the AI result to ensure consistency
-function validateAndFixResult(result, originalText) {
-  const validated = {
-    summary: result.summary || "I had an experience at this restaurant.",
-    food_quality: result.food_quality || "Nothing to say about food",
-    service: result.service || "Nothing to say about service", 
-    atmosphere: result.atmosphere || "Nothing to say about atmosphere",
-    music_and_entertainment: result.music_and_entertainment || "Nothing to say about music and entertainment",
-    specific_points: Array.isArray(result.specific_points) ? result.specific_points : ["I wanted to share my experience"],
-    sentiment_score: (typeof result.sentiment_score === 'number' && result.sentiment_score >= 1 && result.sentiment_score <= 5) 
-      ? result.sentiment_score 
-      : calculateFallbackSentiment(originalText),
-    improvement_suggestions: Array.isArray(result.improvement_suggestions) ? result.improvement_suggestions : [],
-    raw_transcription: originalText
+// Fallback function for when LangChain fails
+function createFallbackReview(transcribedText) {
+  console.log('Creating fallback review for:', transcribedText);
+  
+  const sentimentScore = calculateFallbackSentiment(transcribedText);
+  const lowerText = transcribedText.toLowerCase();
+  
+  // Extract sentences for analysis
+  const sentences = transcribedText.split(/[.!?]+/).filter(s => s.trim().length > 5);
+  
+  // Create summary
+  const summary = sentences.length > 0 
+    ? sentences[0].trim() + "."
+    : "I had an experience at this restaurant.";
+  
+  // Analyze content for different categories
+  let foodComment = "I have nothing to say about food";
+  let serviceComment = "I have nothing to say about service";
+  let atmosphereComment = "I have nothing to say about atmosphere";
+  let musicComment = "I have nothing to say about music";
+  
+  sentences.forEach(sentence => {
+    const lower = sentence.toLowerCase();
+    
+    // Food-related keywords
+    if (lower.includes('food') || lower.includes('meal') || lower.includes('dish') || 
+        lower.includes('delicious') || lower.includes('tasty') || lower.includes('flavor')) {
+      foodComment = "I shared feedback about the food quality.";
+    }
+    
+    // Service-related keywords
+    if (lower.includes('service') || lower.includes('staff') || lower.includes('waiter') || 
+        lower.includes('waitress') || lower.includes('server')) {
+      serviceComment = "I commented on the service experience.";
+    }
+    
+    // Atmosphere-related keywords
+    if (lower.includes('atmosphere') || lower.includes('ambiance') || lower.includes('setting') || 
+        lower.includes('environment') || lower.includes('decor')) {
+      atmosphereComment = "I mentioned the restaurant's atmosphere.";
+    }
+    
+    // Music-related keywords
+    if (lower.includes('music') || lower.includes('entertainment') || lower.includes('dj') || 
+        lower.includes('live') || lower.includes('band')) {
+      musicComment = "I provided feedback on the music and entertainment.";
+    }
+  });
+  
+  // Create specific points
+  const specificPoints = sentences
+    .filter(s => s.trim().length > 15)
+    .slice(0, 3)
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+  
+  if (specificPoints.length === 0) {
+    specificPoints.push("I wanted to share my experience");
+  }
+  
+  // Create improvement suggestions
+  const improvementSuggestions = [];
+  if (sentimentScore <= 3) {
+    if (lowerText.includes('service')) {
+      improvementSuggestions.push("Consider improving service quality");
+    }
+    if (lowerText.includes('food')) {
+      improvementSuggestions.push("Consider improving food quality");
+    }
+    if (improvementSuggestions.length === 0) {
+      improvementSuggestions.push("Consider improvements to enhance overall experience");
+    }
+  }
+  
+  return {
+    summary: summary,
+    food_quality: foodComment,
+    service: serviceComment,
+    atmosphere: atmosphereComment,
+    music_and_entertainment: musicComment,
+    specific_points: specificPoints,
+    sentiment_score: sentimentScore,
+    improvement_suggestions: improvementSuggestions,
+    raw_transcription: transcribedText
   };
-
-  // Ensure we have at least one specific point
-  if (validated.specific_points.length === 0) {
-    validated.specific_points = ["I wanted to share my experience"];
-  }
-
-  // Ensure improvement suggestions is an array (can be empty)
-  if (!Array.isArray(validated.improvement_suggestions)) {
-    validated.improvement_suggestions = [];
-  }
-
-  return validated;
 }
 
 // Calculate sentiment from text for fallback
@@ -177,106 +387,4 @@ function calculateFallbackSentiment(text) {
   if (negativeCount > positiveCount + 1) return 2;
   if (negativeCount > positiveCount) return 1;
   return 3; // neutral
-}
-
-// Improved fallback review generation with consistent formatting
-function createFallbackReview(transcribedText) {
-  console.log('Creating fallback review for:', transcribedText);
-  
-  const sentimentScore = calculateFallbackSentiment(transcribedText);
-  const lowerText = transcribedText.toLowerCase();
-  
-  // Extract sentences for analysis
-  const sentences = transcribedText.split(/[.!?]+/).filter(s => s.trim().length > 5);
-  
-  // Create summary
-  const summary = sentences.length > 0 
-    ? sentences[0].trim() + "."
-    : "I had an experience at this restaurant.";
-  
-  // Check if specific categories are mentioned and create responses
-  let foodComment = "Nothing to say about food";
-  let serviceComment = "Nothing to say about service";
-  let atmosphereComment = "Nothing to say about atmosphere";
-  let musicComment = "Nothing to say about music and entertainment";
-  
-  // Look for mentions of each category
-  sentences.forEach(sentence => {
-    const lower = sentence.toLowerCase();
-    
-    // Food-related keywords
-    if (lower.includes('food') || lower.includes('dish') || lower.includes('meal') || 
-        lower.includes('taste') || lower.includes('flavor') || lower.includes('cook') ||
-        lower.includes('eat') || lower.includes('drink') || lower.includes('menu')) {
-      foodComment = "I " + sentence.trim().replace(/^[^a-zA-Z]+/, '').toLowerCase();
-      if (!foodComment.endsWith('.')) foodComment += '.';
-    }
-    
-    // Service-related keywords  
-    if (lower.includes('service') || lower.includes('staff') || lower.includes('waiter') || 
-        lower.includes('waitress') || lower.includes('server') || lower.includes('employee') ||
-        lower.includes('manager') || lower.includes('friendly') || lower.includes('help')) {
-      serviceComment = "I " + sentence.trim().replace(/^[^a-zA-Z]+/, '').toLowerCase();
-      if (!serviceComment.endsWith('.')) serviceComment += '.';
-    }
-    
-    // Atmosphere-related keywords
-    if (lower.includes('atmosphere') || lower.includes('ambiance') || lower.includes('decor') || 
-        lower.includes('interior') || lower.includes('place') || lower.includes('room') ||
-        lower.includes('lighting') || lower.includes('noise') || lower.includes('crowd')) {
-      atmosphereComment = "I " + sentence.trim().replace(/^[^a-zA-Z]+/, '').toLowerCase();
-      if (!atmosphereComment.endsWith('.')) atmosphereComment += '.';
-    }
-    
-    // Music/Entertainment-related keywords
-    if (lower.includes('music') || lower.includes('dj') || lower.includes('band') || 
-        lower.includes('entertainment') || lower.includes('sound') || lower.includes('volume') ||
-        lower.includes('song') || lower.includes('play')) {
-      musicComment = "I " + sentence.trim().replace(/^[^a-zA-Z]+/, '').toLowerCase();
-      if (!musicComment.endsWith('.')) musicComment += '.';
-    }
-  });
-  
-  // Create specific points (filter meaningful sentences)
-  const specificPoints = sentences
-    .filter(s => s.trim().length > 15)
-    .slice(0, 3)
-    .map(s => {
-      let point = s.trim();
-      if (!point.startsWith('I ')) {
-        point = 'I ' + point.toLowerCase();
-      }
-      if (!point.endsWith('.')) point += '.';
-      return point;
-    });
-  
-  if (specificPoints.length === 0) {
-    specificPoints.push("I wanted to share my experience.");
-  }
-  
-  // Create improvement suggestions based on sentiment
-  const improvementSuggestions = [];
-  if (sentimentScore <= 3) {
-    if (lowerText.includes('service')) {
-      improvementSuggestions.push("I hope they can improve their service quality.");
-    }
-    if (lowerText.includes('food')) {
-      improvementSuggestions.push("I hope they can improve their food quality.");
-    }
-    if (improvementSuggestions.length === 0) {
-      improvementSuggestions.push("I hope they can make improvements to enhance the overall experience.");
-    }
-  }
-  
-  return {
-    summary: summary,
-    food_quality: foodComment,
-    service: serviceComment,
-    atmosphere: atmosphereComment,
-    music_and_entertainment: musicComment,
-    specific_points: specificPoints,
-    sentiment_score: sentimentScore,
-    improvement_suggestions: improvementSuggestions,
-    raw_transcription: transcribedText
-  };
 }

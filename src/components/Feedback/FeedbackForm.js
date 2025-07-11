@@ -190,6 +190,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       
       // Add metadata
       analysis.restaurant_id = restaurantId;
+      analysis.restaurant_name = restaurantName; // ADD THIS LINE
       analysis.audio_url = audioUrl;
       
       setAnalysisResult(analysis);
@@ -246,6 +247,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       }
       
       analysis.restaurant_id = restaurantId;
+      analysis.restaurant_name = restaurantName; // ADD THIS LINE
       
       setAnalysisResult(analysis);
       setAnalysisProgress(100);

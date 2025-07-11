@@ -26,6 +26,22 @@ const MyReviews = () => {
     return null;
   };
 
+  // FIXED: Helper function to get restaurant name properly
+  const getRestaurantName = (review) => {
+    // Check if restaurant_name exists and is not the default "Restaurant"
+    if (review.restaurant_name && review.restaurant_name !== 'Restaurant') {
+      return review.restaurant_name;
+    }
+    
+    // Fallback to restaurant_id if restaurant_name is missing or is "Restaurant"
+    if (review.restaurant_id && review.restaurant_id !== 'default_restaurant') {
+      return review.restaurant_id.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+    
+    // Final fallback
+    return review.restaurant_name || 'Unknown Restaurant';
+  };
+
   useEffect(() => {
     const authenticatedUser = getAuthenticatedUser();
     
@@ -80,8 +96,8 @@ const MyReviews = () => {
   // Helper functions
   const getUniqueRestaurants = () => {
     const restaurants = reviews
-      .map(review => review.restaurant_name)
-      .filter(name => name && name.trim() !== '')
+      .map(review => getRestaurantName(review)) // FIXED: Use helper function
+      .filter(name => name && name.trim() !== '' && name !== 'Unknown Restaurant')
       .filter((name, index, arr) => arr.indexOf(name) === index)
       .sort();
     return restaurants;
@@ -144,7 +160,7 @@ const MyReviews = () => {
     // Apply restaurant filter
     if (restaurantFilter !== 'all') {
       filtered = filtered.filter(review => 
-        review.restaurant_name === restaurantFilter
+        getRestaurantName(review) === restaurantFilter // FIXED: Use helper function
       );
     }
 
@@ -176,7 +192,7 @@ const MyReviews = () => {
         return (b.sentiment_score || 0) - (a.sentiment_score || 0);
       }
       if (sortBy === 'restaurant') {
-        return (a.restaurant_name || '').localeCompare(b.restaurant_name || '');
+        return getRestaurantName(a).localeCompare(getRestaurantName(b)); // FIXED: Use helper function
       }
       // Default: sort by date
       return new Date(b.timestamp?.seconds ? b.timestamp.seconds * 1000 : b.timestamp) - 
@@ -203,7 +219,7 @@ const MyReviews = () => {
       : 0;
 
     const uniqueRestaurants = new Set(
-      reviews.map(r => r.restaurant_id || r.restaurant_name).filter(Boolean)
+      reviews.map(r => getRestaurantName(r)).filter(name => name !== 'Unknown Restaurant') // FIXED: Use helper function
     ).size;
 
     const lastReview = reviews.length > 0 ? reviews[0] : null;
@@ -1079,7 +1095,7 @@ const MyReviews = () => {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  🏪 {review.restaurant_name || 'Restaurant'}
+                  🏪 {getRestaurantName(review)} {/* FIXED: Use helper function */}
                 </div>
                 <div style={{
                   fontSize: '14px',
