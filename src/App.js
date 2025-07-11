@@ -13,7 +13,6 @@ import RecordFeedback from './pages/RecordFeedback';
 // NEW: Points System Pages
 import Rewards from './pages/Rewards';
 import Vouchers from './pages/Vouchers';
-import AdminRewards from './pages/AdminRewards';
 import TestSetup from './TestSetup';
 
 import { AnimatePresence, motion } from 'framer-motion';
@@ -218,15 +217,6 @@ function AppContent() {
           <AppLayout>
             <OwnerRoute>
               <OwnerDashboard />
-            </OwnerRoute>
-          </AppLayout>
-        } />
-        
-        {/* NEW: Admin Rewards Management Route */}
-        <Route path="/admin/rewards" element={
-          <AppLayout>
-            <OwnerRoute>
-              <AdminRewards />
             </OwnerRoute>
           </AppLayout>
         } />

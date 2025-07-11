@@ -24,7 +24,7 @@ const Header = () => {
     return location.pathname === path;
   };
   
-  // All navigation items
+  // All navigation items (REMOVED /admin/rewards)
   const navItems = [
     { 
       path: '/', 
@@ -60,11 +60,6 @@ const Header = () => {
       icon: BarChart3,
       show: isOwner,
       highlight: true
-    },
-    { 
-      path: '/admin/rewards', 
-      label: 'Admin Rewards', 
-      show: isOwner
     }
   ];
 
@@ -119,31 +114,35 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {currentUser ? (
               <div className="relative">
-                {/* User dropdown button */}
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-3 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors focus-ring"
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors focus-ring group"
                 >
-                  <div className="flex items-center space-x-3">
-                    <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                      <span className="text-white text-sm font-medium">
-                        {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
-                      </span>
+                  {currentUser.photoURL ? (
+                    <img 
+                      src={currentUser.photoURL} 
+                      alt="Profile" 
+                      className="w-8 h-8 rounded-lg object-cover"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
+                      {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
                     </div>
-                    <div className="hidden md:block text-left">
-                      <div className="text-sm font-medium text-white">
-                        {currentUser.displayName || currentUser.name || 'User'}
-                      </div>
-                      <div className="text-xs text-slate-400">
-                        {isOwner ? 'Restaurant Owner' : 'Customer'}
-                      </div>
+                  )}
+                  
+                  <div className="hidden sm:block text-left">
+                    <div className="text-sm font-medium text-white">
+                      {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0] || 'User'}
                     </div>
+                    {isOwner && (
+                      <div className="text-xs text-green-400 font-semibold">Owner</div>
+                    )}
                   </div>
                   
                   <ChevronDown 
                     size={16} 
                     className={`text-slate-400 transition-transform duration-200 ${
-                      userMenuOpen ? 'transform rotate-180' : ''
+                      userMenuOpen ? 'rotate-180' : ''
                     }`} 
                   />
                 </button>
@@ -158,36 +157,47 @@ const Header = () => {
                     />
                     
                     {/* Menu */}
-                    <div className="absolute right-0 mt-2 w-64 glass-card rounded-xl border border-white/10 shadow-xl z-20">
-                      {/* User info header */}
+                    <div className="absolute right-0 mt-2 w-64 bg-slate-800/95 backdrop-blur-lg rounded-xl shadow-2xl border border-white/10 py-2 z-20">
+                      {/* User info */}
                       <div className="px-4 py-3 border-b border-white/10">
-                        <div className="flex items-center space-x-3">
-                          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                            <span className="text-white font-medium">
-                              {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
-                            </span>
-                          </div>
+                        <div className="flex items-center gap-3">
+                          {currentUser.photoURL ? (
+                            <img 
+                              src={currentUser.photoURL} 
+                              alt="Profile" 
+                              className="w-10 h-10 rounded-lg object-cover"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
+                              {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                            </div>
+                          )}
                           <div>
                             <div className="text-sm font-medium text-white">
-                              {currentUser.displayName || currentUser.name || 'User'}
+                              {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0] || 'User'}
                             </div>
-                            <div className="text-xs text-slate-400 truncate">
+                            <div className="text-xs text-slate-400 truncate max-w-[150px]">
                               {currentUser.email}
                             </div>
+                            {isOwner && (
+                              <div className="text-xs text-green-400 font-semibold mt-1">
+                                🏪 Restaurant Owner
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
                       
-                      {/* Menu items */}
-                      <div className="py-2">
-                        {/* Mobile navigation items */}
-                        <div className="lg:hidden">
+                      {/* Navigation items for mobile */}
+                      <div className="lg:hidden">
+                        <div className="px-2 py-2">
                           {filteredNavItems.map((item) => (
                             <Link
                               key={item.path}
                               to={item.path}
-                              className={`flex items-center gap-3 px-4 py-2 text-sm hover:bg-white/5 transition-colors ${
-                                isActivePath(item.path) ? 'text-blue-400 bg-white/5' : 'text-slate-300'
+                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                                isActivePath(item.path) 
+                                  ? 'text-blue-400 bg-white/5' : 'text-slate-300'
                               }`}
                               onClick={() => setUserMenuOpen(false)}
                             >
@@ -257,15 +267,35 @@ const Header = () => {
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                   isActivePath(item.path) 
-                    ? 'bg-white/10 text-white border border-white/20' 
-                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                    ? item.highlight 
+                      ? 'text-purple-400 bg-purple-500/10 border border-purple-500/20'
+                      : 'text-blue-400 bg-white/5'
+                    : 'text-slate-300 hover:bg-white/5'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {item.icon && <item.icon size={18} />}
-                {item.label}
+                {item.icon && <item.icon size={20} />}
+                <span className="font-medium">{item.label}</span>
+                {item.highlight && isActivePath(item.path) && (
+                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-md font-bold ml-auto">
+                    Owner
+                  </span>
+                )}
               </Link>
             ))}
+            
+            {currentUser && (
+              <>
+                <div className="border-t border-white/10 my-3"></div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3 w-full px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <LogOut size={20} />
+                  <span className="font-medium">Sign Out</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
