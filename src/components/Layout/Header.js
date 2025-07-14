@@ -24,7 +24,6 @@ const Header = () => {
     return location.pathname === path;
   };
   
-  // All navigation items (REMOVED /admin/rewards)
   const navItems = [
     { 
       path: '/', 
@@ -94,18 +93,13 @@ const Header = () => {
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
                   isActivePath(item.path) 
                     ? item.highlight 
-                      ? 'gradient-text bg-gradient-to-r from-purple-600/20 to-pink-600/20 border border-purple-500/30'
-                      : 'bg-white/10 text-white border border-white/20'
-                    : 'text-slate-300 hover:bg-white/5 hover:text-white'
+                      ? 'text-purple-400 bg-purple-500/10 border border-purple-500/20'
+                      : 'text-blue-400 bg-white/5'
+                    : 'text-slate-300 hover:bg-white/5'
                 }`}
               >
                 {item.icon && <item.icon size={16} />}
                 {item.label}
-                {item.highlight && isActivePath(item.path) && (
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-md font-bold">
-                    Owner
-                  </span>
-                )}
               </Link>
             ))}
           </nav>
@@ -114,35 +108,45 @@ const Header = () => {
           <div className="flex items-center space-x-4">
             {currentUser ? (
               <div className="relative">
+                {/* User menu trigger */}
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-white/5 transition-colors focus-ring group"
+                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-all duration-200 focus-ring"
                 >
-                  {currentUser.photoURL ? (
-                    <img 
-                      src={currentUser.photoURL} 
-                      alt="Profile" 
-                      className="w-8 h-8 rounded-lg object-cover"
-                    />
-                  ) : (
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold text-sm">
-                      {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
-                    </div>
-                  )}
-                  
-                  <div className="hidden sm:block text-left">
-                    <div className="text-sm font-medium text-white">
-                      {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0] || 'User'}
-                    </div>
-                    {isOwner && (
-                      <div className="text-xs text-green-400 font-semibold">Owner</div>
+                  {/* Avatar */}
+                  <div className="relative">
+                    {currentUser.photoURL ? (
+                      <img
+                        className="h-8 w-8 rounded-full border border-white/20"
+                        src={currentUser.photoURL}
+                        alt="User avatar"
+                      />
+                    ) : (
+                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border border-white/20">
+                        <span className="text-white font-medium text-sm">
+                          {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
+                        </span>
+                      </div>
                     )}
+                    
+                    {/* Online indicator */}
+                    <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-400 border-2 border-slate-900 rounded-full"></div>
+                  </div>
+                  
+                  {/* User info - hidden on mobile */}
+                  <div className="hidden md:block text-left">
+                    <div className="text-sm font-medium text-white">
+                      {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0]}
+                    </div>
+                    <div className="text-xs text-slate-400">
+                      {isOwner ? 'Restaurant Owner' : 'Customer'}
+                    </div>
                   </div>
                   
                   <ChevronDown 
                     size={16} 
                     className={`text-slate-400 transition-transform duration-200 ${
-                      userMenuOpen ? 'rotate-180' : ''
+                      userMenuOpen ? 'transform rotate-180' : ''
                     }`} 
                   />
                 </button>
@@ -197,7 +201,8 @@ const Header = () => {
                               to={item.path}
                               className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                                 isActivePath(item.path) 
-                                  ? 'text-blue-400 bg-white/5' : 'text-slate-300'
+                                  ? 'text-blue-400 bg-white/5' 
+                                  : 'text-slate-300'
                               }`}
                               onClick={() => setUserMenuOpen(false)}
                             >
@@ -216,19 +221,19 @@ const Header = () => {
                           <User size={16} />
                           Profile Settings
                         </button>
-                        
-                        {/* Logout */}
-                        <button
-                          onClick={() => {
-                            handleLogout();
-                            setUserMenuOpen(false);
-                          }}
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
-                        >
-                          <LogOut size={16} />
-                          Sign Out
-                        </button>
                       </div>
+                        
+                      {/* Logout Button */}
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setUserMenuOpen(false);
+                        }}
+                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <LogOut size={16} />
+                        Sign Out
+                      </button>
                     </div>
                   </>
                 )}

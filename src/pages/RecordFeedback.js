@@ -292,6 +292,16 @@ const RecordFeedback = () => {
                           🏷️ {rest.category}
                         </div>
                       )}
+
+                      {/* ✅ GOOGLE PLACE ID STATUS INDICATOR */}
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        justifyContent: 'center'
+                      }}>
+                        🔗 {rest.google_place_id ? 'Google Reviews Ready' : 'Basic Setup'}
+                      </div>
                     </div>
 
                     {/* Selection indicator */}
@@ -478,6 +488,13 @@ const RecordFeedback = () => {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               ⏰ Open for reviews
             </div>
+
+            {/* ✅ GOOGLE PLACE ID INDICATOR IN RESTAURANT HEADER */}
+            {restaurant?.google_place_id && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🔗 Google Reviews Ready
+              </div>
+            )}
           </div>
 
           {/* Decorative Element */}
@@ -492,7 +509,7 @@ const RecordFeedback = () => {
           </div>
         </div>
 
-        {/* FeedbackForm Component - FIXED: Use actual restaurant ID instead of default */}
+        {/* ✅ FEEDBACKFORM WITH GOOGLE PLACE ID PROP */}
         <FeedbackForm 
           restaurantId={restaurant?.restaurant_id || restaurant?.id}
           restaurantName={restaurant?.name || 'this restaurant'}

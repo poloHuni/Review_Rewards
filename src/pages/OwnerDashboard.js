@@ -379,51 +379,84 @@ const OwnerDashboard = () => {
   };
 
   // Calculate overall analytics for owner
-  const calculateOwnerAnalytics = (restaurantsData) => {
+  const calculateOwnerAnalytics = (allReviewsData) => {
     try {
-      let totalReviews = 0;
-      let totalRating = 0;
-      let positiveReviews = 0;
-      let thisMonthReviews = 0;
-      let totalSentiment = 0;
-      let sentimentCount = 0;
+      console.log('📊 Calculating owner analytics from', allReviewsData.length, 'reviews');
+      
+      if (!allReviewsData || allReviewsData.length === 0) {
+        return {
+          totalReviews: 0,
+          thisMonthReviews: 0,
+          averageRating: 0,
+          positiveReviews: 0,
+          satisfactionRate: 0
+        };
+      }
 
-      restaurantsData.forEach(restaurant => {
-        if (restaurant.analytics) {
-          totalReviews += restaurant.analytics.totalReviews || 0;
-          
-          if (restaurant.analytics.averageRating) {
-            totalRating += restaurant.analytics.averageRating * (restaurant.analytics.totalReviews || 0);
+      const totalReviews = allReviewsData.length;
+      
+      // Calculate average rating using overall_rating or sentiment_score
+      const validRatings = allReviewsData
+        .map(review => review.overall_rating || review.sentiment_score || 0)
+        .filter(rating => typeof rating === 'number' && rating > 0);
+      
+      const averageRating = validRatings.length > 0
+        ? validRatings.reduce((sum, rating) => sum + rating, 0) / validRatings.length
+        : 0;
+      
+      // Calculate positive reviews (rating >= 4)
+      const positiveReviews = allReviewsData.filter(review => {
+        const rating = review.overall_rating || review.sentiment_score || 0;
+        return rating >= 4;
+      }).length;
+      
+      // Calculate this month's reviews
+      const currentDate = new Date();
+      const currentMonth = currentDate.getMonth();
+      const currentYear = currentDate.getFullYear();
+      
+      const thisMonthReviews = allReviewsData.filter(review => {
+        if (!review.timestamp) return false;
+        
+        let reviewDate;
+        try {
+          if (review.timestamp.seconds) {
+            // Firestore timestamp
+            reviewDate = new Date(review.timestamp.seconds * 1000);
+          } else if (review.timestamp.toDate) {
+            // Firestore timestamp object
+            reviewDate = review.timestamp.toDate();
+          } else {
+            // Regular date string/object
+            reviewDate = new Date(review.timestamp);
           }
           
-          positiveReviews += restaurant.analytics.positiveReviews || 0;
-          thisMonthReviews += restaurant.analytics.thisMonthReviews || 0;
-          
-          // Calculate sentiment if available
-          if (restaurant.analytics.reviews) {
-            restaurant.analytics.reviews.forEach(review => {
-              if (review.sentiment_score !== undefined) {
-                totalSentiment += review.sentiment_score;
-                sentimentCount++;
-              }
-            });
-          }
+          return reviewDate.getMonth() === currentMonth && 
+                reviewDate.getFullYear() === currentYear;
+        } catch (error) {
+          console.warn('Error parsing review date:', error);
+          return false;
         }
-      });
+      }).length;
+      
+      // Calculate satisfaction rate
+      const satisfactionRate = totalReviews > 0 
+        ? Math.round((positiveReviews / totalReviews) * 100) 
+        : 0;
 
-      const averageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
-      const averageSentiment = sentimentCount > 0 ? totalSentiment / sentimentCount : 0;
-      const satisfactionRate = totalReviews > 0 ? Math.round((positiveReviews / totalReviews) * 100) : 0;
-
-      return {
+      const analytics = {
         totalReviews,
         thisMonthReviews,
-        averageRating,
+        averageRating: Math.round(averageRating * 100) / 100, // Round to 2 decimal places
         positiveReviews,
         satisfactionRate
       };
+      
+      console.log('✅ Owner analytics calculated:', analytics);
+      
+      return analytics;
     } catch (error) {
-      console.error('Error calculating owner analytics:', error);
+      console.error('❌ Error calculating owner analytics:', error);
       return {
         totalReviews: 0,
         thisMonthReviews: 0,
@@ -454,53 +487,44 @@ const OwnerDashboard = () => {
       const restaurantsData = await getRestaurantsByOwner(ownerId);
       console.log('🏪 Restaurants found:', restaurantsData.length);
       
-      // FIXED: Get restaurant IDs with better handling
+      // Get restaurant IDs
       const restaurantIds = restaurantsData.map(r => {
-        // Try multiple possible ID fields
         const id = r.restaurant_id || r.id || r.name?.toLowerCase().replace(/\s+/g, '_');
         console.log('🆔 Restaurant ID extracted:', id, 'from restaurant:', r.name);
         return id;
-      }).filter(id => id); // Remove any undefined/null values
+      }).filter(id => id);
       
       console.log('🆔 All restaurant IDs:', restaurantIds);
       
-      // FIXED: Get all reviews for owner's restaurants with enhanced error handling
+      // Get all reviews for owner's restaurants
       const allReviewsData = await getReviewsForOwnerRestaurants(restaurantIds);
       console.log('📊 Total reviews loaded:', allReviewsData.length);
       
-      // Then get analytics for each restaurant
-      const restaurantsWithAnalytics = await Promise.all(
-        restaurantsData.map(async (restaurant) => {
-          try {
-            const restaurantId = restaurant.restaurant_id || restaurant.id;
-            const restaurantAnalytics = await getRestaurantAnalytics(restaurantId);
-            return {
-              ...restaurant,
-              analytics: restaurantAnalytics
-            };
-          } catch (error) {
-            console.error(`Error getting analytics for restaurant ${restaurant.restaurant_id}:`, error);
-            return {
-              ...restaurant,
-              analytics: {
-                totalReviews: 0,
-                averageRating: 0,
-                reviews: []
-              }
-            };
-          }
-        })
-      );
+      // Calculate analytics directly from all reviews (SIMPLIFIED APPROACH)
+      const ownerAnalytics = calculateOwnerAnalytics(allReviewsData);
       
-      // Calculate overall analytics
-      const ownerAnalytics = calculateOwnerAnalytics(restaurantsWithAnalytics);
+      // For individual restaurant analytics, calculate them from the reviews
+      const restaurantsWithAnalytics = restaurantsData.map(restaurant => {
+        const restaurantId = restaurant.restaurant_id || restaurant.id;
+        const restaurantReviews = allReviewsData.filter(review => 
+          review.restaurant_id === restaurantId
+        );
+        
+        // Calculate individual restaurant analytics
+        const restaurantAnalytics = calculateOwnerAnalytics(restaurantReviews);
+        
+        return {
+          ...restaurant,
+          analytics: restaurantAnalytics
+        };
+      });
       
       setRestaurants(restaurantsWithAnalytics || []);
       setAnalytics(ownerAnalytics || {});
       setAllReviews(allReviewsData || []);
       
       console.log('✅ Dashboard data loaded successfully');
-      console.log('📊 Final state - Restaurants:', restaurantsWithAnalytics.length, 'Reviews:', allReviewsData.length);
+      console.log('📊 Final analytics:', ownerAnalytics);
       
     } catch (err) {
       console.error('❌ Error loading dashboard data:', err);
@@ -2089,80 +2113,6 @@ const OwnerDashboard = () => {
       {/* Admin Rewards Tab */}
       {activeTab === 'admin-rewards' && (
         <div>
-          {/* Debug Section */}
-          <div style={{
-            backgroundColor: 'rgba(255, 165, 0, 0.1)',
-            borderRadius: '12px',
-            padding: '15px 20px',
-            marginBottom: '25px',
-            border: '1px solid rgba(255, 165, 0, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: '12px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <span style={{ fontSize: '20px' }}>🔧</span>
-              <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
-                <strong>Debug Tools:</strong> Use these tools to troubleshoot rewards management.
-                Current rewards count: {rewards.length}
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                onClick={() => {
-                  console.log('🔍 Current rewards state:', rewards);
-                  console.log('🔍 Current user:', currentUser);
-                }}
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid rgba(255, 165, 0, 0.5)',
-                  borderRadius: '6px',
-                  backgroundColor: 'transparent',
-                  color: '#ffb366',
-                  cursor: 'pointer',
-                  fontSize: '12px'
-                }}
-              >
-                📝 Log State
-              </button>
-              <button
-                onClick={loadRewards}
-                disabled={rewardsSaving}
-                style={{
-                  padding: '8px 16px',
-                  border: '1px solid rgba(255, 165, 0, 0.5)',
-                  borderRadius: '6px',
-                  backgroundColor: 'transparent',
-                  color: '#ffb366',
-                  cursor: rewardsSaving ? 'not-allowed' : 'pointer',
-                  fontSize: '12px',
-                  opacity: rewardsSaving ? 0.5 : 1
-                }}
-              >
-                🔄 Reload Rewards
-              </button>
-            </div>
-          </div>
-
-          {/* Info Banner */}
-          <div style={{
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-            borderRadius: '12px',
-            padding: '15px 20px',
-            marginBottom: '25px',
-            border: '1px solid rgba(59, 130, 246, 0.3)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px'
-          }}>
-            <span style={{ fontSize: '20px' }}>ℹ️</span>
-            <div style={{ fontSize: '14px', lineHeight: '1.4' }}>
-              <strong>Rewards Management:</strong> Changes made here are automatically saved and will be reflected on the customer-facing rewards page immediately. 
-              Active rewards are visible to customers, while inactive rewards are hidden.
-            </div>
-          </div>
-
           <div style={{
             display: 'flex',
             justifyContent: 'space-between',
