@@ -1,5 +1,5 @@
-// src/components/Layout/Header.js
-import React, { useState } from 'react';
+// src/components/Layout/Header.js - Beautiful Neumorphic Header with Dark Mode
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { ChevronDown, User, LogOut, Menu, X, MessageSquare, BarChart3, Gift, Ticket } from 'lucide-react';
@@ -7,14 +7,35 @@ import { ChevronDown, User, LogOut, Menu, X, MessageSquare, BarChart3, Gift, Tic
 const Header = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const { currentUser, isOwner, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Dark mode toggle functionality
+  const toggleDarkMode = () => {
+    const newMode = !isDarkMode;
+    setIsDarkMode(newMode);
+    document.documentElement.setAttribute('data-theme', newMode ? 'dark' : 'light');
+    localStorage.setItem('neuro-theme', newMode ? 'dark' : 'light');
+  };
+
+  // Initialize theme on component mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('neuro-theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialDarkMode = savedTheme ? savedTheme === 'dark' : prefersDark;
+    
+    setIsDarkMode(initialDarkMode);
+    document.documentElement.setAttribute('data-theme', initialDarkMode ? 'dark' : 'light');
+  }, []);
   
   const handleLogout = async () => {
     try {
       await logout();
       navigate('/login');
+      setUserMenuOpen(false);
+      setMobileMenuOpen(false);
     } catch (error) {
       console.error('Logout error:', error);
     }
@@ -28,35 +49,37 @@ const Header = () => {
     { 
       path: '/', 
       label: 'Home', 
+      icon: '🏠',
       show: true 
     },
     { 
       path: '/feedback', 
       label: 'Leave Review', 
-      icon: MessageSquare,
+      icon: '✍️',
       show: !!currentUser 
     },
     { 
       path: '/my-reviews', 
       label: 'My Reviews', 
+      icon: '📝',
       show: !!currentUser 
     },
     { 
       path: '/rewards', 
       label: 'Rewards', 
-      icon: Gift,
+      icon: '🎁',
       show: !!currentUser 
     },
     { 
       path: '/vouchers', 
       label: 'Vouchers', 
-      icon: Ticket,
+      icon: '🎫',
       show: !!currentUser 
     },
     { 
       path: '/dashboard', 
       label: 'Dashboard', 
-      icon: BarChart3,
+      icon: '📊',
       show: isOwner,
       highlight: true
     }
@@ -65,126 +88,130 @@ const Header = () => {
   const filteredNavItems = navItems.filter(item => item.show);
   
   return (
-    <header className="sticky top-0 z-50 border-b border-white/10 glass-card">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo and brand */}
-          <div className="flex items-center">
+    <header className="neuro-header">
+      <div className="neuro-header-container">
+        <div className="neuro-header-content">
+          
+          {/* Logo and Brand */}
+          <div className="neuro-header-brand">
             <Link 
               to="/" 
-              className="flex items-center space-x-3 hover:opacity-80 transition-opacity duration-200"
+              className="neuro-brand-link"
             >
-              <div className="p-2 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
-                <span className="text-white text-xl">🍽️</span>
+              <div className="neuro-brand-icon-container">
+                <span className="neuro-brand-icon">🍽️</span>
               </div>
-              <div className="hidden sm:block">
-                <h1 className="heading-sm">Restaurant Review</h1>
-                <p className="text-xs text-slate-400 -mt-1">AI-Powered Feedback</p>
+              <div className="neuro-brand-text">
+                <h1 className="neuro-brand-title">Restaurant Review</h1>
+                <p className="neuro-brand-subtitle">AI-Powered Feedback</p>
               </div>
             </Link>
           </div>
           
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center space-x-2">
+          <nav className="neuro-desktop-nav">
             {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                className={`neuro-nav-item ${
                   isActivePath(item.path) 
                     ? item.highlight 
-                      ? 'text-purple-400 bg-purple-500/10 border border-purple-500/20'
-                      : 'text-blue-400 bg-white/5'
-                    : 'text-slate-300 hover:bg-white/5'
+                      ? 'neuro-nav-item-highlight-active'
+                      : 'neuro-nav-item-active'
+                    : 'neuro-nav-item-inactive'
                 }`}
               >
-                {item.icon && <item.icon size={16} />}
-                {item.label}
+                <span className="neuro-nav-icon">{item.icon}</span>
+                <span className="neuro-nav-text">{item.label}</span>
+                {item.highlight && isActivePath(item.path) && (
+                  <span className="neuro-nav-badge">Owner</span>
+                )}
               </Link>
             ))}
           </nav>
           
-          {/* User section */}
-          <div className="flex items-center space-x-4">
+          {/* Right Side Actions */}
+          <div className="neuro-header-actions">
+            
+            {/* Dark Mode Toggle */}
+            <button 
+              onClick={toggleDarkMode} 
+              className="neuro-theme-toggle-header"
+              title={`Switch to ${isDarkMode ? 'light' : 'dark'} mode`}
+            >
+              <span className="neuro-toggle-icon">{isDarkMode ? '☀️' : '🌙'}</span>
+            </button>
+            
+            {/* User Menu or Login */}
             {currentUser ? (
-              <div className="relative">
-                {/* User menu trigger */}
+              <div className="neuro-user-menu">
                 <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center space-x-3 p-2 rounded-lg hover:bg-white/5 transition-all duration-200 focus-ring"
+                  className="neuro-user-button"
                 >
-                  {/* Avatar */}
-                  <div className="relative">
+                  <div className="neuro-user-avatar">
                     {currentUser.photoURL ? (
-                      <img
-                        className="h-8 w-8 rounded-full border border-white/20"
-                        src={currentUser.photoURL}
-                        alt="User avatar"
+                      <img 
+                        src={currentUser.photoURL} 
+                        alt="Profile" 
+                        className="neuro-avatar-image"
                       />
                     ) : (
-                      <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center border border-white/20">
-                        <span className="text-white font-medium text-sm">
-                          {(currentUser.displayName || currentUser.name || currentUser.email || 'U')[0].toUpperCase()}
-                        </span>
+                      <div className="neuro-avatar-placeholder">
+                        {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
                       </div>
                     )}
-                    
-                    {/* Online indicator */}
-                    <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 bg-emerald-400 border-2 border-slate-900 rounded-full"></div>
                   </div>
-                  
-                  {/* User info - hidden on mobile */}
-                  <div className="hidden md:block text-left">
-                    <div className="text-sm font-medium text-white">
-                      {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0]}
+                  <div className="neuro-user-info">
+                    <div className="neuro-user-name">
+                      {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0] || 'User'}
                     </div>
-                    <div className="text-xs text-slate-400">
-                      {isOwner ? 'Restaurant Owner' : 'Customer'}
-                    </div>
+                    {isOwner && (
+                      <div className="neuro-user-role">
+                        🏪 Owner
+                      </div>
+                    )}
                   </div>
-                  
                   <ChevronDown 
                     size={16} 
-                    className={`text-slate-400 transition-transform duration-200 ${
-                      userMenuOpen ? 'transform rotate-180' : ''
-                    }`} 
+                    className={`neuro-user-chevron ${userMenuOpen ? 'neuro-chevron-open' : ''}`} 
                   />
                 </button>
                 
-                {/* Dropdown menu */}
+                {/* User Dropdown Menu */}
                 {userMenuOpen && (
                   <>
-                    {/* Backdrop */}
                     <div 
-                      className="fixed inset-0 z-10" 
+                      className="neuro-dropdown-backdrop" 
                       onClick={() => setUserMenuOpen(false)}
                     />
-                    
-                    {/* Menu */}
-                    <div className="absolute right-0 mt-2 w-64 bg-slate-800/95 backdrop-blur-lg rounded-xl shadow-2xl border border-white/10 py-2 z-20">
-                      {/* User info */}
-                      <div className="px-4 py-3 border-b border-white/10">
-                        <div className="flex items-center gap-3">
-                          {currentUser.photoURL ? (
-                            <img 
-                              src={currentUser.photoURL} 
-                              alt="Profile" 
-                              className="w-10 h-10 rounded-lg object-cover"
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-semibold">
-                              {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
-                            </div>
-                          )}
-                          <div>
-                            <div className="text-sm font-medium text-white">
+                    <div className="neuro-user-dropdown">
+                      {/* User Profile Section */}
+                      <div className="neuro-dropdown-header">
+                        <div className="neuro-dropdown-user-info">
+                          <div className="neuro-dropdown-avatar">
+                            {currentUser.photoURL ? (
+                              <img 
+                                src={currentUser.photoURL} 
+                                alt="Profile" 
+                                className="neuro-dropdown-avatar-image"
+                              />
+                            ) : (
+                              <div className="neuro-dropdown-avatar-placeholder">
+                                {(currentUser.displayName || currentUser.email || 'U')[0].toUpperCase()}
+                              </div>
+                            )}
+                          </div>
+                          <div className="neuro-dropdown-user-text">
+                            <div className="neuro-dropdown-name">
                               {currentUser.displayName || currentUser.name || currentUser.email?.split('@')[0] || 'User'}
                             </div>
-                            <div className="text-xs text-slate-400 truncate max-w-[150px]">
+                            <div className="neuro-dropdown-email">
                               {currentUser.email}
                             </div>
                             {isOwner && (
-                              <div className="text-xs text-green-400 font-semibold mt-1">
+                              <div className="neuro-dropdown-role">
                                 🏪 Restaurant Owner
                               </div>
                             )}
@@ -192,47 +219,46 @@ const Header = () => {
                         </div>
                       </div>
                       
-                      {/* Navigation items for mobile */}
-                      <div className="lg:hidden">
-                        <div className="px-2 py-2">
-                          {filteredNavItems.map((item) => (
-                            <Link
-                              key={item.path}
-                              to={item.path}
-                              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                                isActivePath(item.path) 
-                                  ? 'text-blue-400 bg-white/5' 
-                                  : 'text-slate-300'
-                              }`}
-                              onClick={() => setUserMenuOpen(false)}
-                            >
-                              {item.icon && <item.icon size={16} />}
-                              {item.label}
-                            </Link>
-                          ))}
-                          <div className="border-t border-white/10 my-2"></div>
-                        </div>
-                        
-                        {/* Profile action */}
-                        <button
-                          className="flex items-center gap-3 w-full px-4 py-2 text-sm text-slate-300 hover:bg-white/5 transition-colors"
-                          onClick={() => setUserMenuOpen(false)}
-                        >
-                          <User size={16} />
-                          Profile Settings
-                        </button>
+                      {/* Navigation items for mobile in dropdown */}
+                      <div className="neuro-dropdown-nav">
+                        {filteredNavItems.map((item) => (
+                          <Link
+                            key={item.path}
+                            to={item.path}
+                            className={`neuro-dropdown-item ${
+                              isActivePath(item.path) 
+                                ? item.highlight 
+                                  ? 'neuro-dropdown-item-highlight'
+                                  : 'neuro-dropdown-item-active'
+                                : 'neuro-dropdown-item-inactive'
+                            }`}
+                            onClick={() => setUserMenuOpen(false)}
+                          >
+                            <span className="neuro-dropdown-icon">{item.icon}</span>
+                            <span className="neuro-dropdown-text">{item.label}</span>
+                            {item.highlight && isActivePath(item.path) && (
+                              <span className="neuro-dropdown-badge">Owner</span>
+                            )}
+                          </Link>
+                        ))}
                       </div>
+                        
+                      {/* Profile Button */}
+                      <button
+                        className="neuro-dropdown-item neuro-dropdown-item-inactive"
+                        onClick={() => setUserMenuOpen(false)}
+                      >
+                        <span className="neuro-dropdown-icon">👤</span>
+                        <span className="neuro-dropdown-text">Profile Settings</span>
+                      </button>
                         
                       {/* Logout Button */}
                       <button
-                        onClick={() => {
-                          handleLogout();
-                          setUserMenuOpen(false);
-                        }}
-                        className="flex items-center gap-3 w-full px-4 py-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                        onClick={handleLogout}
+                        className="neuro-dropdown-item neuro-dropdown-item-logout"
                       >
-                        <LogOut size={16} />
-                        Sign Out
+                        <span className="neuro-dropdown-icon">🚪</span>
+                        <span className="neuro-dropdown-text">Sign Out</span>
                       </button>
                     </div>
                   </>
@@ -241,63 +267,60 @@ const Header = () => {
             ) : (
               <Link
                 to="/login"
-                className="btn-primary text-sm px-4 py-2 focus-ring"
+                className="neuro-login-button"
               >
-                Sign In
+                <span className="neuro-login-icon">🚀</span>
+                <span className="neuro-login-text">Sign In</span>
               </Link>
             )}
             
-            {/* Mobile menu button */}
+            {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 rounded-lg hover:bg-white/5 transition-colors focus-ring"
+              className="neuro-mobile-menu-button"
             >
-              {mobileMenuOpen ? (
-                <X size={20} className="text-slate-300" />
-              ) : (
-                <Menu size={20} className="text-slate-300" />
-              )}
+              <span className="neuro-mobile-menu-icon">
+                {mobileMenuOpen ? '✕' : '☰'}
+              </span>
             </button>
           </div>
         </div>
       </div>
       
-      {/* Mobile menu */}
+      {/* Mobile Menu */}
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-white/10 glass-card">
-          <div className="px-4 py-4 space-y-2">
+        <div className="neuro-mobile-menu">
+          <div className="neuro-mobile-menu-content">
             {filteredNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
+                className={`neuro-mobile-menu-item ${
                   isActivePath(item.path) 
                     ? item.highlight 
-                      ? 'text-purple-400 bg-purple-500/10 border border-purple-500/20'
-                      : 'text-blue-400 bg-white/5'
-                    : 'text-slate-300 hover:bg-white/5'
+                      ? 'neuro-mobile-item-highlight'
+                      : 'neuro-mobile-item-active'
+                    : 'neuro-mobile-item-inactive'
                 }`}
                 onClick={() => setMobileMenuOpen(false)}
               >
-                {item.icon && <item.icon size={20} />}
-                <span className="font-medium">{item.label}</span>
+                <span className="neuro-mobile-icon">{item.icon}</span>
+                <span className="neuro-mobile-text">{item.label}</span>
                 {item.highlight && isActivePath(item.path) && (
-                  <span className="text-xs bg-green-500/20 text-green-400 px-2 py-1 rounded-md font-bold ml-auto">
-                    Owner
-                  </span>
+                  <span className="neuro-mobile-badge">Owner</span>
                 )}
               </Link>
             ))}
             
             {currentUser && (
               <>
-                <div className="border-t border-white/10 my-3"></div>
+                <div className="neuro-mobile-divider"></div>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-3 w-full px-3 py-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                  className="neuro-mobile-menu-item neuro-mobile-item-logout"
                 >
-                  <LogOut size={20} />
-                  <span className="font-medium">Sign Out</span>
+                  <span className="neuro-mobile-icon">🚪</span>
+                  <span className="neuro-mobile-text">Sign Out</span>
                 </button>
               </>
             )}

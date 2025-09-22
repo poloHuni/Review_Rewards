@@ -1,6 +1,6 @@
-// src/App.js - Complete with Points System Routes
+// src/App.js - Updated with Mobile-First Layout
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import Header from './components/Layout/Header';
 import Footer from './components/Layout/Footer';
@@ -9,24 +9,22 @@ import Login from './pages/Login';
 import MyReviews from './pages/MyReviews';
 import OwnerDashboard from './pages/OwnerDashboard';
 import RecordFeedback from './pages/RecordFeedback';
-
-// NEW: Points System Pages
 import Rewards from './pages/Rewards';
 import Vouchers from './pages/Vouchers';
-import TestSetup from './TestSetup';
-
+import './styles/neumorphic.css';
 import { AnimatePresence, motion } from 'framer-motion';
 
-// Protected route component with smooth loading
+// Protected route component
 const ProtectedRoute = ({ children }) => {
   const { currentUser, loading } = useAuth();
   
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="body-md">Loading...</p>
+          <div className="w-16 h-16 border-4 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mx-auto mb-6"></div>
+          <div className="text-2xl mb-4">🍽️</div>
+          <p className="text-slate-300 text-lg font-medium">Loading...</p>
         </div>
       </div>
     );
@@ -45,10 +43,10 @@ const OwnerRoute = ({ children }) => {
   
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
+      <div className="min-h-screen flex items-center justify-center p-6">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent mx-auto mb-4"></div>
-          <p className="body-md">Verifying permissions...</p>
+          <div className="w-16 h-16 border-4 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mx-auto mb-6"></div>
+          <p className="text-slate-300 text-lg font-medium">Verifying permissions...</p>
         </div>
       </div>
     );
@@ -60,13 +58,16 @@ const OwnerRoute = ({ children }) => {
   
   if (!isOwner) {
     return (
-      <div className="max-w-4xl mx-auto mt-8">
-        <div className="glass-card rounded-2xl p-8 text-center status-error">
-          <h2 className="heading-md mb-4">Access Denied</h2>
-          <p className="body-md mb-6">You don't have permission to access the owner dashboard.</p>
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="glass-card rounded-3xl p-8 text-center border border-red-500/20 w-full max-w-md">
+          <div className="text-6xl mb-6">🚫</div>
+          <h2 className="text-2xl font-bold mb-4 text-red-400">Access Denied</h2>
+          <p className="text-slate-300 mb-6 text-base leading-relaxed">
+            You don't have permission to access the owner dashboard.
+          </p>
           <button 
             onClick={() => window.history.back()}
-            className="btn-primary focus-ring"
+            className="w-full bg-gradient-to-r from-red-500 to-pink-500 text-white py-3 px-6 rounded-2xl text-lg font-bold hover:shadow-lg hover:scale-105 transition-all duration-300 active:scale-95"
           >
             Go Back
           </button>
@@ -83,9 +84,9 @@ const AppLayout = ({ children, showFooter = true }) => {
   const location = useLocation();
   
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-950">
       <Header />
-      <main className="flex-1 p-4 sm:p-6 lg:p-8">
+      <main className="flex-1 relative">
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
@@ -93,6 +94,7 @@ const AppLayout = ({ children, showFooter = true }) => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.3 }}
+            className="min-h-full"
           >
             {children}
           </motion.div>
@@ -121,16 +123,16 @@ class ErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-950">
-          <div className="text-center max-w-md mx-auto p-8">
-            <div className="text-6xl mb-4">😵</div>
-            <h1 className="text-2xl font-bold text-white mb-4">Something went wrong</h1>
-            <p className="text-slate-300 mb-6">
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
+          <div className="text-center max-w-md mx-auto">
+            <div className="text-8xl mb-6">😵</div>
+            <h1 className="text-3xl font-bold text-white mb-4">Something went wrong</h1>
+            <p className="text-slate-300 mb-8 text-lg leading-relaxed">
               We encountered an unexpected error. Please try refreshing the page.
             </p>
             <button
               onClick={() => window.location.reload()}
-              className="btn-primary focus-ring"
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-500 text-white py-4 px-6 rounded-2xl text-lg font-bold hover:shadow-lg hover:scale-105 transition-all duration-300 active:scale-95"
             >
               Refresh Page
             </button>
@@ -160,7 +162,7 @@ function AppContent() {
           </AppLayout>
         } />
         
-        {/* Feedback Routes */}
+        {/* Protected Routes */}
         <Route path="/feedback/:restaurantName" element={
           <AppLayout>
             <ProtectedRoute>
@@ -177,7 +179,6 @@ function AppContent() {
           </AppLayout>
         } />
         
-        {/* User Routes */}
         <Route path="/my-reviews" element={
           <AppLayout>
             <ProtectedRoute>
@@ -185,8 +186,7 @@ function AppContent() {
             </ProtectedRoute>
           </AppLayout>
         } />
-        
-        {/* NEW: Points System Routes */}
+
         <Route path="/rewards" element={
           <AppLayout>
             <ProtectedRoute>
@@ -194,20 +194,11 @@ function AppContent() {
             </ProtectedRoute>
           </AppLayout>
         } />
-        
+
         <Route path="/vouchers" element={
           <AppLayout>
             <ProtectedRoute>
               <Vouchers />
-            </ProtectedRoute>
-          </AppLayout>
-        } />
-        
-        {/* Setup Route (for initializing points system) */}
-        <Route path="/test-setup" element={
-          <AppLayout>
-            <ProtectedRoute>
-              <TestSetup />
             </ProtectedRoute>
           </AppLayout>
         } />
@@ -221,8 +212,26 @@ function AppContent() {
           </AppLayout>
         } />
         
-        {/* Catch-all redirect */}
-        <Route path="*" element={<Navigate to="/" replace />} />
+        {/* Catch all route */}
+        <Route path="*" element={
+          <AppLayout>
+            <div className="min-h-screen flex items-center justify-center p-6">
+              <div className="text-center max-w-md mx-auto">
+                <div className="text-8xl mb-6">🤔</div>
+                <h1 className="text-3xl font-bold text-white mb-4">Page Not Found</h1>
+                <p className="text-slate-300 mb-8 text-lg leading-relaxed">
+                  The page you're looking for doesn't exist.
+                </p>
+                <Link 
+                  to="/"
+                  className="inline-block w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 px-6 rounded-2xl text-lg font-bold hover:shadow-lg hover:scale-105 transition-all duration-300 active:scale-95"
+                >
+                  Go Home
+                </Link>
+              </div>
+            </div>
+          </AppLayout>
+        } />
       </Routes>
     </Router>
   );
@@ -232,16 +241,7 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <div className="app-container">
-          {/* Global background */}
-          <div className="fixed inset-0 -z-10">
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-blue-900/20 via-transparent to-transparent"></div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,_var(--tw-gradient-stops))] from-purple-900/10 via-transparent to-transparent"></div>
-          </div>
-          
-          <AppContent />
-        </div>
+        <AppContent />
       </AuthProvider>
     </ErrorBoundary>
   );

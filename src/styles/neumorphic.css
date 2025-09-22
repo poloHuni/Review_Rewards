@@ -1,0 +1,1483 @@
+/* Beautiful Neumorphic Design System with Dark Mode - Mobile-First */
+
+/* CSS Variables for Light Theme */
+:root {
+  /* Base Colors - Light Theme */
+  --neuro-bg: #e0e0e0;
+  --neuro-bg-light: #ebebeb;
+  --neuro-bg-dark: #d5d5d5;
+  
+  /* Text Colors - Light Theme */
+  --neuro-text-primary: #2c3e50;
+  --neuro-text-secondary: #5a6c7d;
+  --neuro-text-accent: #667eea;
+  --neuro-text-light: #8491a3;
+  
+  /* Shadow Colors - Light Theme */
+  --neuro-shadow-light: #f5f5f5;
+  --neuro-shadow-dark: #cbcbcb;
+  --neuro-shadow-inner-light: #f0f0f0;
+  --neuro-shadow-inner-dark: #d0d0d0;
+  
+  /* Accent Colors */
+  --neuro-primary: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --neuro-primary-shadow: rgba(102, 126, 234, 0.3);
+  --neuro-secondary: var(--neuro-bg);
+  
+  /* Spacing */
+  --neuro-spacing-xs: 0.5rem;
+  --neuro-spacing-sm: 1rem;
+  --neuro-spacing-md: 1.5rem;
+  --neuro-spacing-lg: 2rem;
+  --neuro-spacing-xl: 3rem;
+  
+  /* Border Radius */
+  --neuro-radius-sm: 0.75rem;
+  --neuro-radius-md: 1.25rem;
+  --neuro-radius-lg: 2rem;
+  --neuro-radius-xl: 2.5rem;
+  
+  /* Transitions */
+  --neuro-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --neuro-transition-slow: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark Theme Variables */
+[data-theme="dark"] {
+  /* Base Colors - Dark Theme (matching the provided aesthetic) */
+  --neuro-bg: #212121;
+  --neuro-bg-light: rgb(60, 60, 60);
+  --neuro-bg-dark: rgb(25, 25, 25);
+  
+  /* Text Colors - Dark Theme */
+  --neuro-text-primary: #e8e8e8;
+  --neuro-text-secondary: #b8b8b8;
+  --neuro-text-accent: #7c9aff;
+  --neuro-text-light: #888888;
+  
+  /* Shadow Colors - Dark Theme (exact match from provided code) */
+  --neuro-shadow-light: rgb(60, 60, 60);
+  --neuro-shadow-dark: rgb(25, 25, 25);
+  --neuro-shadow-inner-light: rgb(55, 55, 55);
+  --neuro-shadow-inner-dark: rgb(20, 20, 20);
+  
+  /* Accent Colors for Dark Mode */
+  --neuro-primary: linear-gradient(135deg, #7c9aff 0%, #8b7dcf 100%);
+  --neuro-primary-shadow: rgba(124, 154, 255, 0.4);
+}
+
+/* Reset and Base Styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Force the background color with theme support */
+html, body {
+  background: var(--neuro-bg) !important;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.6;
+  color: var(--neuro-text-primary);
+  overflow-x: hidden;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.neuro-body {
+  background: var(--neuro-bg) !important;
+  min-height: 100vh;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+/* Dark Mode Toggle */
+.neuro-theme-toggle {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+}
+
+.neuro-toggle-button {
+  background: var(--neuro-bg);
+  border: none;
+  border-radius: 30px;
+  padding: 0.75rem 1.25rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: inherit;
+  font-weight: 600;
+  color: var(--neuro-text-primary);
+  transition: var(--neuro-transition);
+  box-shadow: 
+    8px 8px 16px var(--neuro-shadow-dark),
+    -8px -8px 16px var(--neuro-shadow-light);
+}
+
+.neuro-toggle-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    10px 10px 20px var(--neuro-shadow-dark),
+    -10px -10px 20px var(--neuro-shadow-light);
+}
+
+.neuro-toggle-button:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 4px 4px 8px var(--neuro-shadow-inner-dark),
+    inset -4px -4px 8px var(--neuro-shadow-inner-light);
+}
+
+.neuro-toggle-icon {
+  font-size: 1.25rem;
+  transition: var(--neuro-transition);
+}
+
+.neuro-toggle-text {
+  font-size: 0.875rem;
+  transition: var(--neuro-transition);
+}
+
+/* Enhanced Dark Mode Cards (matching provided aesthetic) */
+[data-theme="dark"] .neuro-stat-card,
+[data-theme="dark"] .neuro-step-card,
+[data-theme="dark"] .neuro-restaurant-card,
+[data-theme="dark"] .neuro-hero-card,
+[data-theme="dark"] .neuro-cta-card,
+[data-theme="dark"] .neuro-loading-card,
+[data-theme="dark"] .neuro-error-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-stat-card:hover,
+[data-theme="dark"] .neuro-step-card:hover,
+[data-theme="dark"] .neuro-restaurant-card:hover {
+  box-shadow: 
+    20px 20px 40px var(--neuro-shadow-dark),
+    -20px -20px 40px var(--neuro-shadow-light);
+}
+
+/* Utility Classes */
+.neuro-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.neuro-full-screen {
+  min-height: 100vh;
+}
+
+.neuro-center-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Loading States */
+.neuro-loading-container {
+  text-align: center;
+}
+
+.neuro-loading-card {
+  background: var(--neuro-bg);
+  padding: 3rem 2rem;
+  border-radius: var(--neuro-radius-xl);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+  max-width: 400px;
+  width: 100%;
+  transition: var(--neuro-transition);
+}
+
+/* Dark Mode Specific Loading Card */
+[data-theme="dark"] .neuro-loading-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+.neuro-loading-spinner {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 2rem auto;
+}
+
+.neuro-spinner-ring {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border: 4px solid transparent;
+  border-top: 4px solid var(--neuro-text-accent);
+  border-radius: 50%;
+  animation: neuro-spin 1s linear infinite;
+  box-shadow: 
+    inset 2px 2px 5px var(--neuro-shadow-inner-dark),
+    inset -2px -2px 5px var(--neuro-shadow-inner-light);
+  transition: var(--neuro-transition);
+}
+
+.neuro-spinner-inner {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border: 2px solid transparent;
+  border-bottom: 2px solid var(--neuro-text-accent);
+  border-radius: 50%;
+  animation: neuro-spin 1.5s linear infinite reverse;
+  transition: var(--neuro-transition);
+}
+
+@keyframes neuro-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.neuro-loading-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.neuro-loading-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--neuro-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.neuro-loading-text {
+  color: var(--neuro-text-secondary);
+  font-size: 1rem;
+}
+
+/* Error States */
+.neuro-error-container {
+  text-align: center;
+  max-width: 400px;
+  width: 100%;
+}
+
+.neuro-error-card {
+  background: var(--neuro-bg);
+  padding: 3rem 2rem;
+  border-radius: var(--neuro-radius-xl);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+  transition: var(--neuro-transition);
+}
+
+/* Dark Mode Error Card */
+[data-theme="dark"] .neuro-error-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+.neuro-error-icon {
+  font-size: 4rem;
+  margin-bottom: 1.5rem;
+}
+
+.neuro-error-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin-bottom: 1rem;
+}
+
+.neuro-error-message {
+  color: var(--neuro-text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.neuro-error-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 2rem;
+  border-radius: var(--neuro-radius-md);
+  font-weight: 600;
+  min-height: 48px;
+}
+
+/* Hero Section */
+.neuro-hero-section {
+  padding: 3rem 0;
+  min-height: 70vh;
+  display: flex;
+  align-items: center;
+}
+
+.neuro-hero-header {
+  text-align: center;
+}
+
+.neuro-hero-card {
+  background: var(--neuro-bg);
+  padding: 3rem 2rem;
+  border-radius: var(--neuro-radius-xl);
+  box-shadow: 
+    12px 12px 30px var(--neuro-shadow-dark),
+    -12px -12px 30px var(--neuro-shadow-light);
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  transition: var(--neuro-transition);
+}
+
+/* Dark Mode Hero Card */
+[data-theme="dark"] .neuro-hero-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+.neuro-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--neuro-bg);
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  box-shadow: 
+    inset 3px 3px 8px var(--neuro-shadow-inner-dark),
+    inset -3px -3px 8px var(--neuro-shadow-inner-light);
+  margin-bottom: 2rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neuro-text-accent);
+}
+
+.neuro-badge-icon {
+  font-size: 1rem;
+}
+
+.neuro-hero-title {
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 1.5rem;
+  color: var(--neuro-text-primary);
+}
+
+.neuro-title-accent {
+  display: block;
+  background: var(--neuro-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-top: 0.5rem;
+}
+
+.neuro-hero-description {
+  font-size: 1.125rem;
+  color: var(--neuro-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 3rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.neuro-hero-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+/* Beautiful Buttons */
+.neuro-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1rem 2rem;
+  border: none;
+  border-radius: var(--neuro-radius-md);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  position: relative;
+  overflow: hidden;
+  min-height: 48px;
+  min-width: 120px;
+}
+
+.neuro-button-primary {
+  background: var(--neuro-primary);
+  color: white;
+  box-shadow: 
+    6px 6px 15px var(--neuro-shadow-dark),
+    -6px -6px 15px var(--neuro-shadow-light),
+    inset 0 0 0 var(--neuro-primary-shadow);
+  transition: var(--neuro-transition);
+}
+
+.neuro-button-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light),
+    0 0 20px var(--neuro-primary-shadow);
+}
+
+.neuro-button-primary:active {
+  transform: translateY(0);
+  box-shadow: 
+    4px 4px 10px var(--neuro-shadow-dark),
+    -4px -4px 10px var(--neuro-shadow-light);
+}
+
+.neuro-button-secondary {
+  background: var(--neuro-bg);
+  color: var(--neuro-text-primary);
+  box-shadow: 
+    6px 6px 15px var(--neuro-shadow-dark),
+    -6px -6px 15px var(--neuro-shadow-light);
+  transition: var(--neuro-transition);
+}
+
+.neuro-button-secondary:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+  color: var(--neuro-text-primary);
+  text-decoration: none;
+}
+
+.neuro-button-secondary:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 3px 3px 8px var(--neuro-shadow-inner-dark),
+    inset -3px -3px 8px var(--neuro-shadow-inner-light);
+}
+
+/* Dark Mode Button Enhancements */
+[data-theme="dark"] .neuro-button-primary,
+[data-theme="dark"] .neuro-button-secondary {
+  border-radius: 20px;
+}
+
+[data-theme="dark"] .neuro-button-primary {
+  box-shadow: 
+    10px 10px 20px var(--neuro-shadow-dark),
+    -10px -10px 20px var(--neuro-shadow-light),
+    0 0 15px var(--neuro-primary-shadow);
+}
+
+[data-theme="dark"] .neuro-button-primary:hover {
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light),
+    0 0 25px var(--neuro-primary-shadow);
+}
+
+[data-theme="dark"] .neuro-button-secondary {
+  box-shadow: 
+    10px 10px 20px var(--neuro-shadow-dark),
+    -10px -10px 20px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-button-secondary:hover {
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+.neuro-button-icon {
+  font-size: 1.25rem;
+}
+
+.neuro-button-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  transition: left 0.5s;
+}
+
+.neuro-button-primary:hover .neuro-button-shine {
+  left: 100%;
+}
+
+.neuro-hero-primary,
+.neuro-hero-secondary {
+  width: 100%;
+  max-width: 280px;
+}
+
+/* Stats Section */
+.neuro-stats-section {
+  padding: 3rem 0;
+}
+
+.neuro-stats-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.neuro-stat-card {
+  background: var(--neuro-bg);
+  padding: 2rem;
+  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+  text-align: center;
+  position: relative;
+  transition: var(--neuro-transition);
+  overflow: hidden;
+}
+
+.neuro-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    12px 12px 30px var(--neuro-shadow-dark),
+    -12px -12px 30px var(--neuro-shadow-light);
+}
+
+/* Dark Mode Stats Card */
+[data-theme="dark"] .neuro-stat-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-stat-card:hover {
+  box-shadow: 
+    20px 20px 40px var(--neuro-shadow-dark),
+    -20px -20px 40px var(--neuro-shadow-light);
+}
+
+.neuro-stat-icon-container {
+  background: var(--neuro-bg);
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--neuro-radius-md);
+  box-shadow: 
+    inset 4px 4px 8px var(--neuro-shadow-inner-dark),
+    inset -4px -4px 8px var(--neuro-shadow-inner-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem auto;
+}
+
+.neuro-stat-icon {
+  font-size: 2rem;
+}
+
+.neuro-stat-number {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--neuro-text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.neuro-stat-label {
+  color: var(--neuro-text-secondary);
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.neuro-stat-decoration {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--neuro-bg);
+  box-shadow: 
+    inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+    inset -2px -2px 4px var(--neuro-shadow-inner-light);
+}
+
+/* How It Works Section */
+.neuro-how-section {
+  padding: 4rem 0;
+}
+
+.neuro-section-header {
+  text-align: center;
+  margin-bottom: 3rem;
+}
+
+.neuro-section-title-card {
+  background: var(--neuro-bg);
+  padding: 2rem 3rem;
+  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    inset 6px 6px 12px var(--neuro-shadow-inner-dark),
+    inset -6px -6px 12px var(--neuro-shadow-inner-light);
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.neuro-section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin: 0;
+}
+
+.neuro-title-underline {
+  width: 60px;
+  height: 4px;
+  background: var(--neuro-primary);
+  border-radius: 2px;
+  margin: 1rem auto 0;
+}
+
+.neuro-section-subtitle {
+  font-size: 1.125rem;
+  color: var(--neuro-text-secondary);
+  max-width: 600px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.neuro-steps-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.neuro-step-card {
+  background: var(--neuro-bg);
+  padding: 2.5rem 2rem;
+  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+  text-align: center;
+  position: relative;
+  transition: var(--neuro-transition);
+  overflow: hidden;
+}
+
+.neuro-step-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 
+    12px 12px 30px var(--neuro-shadow-dark),
+    -12px -12px 30px var(--neuro-shadow-light);
+}
+
+/* Dark Mode Step Card */
+[data-theme="dark"] .neuro-step-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-step-card:hover {
+  box-shadow: 
+    20px 20px 40px var(--neuro-shadow-dark),
+    -20px -20px 40px var(--neuro-shadow-light);
+}
+
+.neuro-step-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.neuro-step-number {
+  background: var(--neuro-primary);
+  color: white;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  font-weight: 700;
+  box-shadow: 
+    6px 6px 15px var(--neuro-shadow-dark),
+    -6px -6px 15px var(--neuro-shadow-light);
+}
+
+.neuro-step-icon-wrapper {
+  background: var(--neuro-bg);
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--neuro-radius-sm);
+  box-shadow: 
+    inset 3px 3px 6px var(--neuro-shadow-inner-dark),
+    inset -3px -3px 6px var(--neuro-shadow-inner-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.neuro-step-icon {
+  font-size: 1.5rem;
+}
+
+.neuro-step-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin-bottom: 1rem;
+}
+
+.neuro-step-description {
+  color: var(--neuro-text-secondary);
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.neuro-step-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.neuro-step-card:hover .neuro-step-glow {
+  opacity: 1;
+}
+
+/* Restaurants Section */
+.neuro-restaurants-section {
+  padding: 4rem 0;
+}
+
+.neuro-restaurants-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.neuro-restaurant-card {
+  background: var(--neuro-bg);
+  padding: 2rem;
+  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+  transition: var(--neuro-transition);
+  position: relative;
+  overflow: hidden;
+}
+
+.neuro-restaurant-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 
+    12px 12px 30px var(--neuro-shadow-dark),
+    -12px -12px 30px var(--neuro-shadow-light);
+}
+
+/* Dark Mode Restaurant Card */
+[data-theme="dark"] .neuro-restaurant-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-restaurant-card:hover {
+  box-shadow: 
+    20px 20px 40px var(--neuro-shadow-dark),
+    -20px -20px 40px var(--neuro-shadow-light);
+}
+
+.neuro-restaurant-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.neuro-restaurant-icon-container {
+  background: var(--neuro-bg);
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--neuro-radius-md);
+  box-shadow: 
+    inset 3px 3px 6px var(--neuro-shadow-inner-dark),
+    inset -3px -3px 6px var(--neuro-shadow-inner-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.neuro-restaurant-icon {
+  font-size: 1.75rem;
+}
+
+.neuro-restaurant-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.neuro-restaurant-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin-bottom: 0.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neuro-restaurant-category {
+  color: var(--neuro-text-secondary);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+.neuro-restaurant-favorite {
+  flex-shrink: 0;
+}
+
+.neuro-favorite-button {
+  background: var(--neuro-bg);
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  font-size: 1.25rem;
+  color: var(--neuro-text-light);
+}
+
+.neuro-favorite-button:hover {
+  color: #e74c3c;
+  transform: scale(1.1);
+}
+
+.neuro-restaurant-address {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--neuro-text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 1.5rem;
+  line-height: 1.4;
+}
+
+.neuro-address-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.neuro-address-text {
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.neuro-restaurant-meta {
+  margin-bottom: 1.5rem;
+}
+
+.neuro-rating-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.neuro-rating-stars {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.neuro-star {
+  font-size: 1.25rem;
+}
+
+.neuro-rating-value {
+  font-weight: 600;
+  color: var(--neuro-text-primary);
+}
+
+.neuro-review-count {
+  color: var(--neuro-text-secondary);
+  font-size: 0.875rem;
+}
+
+.neuro-restaurant-button {
+  width: 100%;
+  justify-content: center;
+}
+
+.neuro-card-shine {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
+  transition: left 0.8s;
+}
+
+.neuro-restaurant-card:hover .neuro-card-shine {
+  left: 100%;
+}
+
+.neuro-view-all-container {
+  text-align: center;
+}
+
+.neuro-view-all-button {
+  padding: 1rem 3rem;
+}
+
+/* CTA Section */
+.neuro-cta-section {
+  padding: 4rem 0;
+}
+
+.neuro-cta-card {
+  background: var(--neuro-bg);
+  padding: 4rem 3rem;
+  border-radius: var(--neuro-radius-xl);
+  box-shadow: 
+    15px 15px 40px var(--neuro-shadow-dark),
+    -15px -15px 40px var(--neuro-shadow-light);
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+  transition: var(--neuro-transition);
+}
+
+/* Dark Mode CTA Card */
+[data-theme="dark"] .neuro-cta-card {
+  border-radius: 30px;
+  box-shadow: 
+    20px 20px 50px var(--neuro-shadow-dark),
+    -20px -20px 50px var(--neuro-shadow-light);
+}
+
+.neuro-cta-decoration {
+  position: relative;
+  margin-bottom: 2rem;
+}
+
+.neuro-cta-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.neuro-cta-sparkles {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 100px;
+}
+
+.neuro-sparkle {
+  position: absolute;
+  font-size: 1.5rem;
+  animation: neuro-float 3s ease-in-out infinite;
+}
+
+.neuro-sparkle-1 {
+  top: 10px;
+  left: 20px;
+  animation-delay: 0s;
+}
+
+.neuro-sparkle-2 {
+  top: 20px;
+  right: 30px;
+  animation-delay: 1s;
+}
+
+.neuro-sparkle-3 {
+  bottom: 10px;
+  left: 50%;
+  animation-delay: 2s;
+}
+
+@keyframes neuro-float {
+  0%, 100% { 
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.7;
+  }
+  50% { 
+    transform: translateY(-10px) rotate(180deg);
+    opacity: 1;
+  }
+}
+
+.neuro-cta-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin-bottom: 1.5rem;
+  line-height: 1.2;
+}
+
+.neuro-cta-description {
+  font-size: 1.125rem;
+  color: var(--neuro-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 3rem;
+  max-width: 500px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.neuro-cta-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.neuro-cta-primary {
+  width: 100%;
+  max-width: 300px;
+  padding: 1.25rem 2rem;
+}
+
+.neuro-cta-note {
+  color: var(--neuro-text-light);
+  font-size: 0.875rem;
+  margin-top: 0.5rem;
+}
+
+.neuro-cta-glow {
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(102, 126, 234, 0.05) 0%, transparent 70%);
+  animation: neuro-glow 4s ease-in-out infinite;
+}
+
+@keyframes neuro-glow {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.6; }
+}
+
+/* Neumorphic Icons - Replace Emoji with Beautiful Icons */
+
+.neuro-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--neuro-bg);
+  border-radius: 50%;
+  transition: var(--neuro-transition);
+  position: relative;
+}
+
+/* Icon Sizes */
+.neuro-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: 0.75rem;
+}
+
+.neuro-icon-large {
+  width: 4rem;
+  height: 4rem;
+  font-size: 2rem;
+  border-radius: var(--neuro-radius-lg);
+}
+
+/* Specific Icon Styles */
+.neuro-icon-write::before {
+  content: '✎';
+  font-weight: bold;
+  color: var(--neuro-text-accent);
+}
+
+.neuro-icon-rocket::before {
+  content: '↗';
+  font-weight: bold;
+  color: var(--neuro-text-accent);
+  transform: rotate(-45deg);
+}
+
+.neuro-icon-explore::before {
+  content: '◈';
+  color: var(--neuro-text-accent);
+}
+
+.neuro-icon-restaurant::before {
+  content: '⌂';
+  color: var(--neuro-text-primary);
+  font-weight: bold;
+}
+
+.neuro-icon-star::before {
+  content: '★';
+  color: #ffd700;
+}
+
+.neuro-icon-star-filled::before {
+  content: '★';
+  color: #ffd700;
+}
+
+.neuro-icon-community::before {
+  content: '◉';
+  color: var(--neuro-text-accent);
+}
+
+.neuro-icon-choose::before {
+  content: '⊞';
+  color: #8b5cf6;
+  font-size: 1.5rem;
+}
+
+.neuro-icon-review::before {
+  content: '✓';
+  color: #3b82f6;
+  font-weight: bold;
+  font-size: 1.5rem;
+}
+
+.neuro-icon-help::before {
+  content: '♦';
+  color: #10b981;
+  font-size: 1.5rem;
+}
+
+.neuro-icon-food::before {
+  content: '◐';
+  color: var(--neuro-text-primary);
+}
+
+.neuro-icon-food-large::before {
+  content: '◐';
+  color: var(--neuro-text-accent);
+  font-size: 3rem;
+}
+
+.neuro-icon-heart::before {
+  content: '♡';
+  color: var(--neuro-text-secondary);
+  transition: var(--neuro-transition);
+}
+
+.neuro-icon-heart:hover::before {
+  content: '♥';
+  color: #ef4444;
+}
+
+.neuro-icon-location::before {
+  content: '◎';
+  color: var(--neuro-text-secondary);
+  font-size: 0.875rem;
+}
+
+/* Icon Containers with Neumorphic Effects */
+.neuro-icon {
+  box-shadow: 
+    3px 3px 6px var(--neuro-shadow-dark),
+    -3px -3px 6px var(--neuro-shadow-light);
+}
+
+.neuro-icon-large {
+  box-shadow: 
+    8px 8px 16px var(--neuro-shadow-dark),
+    -8px -8px 16px var(--neuro-shadow-light);
+}
+
+/* Icon Hover Effects */
+.neuro-icon:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-icon-large:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    12px 12px 24px var(--neuro-shadow-dark),
+    -12px -12px 24px var(--neuro-shadow-light);
+}
+[data-theme="dark"] .neuro-toggle-button {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-toggle-button:hover {
+  box-shadow: 
+    20px 20px 40px var(--neuro-shadow-dark),
+    -20px -20px 40px var(--neuro-shadow-light);
+}
+
+/* Dark Mode Icon Containers */
+[data-theme="dark"] .neuro-stat-icon-container,
+[data-theme="dark"] .neuro-step-icon-wrapper,
+[data-theme="dark"] .neuro-restaurant-icon-container {
+  border-radius: 20px;
+  box-shadow: 
+    inset 8px 8px 15px var(--neuro-shadow-inner-dark),
+    inset -8px -8px 15px var(--neuro-shadow-inner-light);
+}
+
+/* Dark Mode Step Numbers */
+[data-theme="dark"] .neuro-step-number {
+  box-shadow: 
+    10px 10px 20px var(--neuro-shadow-dark),
+    -10px -10px 20px var(--neuro-shadow-light);
+}
+
+/* Dark Mode Favorite Button */
+[data-theme="dark"] .neuro-favorite-button {
+  border-radius: 50%;
+  box-shadow: 
+    8px 8px 15px var(--neuro-shadow-dark),
+    -8px -8px 15px var(--neuro-shadow-light);
+}
+
+/* Dark Mode Section Title Cards */
+[data-theme="dark"] .neuro-section-title-card {
+  border-radius: 30px;
+  box-shadow: 
+    inset 10px 10px 20px var(--neuro-shadow-inner-dark),
+    inset -10px -10px 20px var(--neuro-shadow-inner-light);
+}
+
+/* Dark Mode Hero Badge */
+[data-theme="dark"] .neuro-hero-badge {
+  border-radius: 30px;
+  box-shadow: 
+    inset 6px 6px 12px var(--neuro-shadow-inner-dark),
+    inset -6px -6px 12px var(--neuro-shadow-inner-light);
+}
+
+/* Dark Mode Glow Effects */
+[data-theme="dark"] .neuro-step-glow {
+  background: radial-gradient(circle, rgba(124, 154, 255, 0.15) 0%, transparent 70%);
+}
+
+[data-theme="dark"] .neuro-cta-glow {
+  background: radial-gradient(circle, rgba(124, 154, 255, 0.08) 0%, transparent 70%);
+}
+
+/* Dark Mode Sparkle Animation Enhancement */
+[data-theme="dark"] .neuro-sparkle {
+  filter: brightness(1.2);
+  text-shadow: 0 0 10px rgba(124, 154, 255, 0.5);
+}
+@media (min-width: 768px) {
+  .neuro-container {
+    padding: 0 2rem;
+  }
+
+  .neuro-hero-title {
+    font-size: 4rem;
+  }
+
+  .neuro-hero-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .neuro-hero-primary,
+  .neuro-hero-secondary {
+    width: auto;
+    min-width: 200px;
+  }
+
+  .neuro-stats-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .neuro-steps-container {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+  }
+
+  .neuro-restaurants-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .neuro-cta-actions {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .neuro-cta-primary {
+    width: auto;
+  }
+}
+
+/* Responsive Design - Desktop */
+@media (min-width: 1024px) {
+  .neuro-hero-section {
+    padding: 5rem 0;
+    min-height: 80vh;
+  }
+
+  .neuro-hero-title {
+    font-size: 4.5rem;
+  }
+
+  .neuro-stats-section,
+  .neuro-how-section,
+  .neuro-restaurants-section,
+  .neuro-cta-section {
+    padding: 5rem 0;
+  }
+
+  .neuro-restaurants-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .neuro-section-title {
+    font-size: 3rem;
+  }
+
+  .neuro-cta-title {
+    font-size: 3rem;
+  }
+
+  /* Hover effects for desktop */
+  .neuro-step-card:hover,
+  .neuro-restaurant-card:hover,
+  .neuro-stat-card:hover {
+    transform: translateY(-5px);
+  }
+}
+
+/* Accessibility */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  
+  .neuro-step-card:hover,
+  .neuro-restaurant-card:hover,
+  .neuro-stat-card:hover {
+    transform: none;
+  }
+}
+
+/* Focus states for accessibility - Enhanced for both themes */
+.neuro-button:focus,
+.neuro-favorite-button:focus,
+.neuro-toggle-button:focus {
+  outline: 3px solid var(--neuro-text-accent);
+  outline-offset: 2px;
+}
+
+/* Dark Mode Focus Enhancement */
+[data-theme="dark"] .neuro-button:focus,
+[data-theme="dark"] .neuro-favorite-button:focus,
+[data-theme="dark"] .neuro-toggle-button:focus {
+  outline: 3px solid var(--neuro-text-accent);
+  outline-offset: 3px;
+  box-shadow: 
+    0 0 0 6px rgba(124, 154, 255, 0.3),
+    8px 8px 15px var(--neuro-shadow-dark),
+    -8px -8px 15px var(--neuro-shadow-light);
+}
+
+/* High contrast mode - Enhanced for dark theme */
+@media (prefers-contrast: high) {
+  [data-theme="dark"] {
+    --neuro-shadow-dark: rgb(15, 15, 15);
+    --neuro-shadow-light: rgb(80, 80, 80);
+  }
+  
+  [data-theme="dark"] .neuro-stat-card,
+  [data-theme="dark"] .neuro-step-card,
+  [data-theme="dark"] .neuro-restaurant-card,
+  [data-theme="dark"] .neuro-hero-card,
+  [data-theme="dark"] .neuro-cta-card {
+    border: 2px solid var(--neuro-text-primary);
+  }
+}
+
+/* Smooth theme transition for all elements */
+* {
+  transition-property: background-color, color, border-color, box-shadow;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+/* Dark mode specific transitions */
+[data-theme="dark"] * {
+  transition-property: background-color, color, border-color, box-shadow, text-shadow;
+  transition-duration: 0.3s;
+  transition-timing-function: ease;
+}
+
+/* Print styles */
+@media print {
+  .neuro-hero-actions,
+  .neuro-cta-actions,
+  .neuro-restaurant-button,
+  .neuro-favorite-button {
+    display: none;
+  }
+  
+  .neuro-hero-section,
+  .neuro-stats-section,
+  .neuro-how-section,
+  .neuro-restaurants-section,
+  .neuro-cta-section {
+    padding: 2rem 0;
+  }
+}

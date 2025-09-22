@@ -1,0 +1,1185 @@
+/* Neumorphic Header and Footer Styles - Mobile-First with Dark Mode */
+
+/* ===== NEUMORPHIC HEADER STYLES ===== */
+
+.neuro-header {
+  background: var(--neuro-bg);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  padding: 1rem 0;
+  transition: var(--neuro-transition);
+  box-shadow: 
+    0 8px 20px var(--neuro-shadow-dark),
+    0 -8px 20px var(--neuro-shadow-light);
+}
+
+.neuro-header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.neuro-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+/* Brand Section */
+.neuro-header-brand {
+  flex-shrink: 0;
+}
+
+.neuro-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  transition: var(--neuro-transition);
+}
+
+.neuro-brand-link:hover {
+  transform: translateY(-1px);
+}
+
+.neuro-brand-icon-container {
+  background: var(--neuro-bg);
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--neuro-radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+  transition: var(--neuro-transition);
+}
+
+.neuro-brand-link:hover .neuro-brand-icon-container {
+  box-shadow: 
+    8px 8px 16px var(--neuro-shadow-dark),
+    -8px -8px 16px var(--neuro-shadow-light);
+}
+
+.neuro-brand-icon {
+  font-size: 1.5rem;
+}
+
+.neuro-brand-text {
+  display: none;
+}
+
+.neuro-brand-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.neuro-brand-subtitle {
+  font-size: 0.75rem;
+  color: var(--neuro-text-secondary);
+  margin: 0;
+  line-height: 1;
+}
+
+/* Desktop Navigation */
+.neuro-desktop-nav {
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.neuro-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--neuro-radius-md);
+  text-decoration: none;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: var(--neuro-transition);
+  position: relative;
+  min-height: 48px;
+}
+
+.neuro-nav-item-inactive {
+  background: var(--neuro-bg);
+  color: var(--neuro-text-secondary);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-nav-item-inactive:hover {
+  color: var(--neuro-text-primary);
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+}
+
+.neuro-nav-item-active {
+  background: var(--neuro-bg);
+  color: var(--neuro-text-accent);
+  box-shadow: 
+    inset 3px 3px 6px var(--neuro-shadow-inner-dark),
+    inset -3px -3px 6px var(--neuro-shadow-inner-light);
+}
+
+.neuro-nav-item-highlight-active {
+  background: var(--neuro-primary);
+  color: white;
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light),
+    0 0 15px var(--neuro-primary-shadow);
+}
+
+.neuro-nav-icon {
+  font-size: 1rem;
+}
+
+.neuro-nav-text {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+.neuro-nav-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.625rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Header Actions */
+.neuro-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* Theme Toggle in Header */
+.neuro-theme-toggle-header {
+  background: var(--neuro-bg);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-theme-toggle-header:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+}
+
+.neuro-theme-toggle-header:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+    inset -2px -2px 4px var(--neuro-shadow-inner-light);
+}
+
+/* User Menu */
+.neuro-user-menu {
+  position: relative;
+  display: none;
+}
+
+.neuro-user-button {
+  background: var(--neuro-bg);
+  border: none;
+  border-radius: var(--neuro-radius-md);
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  font-family: inherit;
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+  min-height: 48px;
+}
+
+.neuro-user-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+}
+
+.neuro-user-avatar {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.neuro-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.neuro-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--neuro-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.neuro-user-info {
+  text-align: left;
+  min-width: 0;
+}
+
+.neuro-user-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neuro-text-primary);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 120px;
+}
+
+.neuro-user-role {
+  font-size: 0.75rem;
+  color: var(--neuro-text-accent);
+  line-height: 1;
+  margin-top: 0.125rem;
+}
+
+.neuro-user-chevron {
+  color: var(--neuro-text-secondary);
+  transition: var(--neuro-transition);
+}
+
+.neuro-chevron-open {
+  transform: rotate(180deg);
+}
+
+/* Login Button */
+.neuro-login-button {
+  background: var(--neuro-primary);
+  color: white;
+  border-radius: var(--neuro-radius-md);
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.875rem;
+  transition: var(--neuro-transition);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+  min-height: 48px;
+}
+
+.neuro-login-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light),
+    0 0 15px var(--neuro-primary-shadow);
+  color: white;
+  text-decoration: none;
+}
+
+.neuro-login-icon {
+  font-size: 1rem;
+}
+
+.neuro-login-text {
+  font-size: 0.875rem;
+  white-space: nowrap;
+}
+
+/* Mobile Menu Button */
+.neuro-mobile-menu-button {
+  background: var(--neuro-bg);
+  border: none;
+  border-radius: 50%;
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-mobile-menu-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+}
+
+.neuro-mobile-menu-button:active {
+  transform: translateY(0);
+  box-shadow: 
+    inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+    inset -2px -2px 4px var(--neuro-shadow-inner-light);
+}
+
+.neuro-mobile-menu-icon {
+  font-size: 1.25rem;
+  color: var(--neuro-text-primary);
+}
+
+/* User Dropdown */
+.neuro-dropdown-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 10;
+}
+
+.neuro-user-dropdown {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.5rem);
+  width: 280px;
+  background: var(--neuro-bg);
+  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    12px 12px 30px var(--neuro-shadow-dark),
+    -12px -12px 30px var(--neuro-shadow-light);
+  padding: 1rem;
+  z-index: 20;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.neuro-dropdown-header {
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--neuro-shadow-inner-dark);
+  margin-bottom: 1rem;
+}
+
+.neuro-dropdown-user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.neuro-dropdown-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.neuro-dropdown-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.neuro-dropdown-avatar-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--neuro-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.neuro-dropdown-user-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.neuro-dropdown-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neuro-text-primary);
+  line-height: 1.2;
+}
+
+.neuro-dropdown-email {
+  font-size: 0.75rem;
+  color: var(--neuro-text-secondary);
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.neuro-dropdown-role {
+  font-size: 0.75rem;
+  color: var(--neuro-text-accent);
+  font-weight: 600;
+  margin-top: 0.25rem;
+}
+
+.neuro-dropdown-nav {
+  margin-bottom: 1rem;
+}
+
+.neuro-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border-radius: var(--neuro-radius-md);
+  text-decoration: none;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  width: 100%;
+  margin-bottom: 0.25rem;
+}
+
+.neuro-dropdown-item-inactive {
+  color: var(--neuro-text-secondary);
+  background: var(--neuro-bg);
+  box-shadow: 
+    2px 2px 4px var(--neuro-shadow-dark),
+    -2px -2px 4px var(--neuro-shadow-light);
+}
+
+.neuro-dropdown-item-inactive:hover {
+  color: var(--neuro-text-primary);
+  text-decoration: none;
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-dropdown-item-active {
+  color: var(--neuro-text-accent);
+  background: var(--neuro-bg);
+  box-shadow: 
+    inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+    inset -2px -2px 4px var(--neuro-shadow-inner-light);
+}
+
+.neuro-dropdown-item-highlight {
+  background: var(--neuro-primary);
+  color: white;
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-dropdown-item-logout {
+  color: #ef4444;
+  background: var(--neuro-bg);
+  box-shadow: 
+    2px 2px 4px var(--neuro-shadow-dark),
+    -2px -2px 4px var(--neuro-shadow-light);
+}
+
+.neuro-dropdown-item-logout:hover {
+  color: #dc2626;
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-dropdown-icon {
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.neuro-dropdown-text {
+  font-weight: 500;
+}
+
+.neuro-dropdown-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.625rem;
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.375rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: auto;
+}
+
+/* Mobile Menu */
+.neuro-mobile-menu {
+  background: var(--neuro-bg);
+  padding: 1rem;
+  margin-top: 1rem;
+  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    inset 6px 6px 12px var(--neuro-shadow-inner-dark),
+    inset -6px -6px 12px var(--neuro-shadow-inner-light);
+}
+
+.neuro-mobile-menu-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.neuro-mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: var(--neuro-radius-md);
+  text-decoration: none;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  width: 100%;
+}
+
+.neuro-mobile-item-inactive {
+  color: var(--neuro-text-secondary);
+  background: var(--neuro-bg);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-mobile-item-inactive:hover {
+  color: var(--neuro-text-primary);
+  text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+}
+
+.neuro-mobile-item-active {
+  color: var(--neuro-text-accent);
+  background: var(--neuro-bg);
+  box-shadow: 
+    inset 3px 3px 6px var(--neuro-shadow-inner-dark),
+    inset -3px -3px 6px var(--neuro-shadow-inner-light);
+}
+
+.neuro-mobile-item-highlight {
+  background: var(--neuro-primary);
+  color: white;
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+}
+
+.neuro-mobile-item-logout {
+  color: #ef4444;
+  background: var(--neuro-bg);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-mobile-item-logout:hover {
+  color: #dc2626;
+}
+
+.neuro-mobile-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.neuro-mobile-text {
+  font-weight: 500;
+}
+
+.neuro-mobile-badge {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-size: 0.625rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-left: auto;
+}
+
+.neuro-mobile-divider {
+  height: 1px;
+  background: var(--neuro-shadow-inner-dark);
+  margin: 0.5rem 0;
+}
+
+/* ===== NEUMORPHIC FOOTER STYLES ===== */
+
+.neuro-footer {
+  background: var(--neuro-bg);
+  margin-top: 4rem;
+  transition: var(--neuro-transition);
+}
+
+.neuro-footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Main Footer Content */
+.neuro-footer-main {
+  padding: 3rem 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 3rem;
+}
+
+/* Footer Brand */
+.neuro-footer-brand {
+  text-align: center;
+}
+
+.neuro-footer-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.neuro-footer-icon-container {
+  background: var(--neuro-bg);
+  width: 4rem;
+  height: 4rem;
+  border-radius: var(--neuro-radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 
+    8px 8px 16px var(--neuro-shadow-dark),
+    -8px -8px 16px var(--neuro-shadow-light);
+  flex-shrink: 0;
+}
+
+.neuro-footer-icon {
+  font-size: 2rem;
+}
+
+.neuro-footer-brand-text {
+  text-align: left;
+}
+
+.neuro-footer-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin: 0 0 0.25rem 0;
+  line-height: 1.2;
+}
+
+.neuro-footer-subtitle {
+  font-size: 0.875rem;
+  color: var(--neuro-text-accent);
+  margin: 0;
+  font-weight: 600;
+}
+
+.neuro-footer-description {
+  color: var(--neuro-text-secondary);
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Social Links */
+.neuro-footer-social {
+  text-align: center;
+}
+
+.neuro-footer-social-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neuro-text-primary);
+  margin-bottom: 1rem;
+}
+
+.neuro-footer-social-links {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.neuro-footer-social-link {
+  background: var(--neuro-bg);
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  transition: var(--neuro-transition);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-footer-social-link:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+}
+
+.neuro-social-icon {
+  font-size: 1.25rem;
+}
+
+/* Footer Links */
+.neuro-footer-links {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.neuro-footer-section {
+  text-align: center;
+}
+
+.neuro-footer-section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin-bottom: 1rem;
+}
+
+.neuro-footer-section-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.neuro-footer-section-links li {
+  margin-bottom: 0.5rem;
+}
+
+.neuro-footer-link {
+  color: var(--neuro-text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: var(--neuro-transition);
+  font-weight: 500;
+}
+
+.neuro-footer-link:hover {
+  color: var(--neuro-text-accent);
+  text-decoration: none;
+}
+
+/* Newsletter Section */
+.neuro-footer-newsletter {
+  padding: 2rem 0;
+  border-top: 1px solid var(--neuro-shadow-inner-dark);
+  border-bottom: 1px solid var(--neuro-shadow-inner-dark);
+}
+
+.neuro-newsletter-card {
+  background: var(--neuro-bg);
+  padding: 2rem;
+  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+  text-align: center;
+}
+
+.neuro-newsletter-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.neuro-newsletter-icon {
+  font-size: 2.5rem;
+}
+
+.neuro-newsletter-text {
+  text-align: center;
+}
+
+.neuro-newsletter-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin: 0 0 0.5rem 0;
+}
+
+.neuro-newsletter-description {
+  color: var(--neuro-text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.neuro-newsletter-form {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.neuro-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.neuro-newsletter-input {
+  background: var(--neuro-bg);
+  border: none;
+  padding: 1rem;
+  border-radius: var(--neuro-radius-md);
+  font-family: inherit;
+  font-size: 1rem;
+  color: var(--neuro-text-primary);
+  box-shadow: 
+    inset 4px 4px 8px var(--neuro-shadow-inner-dark),
+    inset -4px -4px 8px var(--neuro-shadow-inner-light);
+  transition: var(--neuro-transition);
+}
+
+.neuro-newsletter-input:focus {
+  outline: none;
+  box-shadow: 
+    inset 4px 4px 8px var(--neuro-shadow-inner-dark),
+    inset -4px -4px 8px var(--neuro-shadow-inner-light),
+    0 0 0 3px var(--neuro-primary-shadow);
+}
+
+.neuro-newsletter-input::placeholder {
+  color: var(--neuro-text-light);
+}
+
+.neuro-newsletter-button {
+  background: var(--neuro-primary);
+  color: white;
+  border: none;
+  padding: 1rem 1.5rem;
+  border-radius: var(--neuro-radius-md);
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--neuro-transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-newsletter-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light),
+    0 0 15px var(--neuro-primary-shadow);
+}
+
+.neuro-newsletter-button-icon {
+  font-size: 1rem;
+}
+
+.neuro-newsletter-button-text {
+  font-size: 1rem;
+}
+
+/* Footer Bottom */
+.neuro-footer-bottom {
+  padding: 2rem 0;
+}
+
+.neuro-footer-bottom-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  text-align: center;
+  align-items: center;
+}
+
+.neuro-footer-copyright {
+  text-align: center;
+}
+
+.neuro-copyright-text {
+  font-size: 0.875rem;
+  color: var(--neuro-text-secondary);
+  margin: 0 0 0.25rem 0;
+}
+
+.neuro-copyright-sub {
+  font-size: 0.75rem;
+  color: var(--neuro-text-light);
+  margin: 0;
+}
+
+.neuro-footer-quick-links {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.neuro-quick-link {
+  color: var(--neuro-text-secondary);
+  text-decoration: none;
+  font-size: 0.875rem;
+  transition: var(--neuro-transition);
+  font-weight: 500;
+}
+
+.neuro-quick-link:hover {
+  color: var(--neuro-text-accent);
+  text-decoration: none;
+}
+
+.neuro-link-separator {
+  color: var(--neuro-text-light);
+  font-size: 0.75rem;
+}
+
+.neuro-footer-stats {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.neuro-stat-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--neuro-bg);
+  padding: 0.75rem 1rem;
+  border-radius: var(--neuro-radius-md);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-stat-icon {
+  font-size: 1rem;
+}
+
+.neuro-stat-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neuro-text-primary);
+  white-space: nowrap;
+}
+
+/* Footer Accent Bar */
+.neuro-footer-accent {
+  padding: 0.5rem 0;
+}
+
+.neuro-accent-bar {
+  height: 4px;
+  background: var(--neuro-primary);
+  border-radius: 2px;
+  box-shadow: 
+    2px 2px 4px var(--neuro-shadow-dark),
+    -2px -2px 4px var(--neuro-shadow-light);
+}
+
+/* Dark Mode Enhancements for Header and Footer */
+[data-theme="dark"] .neuro-header {
+  box-shadow: 
+    0 15px 30px var(--neuro-shadow-dark),
+    0 -15px 30px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-brand-icon-container,
+[data-theme="dark"] .neuro-theme-toggle-header,
+[data-theme="dark"] .neuro-mobile-menu-button {
+  border-radius: 20px;
+  box-shadow: 
+    10px 10px 20px var(--neuro-shadow-dark),
+    -10px -10px 20px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-nav-item-inactive,
+[data-theme="dark"] .neuro-user-button,
+[data-theme="dark"] .neuro-login-button {
+  border-radius: 20px;
+  box-shadow: 
+    8px 8px 16px var(--neuro-shadow-dark),
+    -8px -8px 16px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-user-dropdown,
+[data-theme="dark"] .neuro-newsletter-card {
+  border-radius: 30px;
+  box-shadow: 
+    15px 15px 30px var(--neuro-shadow-dark),
+    -15px -15px 30px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-footer-icon-container,
+[data-theme="dark"] .neuro-footer-social-link,
+[data-theme="dark"] .neuro-stat-item {
+  border-radius: 20px;
+  box-shadow: 
+    8px 8px 15px var(--neuro-shadow-dark),
+    -8px -8px 15px var(--neuro-shadow-light);
+}
+
+/* Responsive Design - Tablet */
+@media (min-width: 768px) {
+  .neuro-header-container {
+    padding: 0 2rem;
+  }
+
+  .neuro-brand-text {
+    display: block;
+  }
+
+  .neuro-user-menu {
+    display: block;
+  }
+
+  .neuro-desktop-nav {
+    display: flex;
+  }
+
+  .neuro-mobile-menu-button {
+    display: none;
+  }
+
+  .neuro-footer-main {
+    grid-template-columns: 1fr 2fr;
+    gap: 4rem;
+    text-align: left;
+  }
+
+  .neuro-footer-brand {
+    text-align: left;
+  }
+
+  .neuro-footer-logo {
+    justify-content: flex-start;
+  }
+
+  .neuro-footer-description {
+    margin-left: 0;
+    margin-right: 0;
+  }
+
+  .neuro-footer-social {
+    text-align: left;
+  }
+
+  .neuro-footer-social-links {
+    justify-content: flex-start;
+  }
+
+  .neuro-footer-links {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .neuro-footer-section {
+    text-align: left;
+  }
+
+  .neuro-newsletter-content {
+    flex-direction: row;
+    text-align: left;
+  }
+
+  .neuro-newsletter-text {
+    text-align: left;
+  }
+
+  .neuro-input-group {
+    flex-direction: row;
+  }
+
+  .neuro-footer-bottom-content {
+    flex-direction: row;
+    justify-content: space-between;
+    text-align: left;
+  }
+
+  .neuro-footer-copyright {
+    text-align: left;
+  }
+}
+
+/* Responsive Design - Desktop */
+@media (min-width: 1024px) {
+  .neuro-header {
+    padding: 1.5rem 0;
+  }
+
+  .neuro-brand-icon-container {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+
+  .neuro-brand-icon {
+    font-size: 1.75rem;
+  }
+
+  .neuro-footer-main {
+    padding: 4rem 0;
+  }
+}
+
+/* Focus states for accessibility */
+.neuro-nav-item:focus,
+.neuro-user-button:focus,
+.neuro-login-button:focus,
+.neuro-theme-toggle-header:focus,
+.neuro-mobile-menu-button:focus,
+.neuro-newsletter-button:focus,
+.neuro-footer-link:focus,
+.neuro-footer-social-link:focus {
+  outline: 3px solid var(--neuro-text-accent);
+  outline-offset: 2px;
+}
