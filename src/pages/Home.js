@@ -226,88 +226,186 @@ const Home = () => {
         </section>
       )}
 
-      {/* How It Works Section */}
       <section className="neuro-how-section">
         <div className="neuro-container">
           <div className="neuro-section-header">
-            <div className="neuro-section-title-card">
+            <div className="neuro-section-title-button">
               <h2 className="neuro-section-title">How It Works</h2>
-              <div className="neuro-title-underline"></div>
             </div>
             <p className="neuro-section-subtitle">
-              Three simple steps to share your dining experience
+              Four simple steps to share your authentic dining experience
             </p>
           </div>
           
-          <div className="neuro-steps-container">
-            <div className="neuro-step-card">
-              <div className="neuro-step-header">
-                <div className="neuro-step-number">
-                  <span>1</span>
-                </div>
-                <div className="neuro-step-icon-wrapper">
-                  <div className="neuro-step-icon">🏪</div>
+          {/* Timeline Container */}
+          <div className="neuro-timeline">
+            {/* Step 1 */}
+            <div className="neuro-timeline-row">
+              {/* Timeline center line and dot */}
+              <div className="neuro-timeline-center">
+                <span className="neuro-timeline-dot">
+                  <span className="neuro-dot-inner">1</span>
+                </span>
+                <div className="neuro-timeline-line"></div>
+              </div>
+              
+              {/* Timeline card */}
+              <div className="neuro-timeline-content">
+                <div className="neuro-timeline-card">
+                  <div className="neuro-card-header">
+                    <span className="neuro-step-icon">📱</span>
+                    <h3 className="neuro-card-title">Scan QR & Start</h3>
+                  </div>
+                  
+                  <button 
+                    className="neuro-details-button"
+                    onClick={(e) => {
+                      const details = e.target.nextElementSibling;
+                      details.classList.toggle('show');
+                      e.target.classList.toggle('active');
+                    }}
+                  >
+                    Show Details 
+                    <span className="neuro-arrow">▼</span>
+                  </button>
+                  
+                  <div className="neuro-details-collapse">
+                    <div className="neuro-details-content">
+                      Scan the QR code at your table to instantly access our platform. 
+                      It automatically identifies your restaurant and table - no app download needed.
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="neuro-step-content">
-                <h3 className="neuro-step-title">Choose Restaurant</h3>
-                <p className="neuro-step-description">
-                  Pick from our carefully curated list of local favorites and hidden gems
-                </p>
-              </div>
-              <div className="neuro-step-glow"></div>
             </div>
             
-            <div className="neuro-step-card">
-              <div className="neuro-step-header">
-                <div className="neuro-step-number">
-                  <span>2</span>
-                </div>
-                <div className="neuro-step-icon-wrapper">
-                  <div className="neuro-step-icon">✍️</div>
+            {/* Step 2 */}
+            <div className="neuro-timeline-row">
+              <div className="neuro-timeline-center">
+                <span className="neuro-timeline-dot">
+                  <span className="neuro-dot-inner">2</span>
+                </span>
+                <div className="neuro-timeline-line"></div>
+              </div>
+              
+              <div className="neuro-timeline-content">
+                <div className="neuro-timeline-card">
+                  <div className="neuro-card-header">
+                    <span className="neuro-step-icon">🎙️</span>
+                    <h3 className="neuro-card-title">Voice Review</h3>
+                  </div>
+                  
+                  <button 
+                    className="neuro-details-button"
+                    onClick={(e) => {
+                      const details = e.target.nextElementSibling;
+                      details.classList.toggle('show');
+                      e.target.classList.toggle('active');
+                    }}
+                  >
+                    Show Details 
+                    <span className="neuro-arrow">▼</span>
+                  </button>
+                  
+                  <div className="neuro-details-collapse">
+                    <div className="neuro-details-content">
+                      Simply tap to record and share your thoughts about the food, service, and atmosphere. 
+                      Speak naturally for 30 seconds to 2 minutes - like telling a friend about your experience.
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="neuro-step-content">
-                <h3 className="neuro-step-title">Share Experience</h3>
-                <p className="neuro-step-description">
-                  Tell us about your visit using our intuitive and engaging review system
-                </p>
-              </div>
-              <div className="neuro-step-glow"></div>
             </div>
             
-            <div className="neuro-step-card">
-              <div className="neuro-step-header">
-                <div className="neuro-step-number">
-                  <span>3</span>
-                </div>
-                <div className="neuro-step-icon-wrapper">
-                  <div className="neuro-step-icon">🌟</div>
+            {/* Step 3 */}
+            <div className="neuro-timeline-row">
+              <div className="neuro-timeline-center">
+                <span className="neuro-timeline-dot">
+                  <span className="neuro-dot-inner">3</span>
+                </span>
+                <div className="neuro-timeline-line"></div>
+              </div>
+              
+              <div className="neuro-timeline-content">
+                <div className="neuro-timeline-card">
+                  <div className="neuro-card-header">
+                    <span className="neuro-step-icon">🤖</span>
+                    <h3 className="neuro-card-title">AI Processing</h3>
+                  </div>
+                  
+                  <button 
+                    className="neuro-details-button"
+                    onClick={(e) => {
+                      const details = e.target.nextElementSibling;
+                      details.classList.toggle('show');
+                      e.target.classList.toggle('active');
+                    }}
+                  >
+                    Show Details 
+                    <span className="neuro-arrow">▼</span>
+                  </button>
+                  
+                  <div className="neuro-details-collapse">
+                    <div className="neuro-details-content">
+                      Our AI transforms your voice into a structured review with ratings and insights. 
+                      It captures your authentic feedback while ensuring it's helpful for other diners.
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="neuro-step-content">
-                <h3 className="neuro-step-title">Help Community</h3>
-                <p className="neuro-step-description">
-                  Your insights help others discover amazing dining experiences
-                </p>
+            </div>
+            
+            {/* Step 4 */}
+            <div className="neuro-timeline-row">
+              <div className="neuro-timeline-center">
+                <span className="neuro-timeline-dot neuro-dot-last">
+                  <span className="neuro-dot-inner">4</span>
+                </span>
               </div>
-              <div className="neuro-step-glow"></div>
+              
+              <div className="neuro-timeline-content">
+                <div className="neuro-timeline-card">
+                  <div className="neuro-card-header">
+                    <span className="neuro-step-icon">🎁</span>
+                    <h3 className="neuro-card-title">Earn Rewards</h3>
+                  </div>
+                  
+                  <button 
+                    className="neuro-details-button"
+                    onClick={(e) => {
+                      const details = e.target.nextElementSibling;
+                      details.classList.toggle('show');
+                      e.target.classList.toggle('active');
+                    }}
+                  >
+                    Show Details 
+                    <span className="neuro-arrow">▼</span>
+                  </button>
+                  
+                  <div className="neuro-details-collapse">
+                    <div className="neuro-details-content">
+                      Get instant points for your review and unlock exclusive restaurant vouchers. 
+                      The more you review, the more rewards you earn to save on future dining.
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Featured Restaurants */}
       {restaurants.length > 0 && (
         <section id="restaurants-section" className="neuro-restaurants-section">
           <div className="neuro-container">
             <div className="neuro-section-header">
-              <div className="neuro-section-title-card">
+              <div className="neuro-section-title-button">
                 <h2 className="neuro-section-title">Featured Restaurants</h2>
-                <div className="neuro-title-underline"></div>
               </div>
               <p className="neuro-section-subtitle">
-                Discover amazing dining experiences shared by our community
+                Discover amazing places loved by our community
               </p>
             </div>
             
@@ -380,56 +478,6 @@ const Home = () => {
           </div>
         </section>
       )}
-
-      {/* Call to Action */}
-      <section className="neuro-cta-section">
-        <div className="neuro-container">
-          <div className="neuro-cta-card">
-            <div className="neuro-cta-decoration">
-              <div className="neuro-icon-large neuro-icon-food-large"></div>
-              <div className="neuro-cta-sparkles">
-                <span className="neuro-sparkle neuro-sparkle-1">✨</span>
-                <span className="neuro-sparkle neuro-sparkle-2">✨</span>
-                <span className="neuro-sparkle neuro-sparkle-3">✨</span>
-              </div>
-            </div>
-            
-            <div className="neuro-cta-content">
-              <h2 className="neuro-cta-title">Ready to Start Your Food Journey?</h2>
-              <p className="neuro-cta-description">
-                Join our community and help others discover amazing dining experiences.
-              </p>
-              
-              <div className="neuro-cta-actions">
-                {!currentUser ? (
-                  <>
-                    <Link 
-                      to="/login"
-                      className="neuro-button neuro-button-primary neuro-cta-primary"
-                    >
-                      <div className="neuro-icon neuro-icon-rocket"></div>
-                      <span className="neuro-button-text">Join Now - It's Free!</span>
-                      <span className="neuro-button-shine"></span>
-                    </Link>
-                    <p className="neuro-cta-note">No spam, just great food discoveries</p>
-                  </>
-                ) : (
-                  <Link 
-                    to="/feedback"
-                    className="neuro-button neuro-button-primary neuro-cta-primary"
-                  >
-                    <div className="neuro-icon neuro-icon-write"></div>
-                    <span className="neuro-button-text">Write Your First Review</span>
-                    <span className="neuro-button-shine"></span>
-                  </Link>
-                )}
-              </div>
-            </div>
-            
-            <div className="neuro-cta-glow"></div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 };

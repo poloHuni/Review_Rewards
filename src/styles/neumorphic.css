@@ -622,41 +622,59 @@ html, body {
     inset -2px -2px 4px var(--neuro-shadow-inner-light);
 }
 
-/* How It Works Section */
-.neuro-how-section {
-  padding: 4rem 0;
-}
-
+/* Improved Section Headers with Neumorphic Button Style */
 .neuro-section-header {
   text-align: center;
-  margin-bottom: 3rem;
+  margin-bottom: 3.5rem;
+  padding: 0 1rem;
 }
 
-.neuro-section-title-card {
-  background: var(--neuro-bg);
-  padding: 2rem 3rem;
-  border-radius: var(--neuro-radius-lg);
-  box-shadow: 
-    inset 6px 6px 12px var(--neuro-shadow-inner-dark),
-    inset -6px -6px 12px var(--neuro-shadow-inner-light);
+.neuro-section-title-button {
   display: inline-block;
+  padding: 1em 2em;
+  background: var(--neuro-bg);
+  border-radius: 50px;
   margin-bottom: 1.5rem;
+  transition: all 0.3s ease;
   position: relative;
+  box-shadow: 
+    8px 8px 20px var(--neuro-shadow-dark),
+    -8px -8px 20px var(--neuro-shadow-light);
+}
+
+.neuro-section-title-button::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: var(--neuro-primary);
+  border-radius: 50px;
+  opacity: 0;
+  z-index: -1;
+  transition: opacity 0.3s ease;
+}
+
+.neuro-section-title-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    12px 12px 30px var(--neuro-shadow-dark),
+    -12px -12px 30px var(--neuro-shadow-light);
+}
+
+.neuro-section-title-button:hover::before {
+  opacity: 0.1;
 }
 
 .neuro-section-title {
-  font-size: 2.5rem;
+  font-size: 2rem;
   font-weight: 700;
   color: var(--neuro-text-primary);
   margin: 0;
-}
-
-.neuro-title-underline {
-  width: 60px;
-  height: 4px;
-  background: var(--neuro-primary);
-  border-radius: 2px;
-  margin: 1rem auto 0;
+  position: relative;
+  z-index: 1;
+  letter-spacing: -0.5px;
 }
 
 .neuro-section-subtitle {
@@ -665,117 +683,384 @@ html, body {
   max-width: 600px;
   margin: 0 auto;
   line-height: 1.6;
+  opacity: 0.9;
 }
 
-.neuro-steps-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  max-width: 1000px;
-  margin: 0 auto;
+/* Title underline decoration (optional - adds a nice touch) */
+.neuro-section-title::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: var(--neuro-primary);
+  border-radius: 2px;
+  opacity: 0.7;
 }
 
-.neuro-step-card {
+/* Dark Mode Styles for Section Headers */
+[data-theme="dark"] .neuro-section-title-button {
   background: var(--neuro-bg);
-  padding: 2.5rem 2rem;
-  border-radius: var(--neuro-radius-lg);
+  box-shadow: 
+    10px 10px 25px var(--neuro-shadow-dark),
+    -10px -10px 25px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-section-title-button:hover {
+  box-shadow: 
+    15px 15px 35px var(--neuro-shadow-dark),
+    -15px -15px 35px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-section-title {
+  color: var(--neuro-text-primary);
+}
+
+[data-theme="dark"] .neuro-section-title::after {
+  background: linear-gradient(90deg, #00ffeb, #00b8a9);
+  opacity: 0.8;
+}
+
+[data-theme="dark"] .neuro-section-subtitle {
+  color: var(--neuro-text-secondary);
+  opacity: 0.85;
+}
+
+/* Timeline How It Works Section - Minimal Cards */
+.neuro-how-section {
+  padding: 4rem 0;
+}
+
+.neuro-timeline {
+  position: relative;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.neuro-timeline-row {
+  display: flex;
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+/* Timeline Center Line and Dots */
+.neuro-timeline-center {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-right: 1rem;
+}
+
+.neuro-timeline-dot {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--neuro-bg);
+  box-shadow: 
+    6px 6px 12px var(--neuro-shadow-dark),
+    -6px -6px 12px var(--neuro-shadow-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.neuro-dot-inner {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--neuro-primary);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1rem;
+  box-shadow: 
+    inset 2px 2px 4px rgba(0,0,0,0.2),
+    inset -2px -2px 4px rgba(255,255,255,0.1);
+}
+
+.neuro-timeline-line {
+  width: 2px;
+  flex: 1;
+  background: linear-gradient(180deg, var(--neuro-shadow-dark) 0%, var(--neuro-shadow-light) 100%);
+  margin: 0.5rem 0;
+  min-height: 20px;
+}
+
+.neuro-dot-last + .neuro-timeline-line {
+  display: none;
+}
+
+/* Minimal Timeline Cards */
+.neuro-timeline-content {
+  flex: 1;
+  padding-bottom: 0.5rem;
+}
+
+.neuro-timeline-card {
+  background: var(--neuro-bg);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
   box-shadow: 
     8px 8px 20px var(--neuro-shadow-dark),
     -8px -8px 20px var(--neuro-shadow-light);
-  text-align: center;
   position: relative;
-  transition: var(--neuro-transition);
-  overflow: hidden;
+  transition: all 0.3s ease;
 }
 
-.neuro-step-card:hover {
-  transform: translateY(-5px);
+.neuro-timeline-card:hover {
+  transform: translateX(5px);
+  box-shadow: 
+    10px 10px 25px var(--neuro-shadow-dark),
+    -10px -10px 25px var(--neuro-shadow-light);
+}
+
+.neuro-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.neuro-step-icon {
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.neuro-card-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--neuro-text-primary);
+  margin: 0;
+}
+
+/* Minimal Details Button */
+.neuro-details-button {
+  background: var(--neuro-bg);
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--neuro-text-secondary);
+  cursor: pointer;
+  box-shadow: 
+    3px 3px 6px var(--neuro-shadow-dark),
+    -3px -3px 6px var(--neuro-shadow-light);
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: inherit;
+}
+
+.neuro-details-button:hover {
+  color: var(--neuro-text-accent);
+  box-shadow: 
+    4px 4px 8px var(--neuro-shadow-dark),
+    -4px -4px 8px var(--neuro-shadow-light);
+}
+
+.neuro-details-button.active {
+  box-shadow: 
+    inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+    inset -2px -2px 4px var(--neuro-shadow-inner-light);
+  color: var(--neuro-text-accent);
+}
+
+.neuro-arrow {
+  transition: transform 0.3s ease;
+  display: inline-block;
+  font-size: 0.75rem;
+}
+
+.neuro-details-button.active .neuro-arrow {
+  transform: rotate(180deg);
+}
+
+/* Collapsible Details - Minimal */
+.neuro-details-collapse {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s ease;
+}
+
+.neuro-details-collapse.show {
+  max-height: 120px;
+}
+
+.neuro-details-content {
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  background: var(--neuro-bg);
+  border-radius: 10px;
+  box-shadow: 
+    inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+    inset -2px -2px 4px var(--neuro-shadow-inner-light);
+  font-size: 0.875rem;
+  color: var(--neuro-text-secondary);
+  line-height: 1.5;
+}
+
+/* Dark Mode Timeline Styles */
+[data-theme="dark"] .neuro-timeline-dot {
+  box-shadow: 
+    8px 8px 16px var(--neuro-shadow-dark),
+    -8px -8px 16px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-dot-inner {
+  background: linear-gradient(135deg, #00ffeb, #00b8a9);
+}
+
+[data-theme="dark"] .neuro-timeline-card {
+  box-shadow: 
+    10px 10px 25px var(--neuro-shadow-dark),
+    -10px -10px 25px var(--neuro-shadow-light);
+}
+
+[data-theme="dark"] .neuro-timeline-card:hover {
   box-shadow: 
     12px 12px 30px var(--neuro-shadow-dark),
     -12px -12px 30px var(--neuro-shadow-light);
 }
 
-/* Dark Mode Step Card */
-[data-theme="dark"] .neuro-step-card {
-  border-radius: 30px;
-  box-shadow: 
-    15px 15px 30px var(--neuro-shadow-dark),
-    -15px -15px 30px var(--neuro-shadow-light);
+[data-theme="dark"] .neuro-details-button {
+  color: var(--neuro-text-secondary);
 }
 
-[data-theme="dark"] .neuro-step-card:hover {
-  box-shadow: 
-    20px 20px 40px var(--neuro-shadow-dark),
-    -20px -20px 40px var(--neuro-shadow-light);
+[data-theme="dark"] .neuro-details-button:hover {
+  color: #00ffeb;
 }
 
-.neuro-step-header {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
+[data-theme="dark"] .neuro-details-button.active {
+  color: #00ffeb;
 }
 
-.neuro-step-number {
-  background: var(--neuro-primary);
-  color: white;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.25rem;
-  font-weight: 700;
-  box-shadow: 
-    6px 6px 15px var(--neuro-shadow-dark),
-    -6px -6px 15px var(--neuro-shadow-light);
-}
-
-.neuro-step-icon-wrapper {
-  background: var(--neuro-bg);
-  width: 3rem;
-  height: 3rem;
-  border-radius: var(--neuro-radius-sm);
+[data-theme="dark"] .neuro-details-content {
   box-shadow: 
     inset 3px 3px 6px var(--neuro-shadow-inner-dark),
     inset -3px -3px 6px var(--neuro-shadow-inner-light);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
 
-.neuro-step-icon {
-  font-size: 1.5rem;
+/* Responsive Design for Timeline and Headers */
+@media (max-width: 768px) {
+  .neuro-section-header {
+    margin-bottom: 2.5rem;
+  }
+  
+  .neuro-section-title-button {
+    padding: 0.75em 1.5em;
+  }
+  
+  .neuro-section-title {
+    font-size: 1.75rem;
+  }
+  
+  .neuro-section-subtitle {
+    font-size: 1rem;
+  }
+  
+  .neuro-timeline {
+    padding: 0 0.5rem;
+  }
+  
+  .neuro-timeline-row {
+    margin-bottom: 1rem;
+  }
+  
+  .neuro-timeline-center {
+    margin-right: 0.75rem;
+  }
+  
+  .neuro-timeline-dot {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .neuro-dot-inner {
+    width: 28px;
+    height: 28px;
+    font-size: 0.875rem;
+  }
+  
+  .neuro-timeline-card {
+    padding: 1rem 1.25rem;
+  }
+  
+  .neuro-card-header {
+    gap: 0.5rem;
+  }
+  
+  .neuro-step-icon {
+    font-size: 1.25rem;
+  }
+  
+  .neuro-card-title {
+    font-size: 1.125rem;
+  }
+  
+  .neuro-details-button {
+    padding: 0.425rem 0.875rem;
+    font-size: 0.8125rem;
+  }
+  
+  .neuro-details-content {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8125rem;
+  }
 }
 
-.neuro-step-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--neuro-text-primary);
-  margin-bottom: 1rem;
+@media (min-width: 769px) and (max-width: 1024px) {
+  .neuro-section-title {
+    font-size: 2.25rem;
+  }
+  
+  .neuro-timeline-row {
+    margin-bottom: 2rem;
+  }
+  
+  .neuro-timeline-center {
+    margin-right: 1.5rem;
+  }
+  
+  .neuro-timeline-line {
+    min-height: 30px;
+  }
 }
 
-.neuro-step-description {
-  color: var(--neuro-text-secondary);
-  line-height: 1.6;
-  font-size: 1rem;
+@media (min-width: 1025px) {
+  .neuro-section-title-button {
+    padding: 1.125em 2.5em;
+  }
+  
+  .neuro-section-title {
+    font-size: 2.5rem;
+  }
+  
+  .neuro-section-title-button:hover {
+    transform: translateY(-3px);
+  }
 }
 
-.neuro-step-glow {
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle, rgba(102, 126, 234, 0.1) 0%, transparent 70%);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.neuro-step-card:hover .neuro-step-glow {
-  opacity: 1;
+/* Animation for section headers on scroll */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 /* Restaurants Section */
@@ -1248,6 +1533,8 @@ html, body {
     12px 12px 24px var(--neuro-shadow-dark),
     -12px -12px 24px var(--neuro-shadow-light);
 }
+
+/* Dark Mode Enhancements */
 [data-theme="dark"] .neuro-toggle-button {
   border-radius: 30px;
   box-shadow: 
@@ -1286,14 +1573,6 @@ html, body {
     -8px -8px 15px var(--neuro-shadow-light);
 }
 
-/* Dark Mode Section Title Cards */
-[data-theme="dark"] .neuro-section-title-card {
-  border-radius: 30px;
-  box-shadow: 
-    inset 10px 10px 20px var(--neuro-shadow-inner-dark),
-    inset -10px -10px 20px var(--neuro-shadow-inner-light);
-}
-
 /* Dark Mode Hero Badge */
 [data-theme="dark"] .neuro-hero-badge {
   border-radius: 30px;
@@ -1316,6 +1595,8 @@ html, body {
   filter: brightness(1.2);
   text-shadow: 0 0 10px rgba(124, 154, 255, 0.5);
 }
+
+/* Responsive Design */
 @media (min-width: 768px) {
   .neuro-container {
     padding: 0 2rem;
