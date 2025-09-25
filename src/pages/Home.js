@@ -396,7 +396,7 @@ const Home = () => {
       </section>
 
 
-      {/* Featured Restaurants */}
+      {/* Featured Restaurants - Exact Blog Card Style Match */}
       {restaurants.length > 0 && (
         <section id="restaurants-section" className="neuro-restaurants-section">
           <div className="neuro-container">
@@ -409,70 +409,62 @@ const Home = () => {
               </p>
             </div>
             
-            <div className="neuro-restaurants-grid">
-              {restaurants.slice(0, 6).map((restaurant) => (
-                <div key={restaurant.restaurant_id} className="neuro-restaurant-card">
-                  <div className="neuro-restaurant-header">
-                    <div className="neuro-restaurant-icon-container">
-                      <div className="neuro-icon neuro-icon-food">
-                        {restaurant.icon || '🍽️'}
-                      </div>
-                    </div>
-                    <div className="neuro-restaurant-info">
-                      <h3 className="neuro-restaurant-name">{restaurant.name}</h3>
-                      <p className="neuro-restaurant-category">{restaurant.category}</p>
-                    </div>
-                    <div className="neuro-restaurant-favorite">
-                      <div className="neuro-favorite-button">
-                        <div className="neuro-icon neuro-icon-heart"></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {restaurant.address && (
-                    <div className="neuro-restaurant-address">
-                      <div className="neuro-icon neuro-icon-location"></div>
-                      <span className="neuro-address-text">{restaurant.address}</span>
-                    </div>
-                  )}
-                  
-                  <div className="neuro-restaurant-meta">
-                    <div className="neuro-rating-container">
-                      <div className="neuro-rating-stars">
-                        <div className="neuro-icon neuro-icon-star-filled"></div>
-                        <span className="neuro-rating-value">
-                          {restaurant.averageRating ? restaurant.averageRating.toFixed(1) : 'New'}
+            <div className="row">
+              {restaurants.slice(0, 6).map((restaurant, index) => {
+                // Luxury restaurant images array
+                const luxuryImages = [
+                  'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1578474846511-04ba529f0b88?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                  'https://images.unsplash.com/photo-1551218808-94e220e084d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                ];
+
+                return (
+                  <div key={restaurant.restaurant_id} className="col-12 col-md-6 col-lg-4 mb-4">
+                    <div className="card bg-primary border-light shadow-soft">
+                      <img 
+                        src={luxuryImages[index % luxuryImages.length]} 
+                        className="card-img-top rounded-top" 
+                        alt={restaurant.name}
+                      />
+                      <div className="card-body">
+                        <span className="h6 icon-tertiary small">
+                          <span className="fas fa-utensils mr-2"></span>
+                          {restaurant.category || 'Restaurant'}
                         </span>
-                      </div>
-                      <div className="neuro-review-count">
-                        {restaurant.reviewCount || 0} reviews
+                        <h3 className="h5 card-title mt-3">{restaurant.name}</h3>
+                        <p className="card-text">
+                          {restaurant.address ? (
+                            `Located in ${restaurant.address.split(',')[0] || restaurant.address}. Experience exceptional dining with carefully crafted dishes.`
+                          ) : (
+                            `Experience exceptional ${restaurant.category?.toLowerCase() || 'dining'} cuisine with carefully crafted dishes and welcoming atmosphere.`
+                          )}
+                        </p>
+                        <a 
+                          href={`/record-feedback/${encodeURIComponent(restaurant.name?.toLowerCase().replace(/\s+/g, '-'))}`}
+                          className="btn btn-primary btn-sm"
+                        >
+                          Write Review
+                        </a>
                       </div>
                     </div>
                   </div>
-                  
-                  <button
-                    onClick={() => handleRecordFeedback(restaurant)}
-                    className="neuro-button neuro-button-secondary neuro-restaurant-button"
-                  >
-                    <div className="neuro-icon neuro-icon-write"></div>
-                    <span className="neuro-button-text">Write Review</span>
-                  </button>
-                  
-                  <div className="neuro-card-shine"></div>
-                </div>
-              ))}
+                );
+              })}
             </div>
             
             {restaurants.length > 6 && (
-              <div className="neuro-view-all-container">
-                <Link 
-                  to="/restaurants"
-                  className="neuro-button neuro-button-primary neuro-view-all-button"
-                >
-                  <div className="neuro-icon neuro-icon-explore"></div>
-                  <span className="neuro-button-text">View All Restaurants</span>
-                  <span className="neuro-button-shine"></span>
-                </Link>
+              <div className="row mt-4">
+                <div className="col-12 text-center">
+                  <Link 
+                    to="/restaurants"
+                    className="btn btn-primary"
+                  >
+                    View All Restaurants
+                  </Link>
+                </div>
               </div>
             )}
           </div>
