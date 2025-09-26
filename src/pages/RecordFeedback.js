@@ -1,4 +1,5 @@
 // src/pages/RecordFeedback.js - Beautiful Neumorphic Design Edition
+// Updated with Home Page Restaurant Card Design
 import React, { useState, useEffect } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { getAllRestaurants } from '../services/restaurantService';
@@ -73,56 +74,35 @@ const RecordFeedback = () => {
     navigate(`/feedback/${slug}`, { replace: true });
   };
 
-  // Neumorphic Loading State
-  if (loading) {
-    return (
-      <div className="neuro-body neuro-full-screen neuro-center-content">
-        <div className="neuro-loading-container">
-          <div className="neuro-loading-card">
-            <div className="neuro-loading-spinner">
-              <div className="neuro-spinner-ring"></div>
-              <div className="neuro-spinner-inner"></div>
-            </div>
-            <div className="neuro-loading-icon">🎙️</div>
-            <h3 className="neuro-loading-title">Preparing Review System</h3>
-            <p className="neuro-loading-text">Setting up your feedback experience...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // Neumorphic Restaurant Selection Screen
-  if (showSelection || !restaurant) {
+  // Restaurant Selection Screen
+  if (showSelection || loading) {
     return (
       <div className="neuro-body">
         <style jsx>{`
-          /* Neumorphic Restaurant Selection Styles */
           .neuro-selection-hero {
-            padding: 3rem 0;
             min-height: 100vh;
+            padding: 4rem 0;
+            display: flex;
+            align-items: center;
           }
 
           .neuro-selection-header {
             text-align: center;
             margin-bottom: 3rem;
-            padding: 0 1rem;
           }
 
           .neuro-selection-badge {
             display: inline-block;
             padding: 0.5rem 1.5rem;
             background: var(--neuro-bg, #e0e0e0);
-            border-radius: 30px;
-            margin-bottom: 1.5rem;
-            box-shadow: 
-              inset 4px 4px 8px rgba(0,0,0,0.1),
-              inset -4px -4px 8px rgba(255,255,255,0.9);
-            color: var(--neuro-text-accent, #667eea);
-            font-weight: 600;
+            border-radius: 20px;
             font-size: 0.875rem;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
+            font-weight: 600;
+            color: var(--neuro-text-accent, #667eea);
+            margin-bottom: 1rem;
+            box-shadow: 
+              inset 3px 3px 6px rgba(0,0,0,0.1),
+              inset -3px -3px 6px rgba(255,255,255,0.9);
           }
 
           .neuro-selection-title {
@@ -177,111 +157,9 @@ const RecordFeedback = () => {
               inset -4px -4px 8px rgba(255,255,255,0.9);
           }
 
-          .neuro-restaurant-select-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 1.5rem;
-          }
-
-          .neuro-restaurant-info {
-            flex: 1;
-          }
-
-          .neuro-restaurant-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--neuro-text-primary, #2c3e50);
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-          }
-
-          .neuro-restaurant-icon-box {
-            width: 3rem;
-            height: 3rem;
-            border-radius: 12px;
-            background: var(--neuro-bg, #e0e0e0);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            box-shadow: 
-              inset 3px 3px 6px rgba(0,0,0,0.1),
-              inset -3px -3px 6px rgba(255,255,255,0.9);
-          }
-
-          .neuro-restaurant-cuisine {
-            display: inline-block;
-            padding: 0.375rem 1rem;
-            background: linear-gradient(135deg, #667eea, #764ba2);
-            color: white;
-            border-radius: 20px;
-            font-size: 0.875rem;
-            font-weight: 600;
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-          }
-
-          .neuro-restaurant-meta {
-            display: flex;
-            gap: 2rem;
-            margin-bottom: 1rem;
-          }
-
-          .neuro-meta-item {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            color: var(--neuro-text-secondary, #5a6c7d);
-            font-size: 0.9rem;
-          }
-
-          .neuro-restaurant-description {
-            color: var(--neuro-text-secondary, #5a6c7d);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-            font-size: 0.95rem;
-          }
-
-          .neuro-select-button {
-            width: 100%;
-            padding: 1rem;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 16px;
-            font-weight: 600;
-            font-size: 1rem;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 
-              0 8px 20px rgba(102, 126, 234, 0.4),
-              8px 8px 16px rgba(0,0,0,0.1),
-              -8px -8px 16px rgba(255,255,255,0.9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-          }
-
-          .neuro-select-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 
-              0 12px 28px rgba(102, 126, 234, 0.5),
-              10px 10px 20px rgba(0,0,0,0.15),
-              -10px -10px 20px rgba(255,255,255,0.95);
-          }
-
           .neuro-empty-state {
             text-align: center;
             padding: 4rem 2rem;
-            background: var(--neuro-bg, #e0e0e0);
-            border-radius: 24px;
-            box-shadow: 
-              inset 8px 8px 16px rgba(0,0,0,0.1),
-              inset -8px -8px 16px rgba(255,255,255,0.9);
           }
 
           .neuro-empty-icon {
@@ -298,20 +176,14 @@ const RecordFeedback = () => {
 
           .neuro-empty-text {
             color: var(--neuro-text-secondary, #5a6c7d);
+            font-size: 1rem;
             line-height: 1.6;
-            max-width: 400px;
-            margin: 0 auto;
           }
 
-          /* Responsive Design */
           @media (min-width: 768px) {
             .neuro-selection-grid {
               grid-template-columns: repeat(2, 1fr);
               gap: 2rem;
-            }
-
-            .neuro-selection-title {
-              font-size: 3rem;
             }
           }
 
@@ -345,13 +217,6 @@ const RecordFeedback = () => {
               inset 4px 4px 8px rgb(25, 25, 25),
               inset -4px -4px 8px rgb(60, 60, 60);
           }
-
-          [data-theme="dark"] .neuro-restaurant-icon-box {
-            background: #212121;
-            box-shadow: 
-              inset 3px 3px 6px rgb(25, 25, 25),
-              inset -3px -3px 6px rgb(60, 60, 60);
-          }
         `}</style>
 
         <section className="neuro-selection-hero">
@@ -372,50 +237,45 @@ const RecordFeedback = () => {
             {/* Restaurant Grid */}
             {allRestaurants.length > 0 ? (
               <div className="neuro-selection-grid">
-                {allRestaurants.map((rest) => (
+                {allRestaurants.map((restaurant, index) => (
                   <div 
-                    key={rest.id}
+                    key={restaurant.restaurant_id}
                     className="neuro-restaurant-select-card"
-                    onClick={() => handleRestaurantSelect(rest)}
-                    onMouseEnter={() => setHoveredCard(rest.id)}
-                    onMouseLeave={() => setHoveredCard(null)}
+                    onClick={() => handleRestaurantSelect(restaurant)}
                   >
-                    <div className="neuro-restaurant-select-header">
-                      <div className="neuro-restaurant-info">
-                        <div className="neuro-restaurant-name">
-                          <div className="neuro-restaurant-icon-box">
-                            {rest.icon || '🍽️'}
-                          </div>
-                          {rest.name}
-                        </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{
+                        width: '3rem',
+                        height: '3rem',
+                        borderRadius: '12px',
+                        background: 'var(--neuro-bg, #e0e0e0)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '1.5rem',
+                        boxShadow: 'inset 3px 3px 6px rgba(0,0,0,0.1), inset -3px -3px 6px rgba(255,255,255,0.9)'
+                      }}>
+                        {restaurant.icon || '🍽️'}
                       </div>
+                      <div style={{ flex: 1 }}>
+                        <h3 style={{ 
+                          fontSize: '1.25rem', 
+                          fontWeight: '700',
+                          color: 'var(--neuro-text-primary, #2c3e50)',
+                          marginBottom: '0.25rem'
+                        }}>
+                          {restaurant.name}
+                        </h3>
+                        <p style={{ 
+                          fontSize: '0.875rem',
+                          color: 'var(--neuro-text-secondary, #5a6c7d)',
+                          margin: 0
+                        }}>
+                          {restaurant.cuisine || 'Restaurant'} • {restaurant.address?.split(',')[0] || 'Location'}
+                        </p>
+                      </div>
+                      <span style={{ transform: hoveredCard === index ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.3s' }}>→</span>
                     </div>
-
-                    {rest.cuisine && (
-                      <div className="neuro-restaurant-cuisine">
-                        {rest.cuisine}
-                      </div>
-                    )}
-
-                    <div className="neuro-restaurant-meta">
-                      <div className="neuro-meta-item">
-                        ⭐ {rest.averageRating?.toFixed(1) || 'New'}
-                      </div>
-                      <div className="neuro-meta-item">
-                        💬 {rest.reviewCount || 0} reviews
-                      </div>
-                    </div>
-
-                    {rest.description && (
-                      <p className="neuro-restaurant-description">
-                        {rest.description}
-                      </p>
-                    )}
-
-                    <button className="neuro-select-button">
-                      <span>Write Review</span>
-                      <span style={{ transform: hoveredCard === rest.id ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.3s' }}>→</span>
-                    </button>
                   </div>
                 ))}
               </div>
@@ -434,11 +294,11 @@ const RecordFeedback = () => {
     );
   }
 
-  // Main Feedback Page with Neumorphic Design
+  // Main Feedback Page with Home Page Card Design
   return (
     <div className="neuro-body">
       <style jsx>{`
-        /* Neumorphic Feedback Page Styles */
+        /* Feedback Page Styles - Matching Home Page */
         .neuro-feedback-section {
           padding: 3rem 0;
           min-height: 100vh;
@@ -485,266 +345,164 @@ const RecordFeedback = () => {
             inset -2px -2px 4px rgba(255,255,255,0.9);
         }
 
-        /* Restaurant Header Card */
-        .neuro-restaurant-header {
-          background: var(--neuro-bg, #e0e0e0);
-          border-radius: 32px;
-          padding: 2.5rem;
-          margin-bottom: 3rem;
-          box-shadow: 
-            20px 20px 40px rgba(0,0,0,0.15),
-            -20px -20px 40px rgba(255,255,255,0.9);
-          position: relative;
-          overflow: hidden;
-        }
-
-        .neuro-restaurant-header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          right: 0;
-          width: 300px;
-          height: 300px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          border-radius: 50%;
-          opacity: 0.05;
-          transform: translate(50%, -50%);
-        }
-
-        .neuro-restaurant-header-content {
-          position: relative;
-          z-index: 1;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          gap: 2rem;
-          flex-wrap: wrap;
-        }
-
-        .neuro-restaurant-details {
-          flex: 1;
-          min-width: 280px;
-        }
-
-        .neuro-restaurant-title-row {
-          display: flex;
-          align-items: center;
-          gap: 1rem;
-          margin-bottom: 1rem;
-        }
-
-        .neuro-restaurant-icon-large {
-          width: 4rem;
-          height: 4rem;
-          border-radius: 16px;
-          background: var(--neuro-bg, #e0e0e0);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 2rem;
-          box-shadow: 
-            inset 4px 4px 8px rgba(0,0,0,0.1),
-            inset -4px -4px 8px rgba(255,255,255,0.9);
-        }
-
-        .neuro-restaurant-title {
-          font-size: 2rem;
-          font-weight: 800;
-          color: var(--neuro-text-primary, #2c3e50);
-        }
-
-        .neuro-restaurant-badge-row {
-          display: flex;
-          gap: 1rem;
-          margin-bottom: 1rem;
-          flex-wrap: wrap;
-        }
-
-        .neuro-info-badge {
-          display: inline-flex;
-          align-items: center;
-          gap: 0.5rem;
-          padding: 0.5rem 1rem;
-          background: var(--neuro-bg, #e0e0e0);
-          border-radius: 20px;
-          font-size: 0.875rem;
-          font-weight: 600;
-          color: var(--neuro-text-secondary, #5a6c7d);
-          box-shadow: 
-            inset 3px 3px 6px rgba(0,0,0,0.1),
-            inset -3px -3px 6px rgba(255,255,255,0.9);
-        }
-
-        .neuro-restaurant-desc {
-          color: var(--neuro-text-secondary, #5a6c7d);
-          line-height: 1.6;
-          margin-top: 1rem;
-        }
-
-        /* Stats Panel */
-        .neuro-stats-panel {
-          display: flex;
-          gap: 1.5rem;
-          padding: 1.5rem;
-          background: var(--neuro-bg, #e0e0e0);
-          border-radius: 20px;
-          box-shadow: 
-            inset 6px 6px 12px rgba(0,0,0,0.1),
-            inset -6px -6px 12px rgba(255,255,255,0.9);
-        }
-
-        .neuro-stat-item {
-          text-align: center;
-          padding: 0.5rem 1rem;
-        }
-
-        .neuro-stat-value {
-          font-size: 1.75rem;
-          font-weight: 700;
-          color: var(--neuro-text-primary, #2c3e50);
-          display: block;
-          margin-bottom: 0.25rem;
-        }
-
-        .neuro-stat-label {
-          font-size: 0.75rem;
-          color: var(--neuro-text-secondary, #5a6c7d);
-          text-transform: uppercase;
-          letter-spacing: 0.05em;
-          font-weight: 600;
-        }
-
-        /* Form Container */
-        .neuro-form-container {
-          background: var(--neuro-bg, #e0e0e0);
-          border-radius: 32px;
-          padding: 2.5rem;
-          box-shadow: 
-            20px 20px 40px rgba(0,0,0,0.15),
-            -20px -20px 40px rgba(255,255,255,0.9);
+        /* Restaurant Card - Matching Home Page Design */
+        .restaurant-header-section {
           margin-bottom: 3rem;
         }
 
-        /* Why Review Section */
-        .neuro-why-section {
-          display: grid;
-          grid-template-columns: 1fr;
-          gap: 2rem;
-          margin-top: 3rem;
+        .restaurant-card-container {
+          max-width: 600px;
+          margin: 0 auto;
         }
 
-        .neuro-why-card {
-          background: var(--neuro-bg, #e0e0e0);
-          border-radius: 24px;
-          padding: 2rem;
-          display: flex;
-          align-items: flex-start;
-          gap: 1.5rem;
+        /* Override existing card styles to match home page exactly */
+        .restaurant-card {
+          border-radius: var(--neuro-radius-lg, 20px) !important;
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+          overflow: hidden !important;
+          transition: all 0.3s ease !important;
+          background: var(--neuro-bg, #e0e0e0) !important;
+          padding: 0 !important;
           box-shadow: 
-            12px 12px 24px rgba(0,0,0,0.15),
-            -12px -12px 24px rgba(255,255,255,0.9);
-          transition: all 0.3s ease;
+            8px 8px 20px var(--neuro-shadow-dark, rgba(0,0,0,0.15)),
+            -8px -8px 20px var(--neuro-shadow-light, rgba(255,255,255,0.9)),
+            0 0 0 1px rgba(255, 255, 255, 0.05) !important;
         }
 
-        .neuro-why-card:hover {
-          transform: translateY(-3px);
+        .restaurant-card:hover {
+          transform: translateY(-5px) !important;
           box-shadow: 
-            16px 16px 32px rgba(0,0,0,0.2),
-            -16px -16px 32px rgba(255,255,255,0.95);
+            12px 12px 30px var(--neuro-shadow-dark, rgba(0,0,0,0.15)),
+            -12px -12px 30px var(--neuro-shadow-light, rgba(255,255,255,0.9)),
+            0 0 0 1px rgba(255, 255, 255, 0.1) !important;
         }
 
-        .neuro-why-icon {
-          width: 3rem;
-          height: 3rem;
-          border-radius: 12px;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 1.5rem;
-          flex-shrink: 0;
-          box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
+        .restaurant-card-img-top {
+          height: 280px !important;
+          width: 100% !important;
+          object-fit: cover !important;
+          border-radius: 0 !important;
+          display: block !important;
+          margin: 0 !important;
         }
 
-        .neuro-why-content {
-          flex: 1;
+        .restaurant-card-body {
+          padding: 2rem !important;
         }
 
-        .neuro-why-title {
-          font-size: 1.125rem;
-          font-weight: 700;
-          color: var(--neuro-text-primary, #2c3e50);
-          margin-bottom: 0.5rem;
+        .restaurant-category-badge {
+          color: #6c757d !important;
+          font-weight: 400 !important;
+          text-transform: uppercase !important;
+          letter-spacing: 0.5px !important;
+          font-size: 0.75rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 0.5rem !important;
+          margin-bottom: 1rem !important;
         }
 
-        .neuro-why-text {
-          font-size: 0.9rem;
-          color: var(--neuro-text-secondary, #5a6c7d);
-          line-height: 1.6;
+        .restaurant-category-icon {
+          font-size: 0.75rem !important;
         }
 
-        /* Responsive Design */
-        @media (min-width: 768px) {
-          .neuro-restaurant-header {
-            padding: 3rem;
-          }
-
-          .neuro-form-container {
-            padding: 3rem;
-          }
-
-          .neuro-why-section {
-            grid-template-columns: repeat(3, 1fr);
-          }
+        .restaurant-card-title {
+          color: var(--neuro-text-primary, #2c3e50) !important;
+          font-weight: 600 !important;
+          font-size: 1.5rem !important;
+          line-height: 1.4 !important;
+          margin-bottom: 0.75rem !important;
         }
 
-        /* Dark mode support */
-        [data-theme="dark"] .neuro-feedback-section {
-          background: #212121;
+        .restaurant-card-text {
+          color: var(--neuro-text-secondary, #5a6c7d) !important;
+          font-size: 0.875rem !important;
+          line-height: 1.6 !important;
+          margin-bottom: 1.5rem !important;
+        }
+
+        .restaurant-rating-badge {
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 0.5rem !important;
+          background: var(--neuro-text-accent, #667eea) !important;
+          color: white !important;
+          padding: 0.5rem 1rem !important;
+          border-radius: 20px !important;
+          font-size: 0.875rem !important;
+          font-weight: 600 !important;
+          margin-bottom: 1rem !important;
+        }
+
+
+
+        /* Dark mode adjustments */
+        [data-theme="dark"] .restaurant-card {
+          background: var(--neuro-bg, #212121) !important;
+          border: 1px solid rgba(255, 255, 255, 0.05) !important;
+          box-shadow: 
+            15px 15px 30px var(--neuro-shadow-dark, rgb(25, 25, 25)),
+            -15px -15px 30px var(--neuro-shadow-light, rgb(60, 60, 60)),
+            0 0 0 1px rgba(255, 255, 255, 0.03) !important;
+        }
+
+        [data-theme="dark"] .restaurant-card:hover {
+          box-shadow: 
+            20px 20px 40px var(--neuro-shadow-dark, rgb(25, 25, 25)),
+            -20px -20px 40px var(--neuro-shadow-light, rgb(60, 60, 60)),
+            0 0 0 1px rgba(255,255,255,0.1) !important;
+        }
+
+        [data-theme="dark"] .restaurant-category-badge {
+          color: var(--neuro-text-secondary, #b8b8b8) !important;
+        }
+
+        [data-theme="dark"] .restaurant-card-title {
+          color: var(--neuro-text-primary, #e8e8e8) !important;
+        }
+
+        [data-theme="dark"] .restaurant-card-text {
+          color: var(--neuro-text-secondary, #b8b8b8) !important;
+        }
+
+        [data-theme="dark"] .restaurant-rating-badge {
+          background: var(--neuro-text-accent, #7c9aff) !important;
         }
 
         [data-theme="dark"] .neuro-back-button {
           background: #212121;
-          color: #b8b8b8;
           box-shadow: 
-            8px 8px 16px rgb(25, 25, 25),
-            -8px -8px 16px rgb(60, 60, 60);
+            10px 10px 20px rgb(25, 25, 25),
+            -10px -10px 20px rgb(60, 60, 60);
         }
 
-        [data-theme="dark"] .neuro-restaurant-header {
-          background: #212121;
-          box-shadow: 
-            25px 25px 50px rgb(25, 25, 25),
-            -25px -25px 50px rgb(60, 60, 60);
-        }
-
-        [data-theme="dark"] .neuro-restaurant-icon-large,
-        [data-theme="dark"] .neuro-info-badge,
-        [data-theme="dark"] .neuro-stats-panel {
-          background: #212121;
-          box-shadow: 
-            inset 6px 6px 12px rgb(25, 25, 25),
-            inset -6px -6px 12px rgb(60, 60, 60);
-        }
-
-        [data-theme="dark"] .neuro-form-container {
-          background: #212121;
-          box-shadow: 
-            25px 25px 50px rgb(25, 25, 25),
-            -25px -25px 50px rgb(60, 60, 60);
-        }
-
-        [data-theme="dark"] .neuro-why-card {
-          background: #212121;
+        [data-theme="dark"] .neuro-back-button:hover {
           box-shadow: 
             15px 15px 30px rgb(25, 25, 25),
             -15px -15px 30px rgb(60, 60, 60);
         }
 
-        [data-theme="dark"] .neuro-why-card:hover {
-          box-shadow: 
-            20px 20px 40px rgb(25, 25, 25),
-            -20px -20px 40px rgb(60, 60, 60);
+        /* Responsive design */
+        @media (max-width: 768px) {
+          .neuro-feedback-section {
+            padding: 2rem 0;
+          }
+
+          .restaurant-card-container {
+            max-width: 100%;
+          }
+
+          .restaurant-card-img-top {
+            height: 220px !important;
+          }
+
+          .restaurant-card-body {
+            padding: 1.5rem !important;
+          }
+
+          .restaurant-card-title {
+            font-size: 1.25rem !important;
+          }
         }
       `}</style>
 
@@ -759,104 +517,88 @@ const RecordFeedback = () => {
             <span>Choose Different Restaurant</span>
           </button>
 
-          {/* Restaurant Header */}
-          <div className="neuro-restaurant-header">
-            <div className="neuro-restaurant-header-content">
-              <div className="neuro-restaurant-details">
-                <div className="neuro-restaurant-title-row">
-                  <div className="neuro-restaurant-icon-large">
-                    {restaurant.icon || '🍽️'}
-                  </div>
-                  <h1 className="neuro-restaurant-title">
+          {/* Restaurant Header - Matching Home Page Card Design */}
+          <div className="restaurant-header-section">
+            <div className="restaurant-card-container">
+              <div className="restaurant-card card bg-primary border-light shadow-soft">
+                {/* Restaurant Image */}
+                {(() => {
+                  const luxuryImages = [
+                    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1578474846511-04ba529f0b88?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1551218808-94e220e084d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                  ];
+                  
+                  // Use restaurant ID to consistently pick the same image
+                  const imageIndex = restaurant.restaurant_id ? 
+                    Math.abs(restaurant.restaurant_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % luxuryImages.length : 
+                    0;
+                  
+                  return (
+                    <img 
+                      src={luxuryImages[imageIndex]}
+                      className="restaurant-card-img-top card-img-top rounded-top" 
+                      alt={restaurant.name}
+                    />
+                  );
+                })()}
+                
+                <div className="restaurant-card-body card-body">
+                  {/* Category Badge */}
+                  <span className="restaurant-category-badge h6 icon-tertiary small">
+                    <span className="restaurant-category-icon fas fa-utensils mr-2">🍴</span>
+                    {restaurant.category || restaurant.cuisine || 'Restaurant'}
+                  </span>
+                  
+                  {/* Restaurant Title */}
+                  <h2 className="restaurant-card-title h4 card-title mt-3">
                     {restaurant.name}
-                  </h1>
-                </div>
-
-                <div className="neuro-restaurant-badge-row">
-                  {restaurant.cuisine && (
-                    <span className="neuro-info-badge">
-                      🍴 {restaurant.cuisine}
-                    </span>
-                  )}
-                  <span className="neuro-info-badge">
-                    ⭐ {restaurant.averageRating?.toFixed(1) || 'New'}
-                  </span>
-                  <span className="neuro-info-badge">
-                    📍 {restaurant.location || 'Local'}
-                  </span>
-                </div>
-
-                {restaurant.description && (
-                  <p className="neuro-restaurant-desc">
-                    {restaurant.description}
+                  </h2>
+                  
+                  {/* Description */}
+                  <p className="restaurant-card-text card-text">
+                    {restaurant.address ? (
+                      `Located in ${restaurant.address.split(',')[0] || restaurant.address}. `
+                    ) : ''}
+                    {restaurant.description || 
+                     `Experience exceptional dining at ${restaurant.name}. Share your thoughts about the food, service, and atmosphere to help other diners discover this amazing place.`}
                   </p>
-                )}
-              </div>
+                  
+                  {/* Rating and Reviews Info */}
+                  <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                    {restaurant.averageRating && (
+                      <div className="restaurant-rating-badge">
+                        <span>⭐</span>
+                        <span>{restaurant.averageRating.toFixed(1)}</span>
+                      </div>
+                    )}
+                    
+                    {restaurant.reviewCount && (
+                      <span style={{ 
+                        fontSize: '0.875rem',
+                        color: 'var(--neuro-text-secondary, #5a6c7d)',
+                        fontWeight: '500'
+                      }}>
+                        {restaurant.reviewCount} review{restaurant.reviewCount !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </div>
+                  
 
-              {/* Stats Panel */}
-              <div className="neuro-stats-panel">
-                <div className="neuro-stat-item">
-                  <span className="neuro-stat-value">
-                    {restaurant.reviewCount || 0}
-                  </span>
-                  <span className="neuro-stat-label">Reviews</span>
-                </div>
-                <div className="neuro-stat-item">
-                  <span className="neuro-stat-value">
-                    {restaurant.averageRating?.toFixed(1) || '—'}
-                  </span>
-                  <span className="neuro-stat-label">Rating</span>
-                </div>
-                <div className="neuro-stat-item">
-                  <span className="neuro-stat-value">
-                    {restaurant.recommendationRate || 85}%
-                  </span>
-                  <span className="neuro-stat-label">Recommend</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Feedback Form Container */}
-          <div className="neuro-form-container">
-            <FeedbackForm 
-              restaurant={restaurant}
-              onSuccess={() => navigate('/my-reviews')}
-            />
-          </div>
-
-          {/* Why Leave a Review Section */}
-          <div className="neuro-why-section">
-            <div className="neuro-why-card">
-              <div className="neuro-why-icon">👥</div>
-              <div className="neuro-why-content">
-                <h4 className="neuro-why-title">Help Others</h4>
-                <p className="neuro-why-text">
-                  Your honest feedback helps other diners make informed decisions about where to eat.
-                </p>
-              </div>
-            </div>
-
-            <div className="neuro-why-card">
-              <div className="neuro-why-icon">📈</div>
-              <div className="neuro-why-content">
-                <h4 className="neuro-why-title">Improve Service</h4>
-                <p className="neuro-why-text">
-                  Restaurants use your feedback to enhance their food quality and customer service.
-                </p>
-              </div>
-            </div>
-
-            <div className="neuro-why-card">
-              <div className="neuro-why-icon">🎁</div>
-              <div className="neuro-why-content">
-                <h4 className="neuro-why-title">Earn Rewards</h4>
-                <p className="neuro-why-text">
-                  Complete reviews to earn points and unlock exclusive rewards and discounts.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* Feedback Form */}
+          <FeedbackForm 
+            restaurantId={restaurant.restaurant_id} 
+            restaurantName={restaurant.name}
+            placeId={restaurant.place_id}
+          />
         </div>
       </section>
     </div>
