@@ -1,4 +1,5 @@
 // src/components/Feedback/FeedbackForm.js
+// EXACT ORIGINAL FUNCTIONALITY WITH NEUMORPHIC UI ONLY
 import React, { useState, useEffect, useRef } from 'react';
 import { transcribeAudio, processAudio } from '../../services/audioService';
 import { analyzeReview } from '../../services/openaiService';
@@ -18,6 +19,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   const [audioUrl, setAudioUrl] = useState(null);
   const [recordingComplete, setRecordingComplete] = useState(false);
   const [error, setError] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   
   const recordingIntervalRef = useRef(null);
   const recordingTimeoutRef = useRef(null);
@@ -29,6 +31,20 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
   const { currentUser } = useAuth();
   
   const MAX_RECORDING_TIME = 30; // 30 seconds
+
+  // Check for dark mode
+  useEffect(() => {
+    const checkDarkMode = () => {
+      const theme = document.documentElement.getAttribute('data-theme');
+      setIsDarkMode(theme === 'dark');
+    };
+    
+    checkDarkMode();
+    const observer = new MutationObserver(checkDarkMode);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    
+    return () => observer.disconnect();
+  }, []);
 
   // Clean up timers on unmount
   useEffect(() => {
@@ -42,7 +58,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     };
   }, []);
 
-  // Audio recording handlers
+  // Audio recording handlers - EXACT ORIGINAL FUNCTIONALITY
   const startRecording = async () => {
     setError(null);
     setRecordingComplete(false);
@@ -129,7 +145,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     }
   };
 
-  // REAL Audio Processing Function
+  // REAL Audio Processing Function - EXACT ORIGINAL
   const handleAnalyzeAudio = async () => {
     if (!audioBlob) {
       setError('No audio recording found');
@@ -190,7 +206,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       
       // Add metadata
       analysis.restaurant_id = restaurantId;
-      analysis.restaurant_name = restaurantName; // ADD THIS LINE
+      analysis.restaurant_name = restaurantName;
       analysis.audio_url = audioUrl;
       
       setAnalysisResult(analysis);
@@ -205,11 +221,11 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       }
       
       setError(`Processing failed: ${err.message}`);
-      setStep('input');
+      setStep('recorded');
     }
   };
 
-  // REAL Text Analysis Function  
+  // REAL Text Analysis Function - EXACT ORIGINAL
   const handleSubmitText = async () => {
     if (textInput.length < 10) {
       setError('Please provide more detailed feedback (at least 10 characters).');
@@ -247,7 +263,7 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
       }
       
       analysis.restaurant_id = restaurantId;
-      analysis.restaurant_name = restaurantName; // ADD THIS LINE
+      analysis.restaurant_name = restaurantName;
       
       setAnalysisResult(analysis);
       setAnalysisProgress(100);
@@ -288,29 +304,34 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Main input screen
+  // Main input screen with NEUMORPHIC UI
   if (step === 'input') {
     return (
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        color: 'white',
-        minHeight: '100vh'
+      <div className="neuro-card" style={{
+        background: 'var(--neuro-bg, #e0e0e0)',
+        borderRadius: 'var(--neuro-radius-lg, 2rem)',
+        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+        boxShadow: isDarkMode 
+          ? '15px 15px 30px rgb(25, 25, 25), -15px -15px 30px rgb(60, 60, 60)'
+          : '20px 20px 60px #bebebe, -20px -20px 60px #ffffff',
+        maxWidth: '100%',
+        margin: '2rem auto 0',
+        transition: 'all 0.3s ease'
       }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           <h1 style={{
-            fontSize: '32px',
-            marginBottom: '20px',
-            background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            fontWeight: 'bold'
+            fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+            fontWeight: '700',
+            color: 'var(--neuro-text-primary, #2c3e50)',
+            marginBottom: '0.5rem'
           }}>
             Share Your Experience
           </h1>
-          <p style={{ fontSize: '18px', opacity: 0.8 }}>
+          <p style={{
+            fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+            color: 'var(--neuro-text-secondary, #5a6c7d)'
+          }}>
             Tell us about your visit to {restaurantName}
           </p>
         </div>
@@ -318,12 +339,12 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         {/* Error display */}
         {error && (
           <div style={{
-            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+            background: 'rgba(239, 68, 68, 0.1)',
             border: '1px solid rgba(239, 68, 68, 0.3)',
-            borderRadius: '10px',
-            padding: '15px',
-            marginBottom: '20px',
-            color: '#fca5a5',
+            borderRadius: '1rem',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            color: '#ef4444',
             textAlign: 'center'
           }}>
             {error}
@@ -333,46 +354,60 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
         {/* Input method selector */}
         <div style={{
           display: 'flex',
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '15px',
-          padding: '8px',
-          marginBottom: '40px',
-          backdropFilter: 'blur(10px)'
+          justifyContent: 'center',
+          gap: '1rem',
+          marginBottom: '2rem',
+          flexWrap: 'wrap'
         }}>
           <button
             onClick={() => setInputMethod('audio')}
             style={{
-              flex: 1,
-              padding: '15px',
+              padding: '0.875rem 1.75rem',
+              borderRadius: '50px',
               border: 'none',
-              borderRadius: '10px',
-              background: inputMethod === 'audio' 
-                ? 'linear-gradient(45deg, #8b5cf6, #ec4899)' 
-                : 'transparent',
-              color: 'white',
-              fontWeight: 'bold',
+              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+              fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              fontSize: '16px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: inputMethod === 'audio' 
+                ? 'linear-gradient(145deg, #667eea, #764ba2)'
+                : 'var(--neuro-bg, #e0e0e0)',
+              color: inputMethod === 'audio' ? 'white' : 'var(--neuro-text-secondary, #5a6c7d)',
+              boxShadow: inputMethod === 'audio'
+                ? 'inset 5px 5px 10px rgba(0,0,0,0.2), inset -5px -5px 10px rgba(255,255,255,0.1)'
+                : isDarkMode 
+                  ? '8px 8px 16px rgb(25, 25, 25), -8px -8px 16px rgb(60, 60, 60)'
+                  : '5px 5px 10px #bebebe, -5px -5px 10px #ffffff'
             }}
           >
             🎤 Voice Feedback
           </button>
+          
           <button
             onClick={() => setInputMethod('text')}
             style={{
-              flex: 1,
-              padding: '15px',
+              padding: '0.875rem 1.75rem',
+              borderRadius: '50px',
               border: 'none',
-              borderRadius: '10px',
-              background: inputMethod === 'text' 
-                ? 'linear-gradient(45deg, #8b5cf6, #ec4899)' 
-                : 'transparent',
-              color: 'white',
-              fontWeight: 'bold',
+              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+              fontWeight: '600',
               cursor: 'pointer',
               transition: 'all 0.3s ease',
-              fontSize: '16px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              background: inputMethod === 'text' 
+                ? 'linear-gradient(145deg, #667eea, #764ba2)'
+                : 'var(--neuro-bg, #e0e0e0)',
+              color: inputMethod === 'text' ? 'white' : 'var(--neuro-text-secondary, #5a6c7d)',
+              boxShadow: inputMethod === 'text'
+                ? 'inset 5px 5px 10px rgba(0,0,0,0.2), inset -5px -5px 10px rgba(255,255,255,0.1)'
+                : isDarkMode 
+                  ? '8px 8px 16px rgb(25, 25, 25), -8px -8px 16px rgb(60, 60, 60)'
+                  : '5px 5px 10px #bebebe, -5px -5px 10px #ffffff'
             }}
           >
             ✍️ Written Feedback
@@ -381,73 +416,80 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
 
         {/* Audio Recording Interface */}
         {inputMethod === 'audio' && (
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '20px',
-            padding: '40px',
-            textAlign: 'center',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            <div style={{
-              width: '120px',
-              height: '120px',
-              borderRadius: '50%',
-              background: isRecording 
-                ? 'linear-gradient(45deg, #ef4444, #dc2626)' 
-                : 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 30px auto',
-              cursor: 'pointer',
-              fontSize: '40px',
-              transition: 'all 0.3s ease',
-              transform: isRecording ? 'scale(1.1)' : 'scale(1)',
-              boxShadow: isRecording 
-                ? '0 0 30px rgba(239, 68, 68, 0.5)' 
-                : '0 0 30px rgba(139, 92, 246, 0.3)'
-            }}
-            onClick={isRecording ? stopRecording : startRecording}
+          <div style={{ textAlign: 'center' }}>
+            <div
+              onClick={isRecording ? stopRecording : startRecording}
+              style={{
+                width: 'clamp(120px, 25vw, 150px)',
+                height: 'clamp(120px, 25vw, 150px)',
+                borderRadius: '50%',
+                margin: '0 auto 2rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 'clamp(2.5rem, 6vw, 3.5rem)',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                background: isRecording 
+                  ? 'linear-gradient(145deg, #f56565, #fc8181)'
+                  : 'var(--neuro-bg, #e0e0e0)',
+                boxShadow: isRecording
+                  ? 'inset 8px 8px 16px rgba(0,0,0,0.2), inset -8px -8px 16px rgba(255,255,255,0.1)'
+                  : isDarkMode
+                    ? '15px 15px 30px rgb(25, 25, 25), -15px -15px 30px rgb(60, 60, 60)'
+                    : '15px 15px 30px #bebebe, -15px -15px 30px #ffffff',
+                animation: isRecording ? 'pulse 2s infinite' : 'none'
+              }}
             >
               {isRecording ? '⏸️' : '🎤'}
             </div>
 
             {isRecording && (
-              <div style={{ marginBottom: '20px' }}>
+              <>
                 <div style={{
-                  fontSize: '24px',
-                  fontWeight: 'bold',
-                  marginBottom: '10px',
-                  color: '#ef4444'
+                  fontSize: 'clamp(1.5rem, 4vw, 2rem)',
+                  fontWeight: '300',
+                  color: 'var(--neuro-text-primary, #2c3e50)',
+                  marginBottom: '1rem'
                 }}>
                   {formatTime(recordingTime)}
                 </div>
+                
                 <div style={{
-                  width: '200px',
+                  width: '100%',
+                  maxWidth: '300px',
                   height: '8px',
-                  backgroundColor: 'rgba(255, 255, 255, 0.2)',
-                  borderRadius: '4px',
-                  margin: '0 auto',
-                  overflow: 'hidden'
+                  background: 'var(--neuro-bg, #e0e0e0)',
+                  borderRadius: '50px',
+                  boxShadow: 'inset 3px 3px 6px rgba(0,0,0,0.1), inset -3px -3px 6px rgba(255,255,255,0.5)',
+                  overflow: 'hidden',
+                  margin: '0 auto 2rem'
                 }}>
                   <div style={{
-                    width: `${(recordingTime / MAX_RECORDING_TIME) * 100}%`,
                     height: '100%',
-                    background: 'linear-gradient(45deg, #ef4444, #dc2626)',
+                    width: `${(recordingTime / MAX_RECORDING_TIME) * 100}%`,
+                    background: 'linear-gradient(90deg, #ef4444, #dc2626)',
                     transition: 'width 1s linear'
                   }} />
                 </div>
-              </div>
+              </>
             )}
 
-            <h3 style={{ fontSize: '24px', marginBottom: '10px' }}>
+            <h3 style={{
+              fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
+              color: 'var(--neuro-text-primary, #2c3e50)',
+              marginBottom: '0.5rem'
+            }}>
               {isRecording ? 'Recording...' : 'Ready to Record'}
             </h3>
-            <p style={{ fontSize: '16px', opacity: 0.8, lineHeight: '1.6' }}>
+            <p style={{
+              color: 'var(--neuro-text-secondary, #5a6c7d)',
+              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+              lineHeight: '1.5'
+            }}>
               {isRecording 
-                ? `Share your thoughts about ${restaurantName}. Speak clearly and mention food, service, and atmosphere.`
-                : 'Tap the microphone to start recording your feedback. You have up to 30 seconds.'
+                ? `Share your thoughts about ${restaurantName}. Speak clearly about food, service, and atmosphere.`
+                : 'Tap the microphone to start recording. Maximum 30 seconds.'
               }
             </p>
           </div>
@@ -455,86 +497,56 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
 
         {/* Text Input Interface */}
         {inputMethod === 'text' && (
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '20px',
-            padding: '30px',
-            backdropFilter: 'blur(10px)',
-            border: '1px solid rgba(255, 255, 255, 0.2)'
-          }}>
-            <h3 style={{ fontSize: '20px', marginBottom: '20px', textAlign: 'center' }}>
-              Write Your Feedback
-            </h3>
+          <div>
             <textarea
               value={textInput}
               onChange={(e) => setTextInput(e.target.value)}
-              placeholder={`What did you think of ${restaurantName}? Share details about the food quality, service, atmosphere, and overall experience.`}
+              placeholder={`What did you think of ${restaurantName}? Share your thoughts about the food, service, and atmosphere...`}
               style={{
                 width: '100%',
-                height: '200px',
-                padding: '20px',
-                fontSize: '16px',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
-                borderRadius: '10px',
-                color: 'white',
-                resize: 'none',
-                outline: 'none',
-                marginBottom: '20px',
-                transition: 'border-color 0.3s ease',
-                backdropFilter: 'blur(10px)'
-              }}
-              onFocus={(e) => {
-                e.target.style.borderColor = '#3b82f6';
-                e.target.style.boxShadow = '0 0 0 2px rgba(59, 130, 246, 0.2)';
-              }}
-              onBlur={(e) => {
-                e.target.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                e.target.style.boxShadow = 'none';
+                minHeight: '200px',
+                padding: '1.25rem',
+                fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                lineHeight: '1.6',
+                border: 'none',
+                borderRadius: '1rem',
+                background: 'var(--neuro-bg, #e0e0e0)',
+                boxShadow: 'inset 8px 8px 16px rgba(0,0,0,0.08), inset -8px -8px 16px rgba(255,255,255,0.5)',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                color: 'var(--neuro-text-primary, #2c3e50)',
+                outline: 'none'
               }}
             />
-            <div style={{
-              textAlign: 'right',
-              fontSize: '14px',
-              color: '#9ca3af',
-              marginBottom: '20px'
-            }}>
-              {textInput.length} characters
-            </div>
             
-            <div style={{ textAlign: 'center' }}>
+            <div style={{
+              display: 'flex',
+              justifyContent: 'center',
+              marginTop: '2rem'
+            }}>
               <button
                 onClick={handleSubmitText}
                 disabled={textInput.length < 10}
                 style={{
-                  padding: '15px 40px',
-                  fontSize: '18px',
-                  fontWeight: 'bold',
+                  padding: '1rem 2rem',
+                  borderRadius: '50px',
                   border: 'none',
-                  borderRadius: '10px',
+                  fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+                  fontWeight: '600',
                   cursor: textInput.length >= 10 ? 'pointer' : 'not-allowed',
-                  background: textInput.length >= 10 ? 'linear-gradient(45deg, #8b5cf6, #ec4899)' : '#6b7280',
-                  color: 'white',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '10px',
-                  margin: '0 auto',
-                  transform: textInput.length >= 10 ? 'scale(1)' : 'scale(0.95)',
-                  transition: 'all 0.3s ease',
-                  boxShadow: textInput.length >= 10 ? '0 4px 16px rgba(139, 92, 246, 0.4)' : 'none'
+                  background: textInput.length >= 10 
+                    ? 'linear-gradient(145deg, #667eea, #764ba2)'
+                    : 'var(--neuro-bg, #e0e0e0)',
+                  color: textInput.length >= 10 ? 'white' : '#cbd5e0',
+                  boxShadow: isDarkMode
+                    ? '8px 8px 16px rgb(25, 25, 25), -8px -8px 16px rgb(60, 60, 60)'
+                    : '8px 8px 16px #bebebe, -8px -8px 16px #ffffff',
+                  opacity: textInput.length >= 10 ? 1 : 0.5,
+                  transition: 'all 0.3s ease'
                 }}
               >
-                🤖 Analyze & Submit
+                🤖 Analyze Feedback
               </button>
-              {textInput.length < 10 && (
-                <p style={{
-                  color: '#fbbf24',
-                  fontSize: '14px',
-                  marginTop: '10px'
-                }}>
-                  Please write at least 10 characters
-                </p>
-              )}
             </div>
           </div>
         )}
@@ -542,82 +554,111 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     );
   }
 
-  // Recording complete screen
+  // Recording complete screen with NEUMORPHIC UI
   if (step === 'recorded') {
     return (
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        color: 'white',
-        minHeight: '100vh',
+      <div className="neuro-card" style={{
+        background: 'var(--neuro-bg, #e0e0e0)',
+        borderRadius: 'var(--neuro-radius-lg, 2rem)',
+        padding: 'clamp(1.5rem, 4vw, 2.5rem)',
+        boxShadow: isDarkMode 
+          ? '15px 15px 30px rgb(25, 25, 25), -15px -15px 30px rgb(60, 60, 60)'
+          : '20px 20px 60px #bebebe, -20px -20px 60px #ffffff',
+        maxWidth: '100%',
+        margin: '2rem auto 0',
         textAlign: 'center'
       }}>
-        <div style={{ marginBottom: '40px' }}>
-          <div style={{
-            width: '80px',
-            height: '80px',
-            backgroundColor: '#22c55e',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 20px auto',
-            fontSize: '40px'
-          }}>
-            ✅
-          </div>
-          <h2 style={{ fontSize: '28px', marginBottom: '10px' }}>
-            Recording Complete!
-          </h2>
-          <p style={{ fontSize: '16px', opacity: 0.8 }}>
-            Review your recording and analyze it
-          </p>
+        {/* Success Icon */}
+        <div style={{
+          width: '80px',
+          height: '80px',
+          background: 'linear-gradient(145deg, #48bb78, #38a169)',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1.5rem',
+          fontSize: '2.5rem',
+          color: 'white',
+          boxShadow: isDarkMode
+            ? '10px 10px 20px rgb(25, 25, 25), -10px -10px 20px rgb(60, 60, 60)'
+            : '10px 10px 20px #bebebe, -10px -10px 20px #ffffff'
+        }}>
+          ✓
         </div>
+
+        <h2 style={{
+          fontSize: 'clamp(1.25rem, 3vw, 1.5rem)',
+          color: 'var(--neuro-text-primary, #2c3e50)',
+          marginBottom: '0.5rem'
+        }}>
+          Recording Complete!
+        </h2>
+        <p style={{
+          color: 'var(--neuro-text-secondary, #5a6c7d)',
+          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+          marginBottom: '2rem'
+        }}>
+          Review your recording and analyze it
+        </p>
+
+        {/* Error display */}
+        {error && (
+          <div style={{
+            background: 'rgba(239, 68, 68, 0.1)',
+            border: '1px solid rgba(239, 68, 68, 0.3)',
+            borderRadius: '1rem',
+            padding: '1rem',
+            marginBottom: '1.5rem',
+            color: '#ef4444'
+          }}>
+            {error}
+          </div>
+        )}
 
         {/* Audio player */}
         {audioUrl && (
-          <div style={{
-            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-            borderRadius: '15px',
-            padding: '20px',
-            marginBottom: '30px',
-            backdropFilter: 'blur(10px)'
-          }}>
-            <audio 
-              src={audioUrl} 
-              controls 
-              style={{ width: '100%' }}
-            />
-          </div>
+          <audio 
+            src={audioUrl} 
+            controls 
+            style={{ 
+              width: '100%',
+              maxWidth: '400px',
+              marginBottom: '2rem'
+            }}
+          />
         )}
 
         {/* Action buttons */}
         <div style={{
           display: 'flex',
-          gap: '20px',
+          gap: '1rem',
           justifyContent: 'center',
           flexWrap: 'wrap'
         }}>
           <button
             onClick={handleAnalyzeAudio}
             style={{
-              padding: '15px 30px',
-              fontSize: '16px',
-              fontWeight: 'bold',
+              padding: '1rem 2rem',
+              borderRadius: '50px',
               border: 'none',
-              borderRadius: '10px',
-              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-              color: 'white',
+              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+              fontWeight: '600',
               cursor: 'pointer',
+              background: 'linear-gradient(145deg, #667eea, #764ba2)',
+              color: 'white',
+              boxShadow: isDarkMode
+                ? '8px 8px 16px rgb(25, 25, 25), -8px -8px 16px rgb(60, 60, 60)'
+                : '8px 8px 16px #bebebe, -8px -8px 16px #ffffff',
               transition: 'all 0.3s ease',
               display: 'flex',
               alignItems: 'center',
-              gap: '10px'
+              gap: '0.5rem'
             }}
           >
             🤖 Analyze Recording
           </button>
+          
           <button
             onClick={() => {
               setStep('input');
@@ -626,14 +667,17 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
               setAudioUrl(null);
             }}
             style={{
-              padding: '15px 30px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              border: '2px solid rgba(255, 255, 255, 0.3)',
-              borderRadius: '10px',
-              background: 'transparent',
-              color: 'white',
+              padding: '1rem 2rem',
+              borderRadius: '50px',
+              border: 'none',
+              fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+              fontWeight: '600',
               cursor: 'pointer',
+              background: 'var(--neuro-bg, #e0e0e0)',
+              color: 'var(--neuro-text-secondary, #5a6c7d)',
+              boxShadow: isDarkMode
+                ? '5px 5px 10px rgb(25, 25, 25), -5px -5px 10px rgb(60, 60, 60)'
+                : '5px 5px 10px #bebebe, -5px -5px 10px #ffffff',
               transition: 'all 0.3s ease'
             }}
           >
@@ -644,32 +688,46 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
     );
   }
 
-  // Analyzing screen
+  // Analyzing screen with NEUMORPHIC UI
   if (step === 'analyzing') {
     return (
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        color: 'white',
-        minHeight: '100vh',
+      <div className="neuro-card" style={{
+        background: 'var(--neuro-bg, #e0e0e0)',
+        borderRadius: 'var(--neuro-radius-lg, 2rem)',
+        padding: 'clamp(2rem, 4vw, 3rem)',
+        boxShadow: isDarkMode 
+          ? '15px 15px 30px rgb(25, 25, 25), -15px -15px 30px rgb(60, 60, 60)'
+          : '20px 20px 60px #bebebe, -20px -20px 60px #ffffff',
+        maxWidth: '100%',
+        margin: '2rem auto 0',
         textAlign: 'center'
       }}>
         <div style={{
-          width: '100px',
-          height: '100px',
-          border: '4px solid rgba(139, 92, 246, 0.3)',
-          borderTop: '4px solid #8b5cf6',
+          width: '80px',
+          height: '80px',
+          border: `4px solid var(--neuro-bg, #e0e0e0)`,
+          borderTop: '4px solid #667eea',
           borderRadius: '50%',
-          margin: '0 auto 30px auto',
-          animation: 'spin 1s linear infinite'
+          margin: '0 auto 2rem',
+          animation: 'spin 1s linear infinite',
+          boxShadow: isDarkMode
+            ? 'inset 5px 5px 10px rgb(25, 25, 25), inset -5px -5px 10px rgb(60, 60, 60)'
+            : 'inset 5px 5px 10px #bebebe, inset -5px -5px 10px #ffffff'
         }} />
         
-        <h2 style={{ fontSize: '28px', marginBottom: '20px' }}>
+        <h2 style={{
+          fontSize: 'clamp(1.5rem, 3vw, 2rem)',
+          color: 'var(--neuro-text-primary, #2c3e50)',
+          marginBottom: '1rem'
+        }}>
           Analyzing Your Feedback
         </h2>
         
-        <p style={{ fontSize: '16px', opacity: 0.8, marginBottom: '30px' }}>
+        <p style={{
+          fontSize: 'clamp(0.875rem, 2.5vw, 1rem)',
+          color: 'var(--neuro-text-secondary, #5a6c7d)',
+          marginBottom: '2rem'
+        }}>
           {analysisProgress < 30 && "Processing your input..."}
           {analysisProgress >= 30 && analysisProgress < 60 && "Converting speech to text..."}
           {analysisProgress >= 60 && analysisProgress < 90 && "Analyzing sentiment and insights..."}
@@ -678,81 +736,49 @@ const FeedbackForm = ({ restaurantId, restaurantName, placeId }) => {
 
         {/* Progress bar */}
         <div style={{
-          width: '300px',
-          height: '8px',
-          backgroundColor: 'rgba(255, 255, 255, 0.2)',
-          borderRadius: '4px',
-          margin: '0 auto 20px auto',
-          overflow: 'hidden'
+          width: '100%',
+          maxWidth: '400px',
+          height: '10px',
+          background: 'var(--neuro-bg, #e0e0e0)',
+          borderRadius: '50px',
+          boxShadow: 'inset 4px 4px 8px rgba(0,0,0,0.1), inset -4px -4px 8px rgba(255,255,255,0.5)',
+          overflow: 'hidden',
+          margin: '0 auto 1rem'
         }}>
           <div style={{
-            width: `${analysisProgress}%`,
             height: '100%',
-            background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
+            width: `${analysisProgress}%`,
+            background: 'linear-gradient(90deg, #667eea, #764ba2)',
             transition: 'width 0.5s ease'
           }} />
         </div>
 
-        <div style={{ fontSize: '14px', opacity: 0.6 }}>
+        <div style={{ 
+          fontSize: 'clamp(0.75rem, 2vw, 0.875rem)',
+          color: 'var(--neuro-text-light, #8491a3)'
+        }}>
           {analysisProgress}% Complete
         </div>
-
-        <style>
-          {`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}
-        </style>
       </div>
     );
   }
 
-  // Analysis results screen
+  // Analysis results screen - KEEP ORIGINAL COMPONENT
   if (step === 'analysis' && analysisResult) {
     return (
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        color: 'white',
-        minHeight: '100vh'
-      }}>
-        <ReviewAnalysis 
-          reviewData={analysisResult}
-          onSaveSuccess={() => {
-            // Additional actions after saving if needed
-          }}
-          onStartOver={handleStartOver}
-          placeId={placeId}
-        />
-      </div>
+      <ReviewAnalysis 
+        reviewData={analysisResult}
+        onSaveSuccess={() => {
+          // Additional actions after saving if needed
+        }}
+        onStartOver={handleStartOver}
+        placeId={placeId}
+      />
     );
   }
 
   // Fallback
-  return (
-    <div style={{
-      maxWidth: '800px',
-      margin: '0 auto',
-      padding: '40px 20px',
-      color: 'white',
-      minHeight: '100vh',
-      textAlign: 'center'
-    }}>
-      <div style={{
-        width: '50px',
-        height: '50px',
-        border: '3px solid rgba(139, 92, 246, 0.3)',
-        borderTop: '3px solid #8b5cf6',
-        borderRadius: '50%',
-        margin: '0 auto 20px auto',
-        animation: 'spin 1s linear infinite'
-      }} />
-      <p>Loading feedback form...</p>
-    </div>
-  );
+  return null;
 };
 
 export default FeedbackForm;

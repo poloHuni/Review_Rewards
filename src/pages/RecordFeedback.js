@@ -133,7 +133,7 @@ const RecordFeedback = () => {
           .neuro-restaurant-select-card {
             background: var(--neuro-bg, #e0e0e0);
             border-radius: 24px;
-            padding: 2rem;
+            padding: 0; /* Remove padding for image */
             cursor: pointer;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
@@ -157,6 +157,56 @@ const RecordFeedback = () => {
               inset -4px -4px 8px rgba(255,255,255,0.9);
           }
 
+          /* Card Inner Container */
+          .neuro-card-inner {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            height: 100%;
+            min-height: 100px; /* Ensure minimum height */
+          }
+
+          /* Full Height Image on Left */
+          .neuro-card-image {
+            width: 120px;
+            height: 100%;
+            min-height: 100px;
+            object-fit: cover;
+            flex-shrink: 0;
+          }
+
+          /* Content Area */
+          .neuro-card-content {
+            flex: 1;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+          }
+
+          .neuro-card-info {
+            flex: 1;
+          }
+
+          .neuro-card-title {
+            fontSize: 1.25rem;
+            fontWeight: 700;
+            color: var(--neuro-text-primary, #2c3e50);
+            marginBottom: 0.25rem;
+          }
+
+          .neuro-card-subtitle {
+            fontSize: 0.875rem;
+            color: var(--neuro-text-secondary, #5a6c7d);
+            margin: 0;
+          }
+
+          .neuro-card-arrow {
+            fontSize: 1.25rem;
+            color: var(--neuro-text-secondary, #5a6c7d);
+            transition: transform 0.3s;
+          }
+
           .neuro-empty-state {
             text-align: center;
             padding: 4rem 2rem;
@@ -178,6 +228,21 @@ const RecordFeedback = () => {
             color: var(--neuro-text-secondary, #5a6c7d);
             font-size: 1rem;
             line-height: 1.6;
+          }
+
+          /* Mobile Responsive */
+          @media (max-width: 640px) {
+            .neuro-card-image {
+              width: 80px;
+            }
+            
+            .neuro-card-content {
+              padding: 1.25rem;
+            }
+            
+            .neuro-card-title {
+              fontSize: 1.125rem;
+            }
           }
 
           @media (min-width: 768px) {
@@ -237,47 +302,71 @@ const RecordFeedback = () => {
             {/* Restaurant Grid */}
             {allRestaurants.length > 0 ? (
               <div className="neuro-selection-grid">
-                {allRestaurants.map((restaurant, index) => (
-                  <div 
-                    key={restaurant.restaurant_id}
-                    className="neuro-restaurant-select-card"
-                    onClick={() => handleRestaurantSelect(restaurant)}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                      <div style={{
-                        width: '3rem',
-                        height: '3rem',
-                        borderRadius: '12px',
-                        background: 'var(--neuro-bg, #e0e0e0)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: '1.5rem',
-                        boxShadow: 'inset 3px 3px 6px rgba(0,0,0,0.1), inset -3px -3px 6px rgba(255,255,255,0.9)'
-                      }}>
-                        {restaurant.icon || '🍽️'}
+                {allRestaurants.map((restaurant, index) => {
+                  // Luxury restaurant images array (same as home page)
+                  const luxuryImages = [
+                    'https://images.unsplash.com/photo-1514933651103-005eec06c04b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1578474846511-04ba529f0b88?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1424847651672-bf20a4b0982b?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80',
+                    'https://images.unsplash.com/photo-1551218808-94e220e084d2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'
+                  ];
+
+                  // Use restaurant ID to consistently pick the same image
+                  const imageIndex = restaurant.restaurant_id 
+                    ? Math.abs(restaurant.restaurant_id.split('').reduce((a, b) => a + b.charCodeAt(0), 0)) % luxuryImages.length 
+                    : index % luxuryImages.length;
+
+                  return (
+                    <div 
+                      key={restaurant.restaurant_id}
+                      className="neuro-restaurant-select-card"
+                      onClick={() => handleRestaurantSelect(restaurant)}
+                      onMouseEnter={() => setHoveredCard(index)}
+                      onMouseLeave={() => setHoveredCard(null)}
+                    >
+                      <div className="neuro-card-inner">
+                        {/* Full Height Image on Left */}
+                        <img 
+                          src={luxuryImages[imageIndex]}
+                          alt={restaurant.name}
+                          className="neuro-card-image"
+                        />
+                        
+                        {/* Content Area */}
+                        <div className="neuro-card-content">
+                          <div className="neuro-card-info">
+                            <h3 style={{ 
+                              fontSize: '1.25rem', 
+                              fontWeight: '700',
+                              color: 'var(--neuro-text-primary, #2c3e50)',
+                              marginBottom: '0.25rem'
+                            }}>
+                              {restaurant.name}
+                            </h3>
+                            <p style={{ 
+                              fontSize: '0.875rem',
+                              color: 'var(--neuro-text-secondary, #5a6c7d)',
+                              margin: 0
+                            }}>
+                              {restaurant.cuisine || 'Restaurant'} • {restaurant.address?.split(',')[0] || 'Location'}
+                            </p>
+                          </div>
+                          <span 
+                            className="neuro-card-arrow"
+                            style={{ 
+                              transform: hoveredCard === index ? 'translateX(4px)' : 'translateX(0)', 
+                              transition: 'transform 0.3s' 
+                            }}
+                          >
+                            →
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <h3 style={{ 
-                          fontSize: '1.25rem', 
-                          fontWeight: '700',
-                          color: 'var(--neuro-text-primary, #2c3e50)',
-                          marginBottom: '0.25rem'
-                        }}>
-                          {restaurant.name}
-                        </h3>
-                        <p style={{ 
-                          fontSize: '0.875rem',
-                          color: 'var(--neuro-text-secondary, #5a6c7d)',
-                          margin: 0
-                        }}>
-                          {restaurant.cuisine || 'Restaurant'} • {restaurant.address?.split(',')[0] || 'Location'}
-                        </p>
-                      </div>
-                      <span style={{ transform: hoveredCard === index ? 'translateX(4px)' : 'translateX(0)', transition: 'transform 0.3s' }}>→</span>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="neuro-empty-state">
@@ -293,7 +382,6 @@ const RecordFeedback = () => {
       </div>
     );
   }
-
   // Main Feedback Page with Home Page Card Design
   return (
     <div className="neuro-body">
