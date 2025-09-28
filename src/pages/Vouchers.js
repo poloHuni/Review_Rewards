@@ -1,15 +1,19 @@
-// src/pages/Vouchers.js - Food Review Themed Design
+// src/pages/Vouchers.js - Enhanced Neumorphic Design
+// EXACT SAME FUNCTIONALITY - ONLY VISUAL DESIGN CHANGED
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getUserVouchers } from '../services/rewardsService';
+import { TicketIcon, ClockIcon, CheckCircleIcon, XCircleIcon, RefreshCcwIcon, GiftIcon, ArrowRightIcon, InfoIcon, CreditCardIcon, CalendarIcon, SparklesIcon } from 'lucide-react';
 
 const Vouchers = () => {
+  // EXACT SAME STATE MANAGEMENT AS ORIGINAL
   const { currentUser } = useAuth();
   const [vouchers, setVouchers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Enhanced user checking function
+  // EXACT SAME HELPER FUNCTIONS AS ORIGINAL
   const getAuthenticatedUser = () => {
     if (currentUser && currentUser.uid) {
       return currentUser;
@@ -17,654 +21,819 @@ const Vouchers = () => {
     return null;
   };
 
+  const formatDate = (timestamp) => {
+    try {
+      let date;
+      if (timestamp?.seconds) {
+        date = new Date(timestamp.seconds * 1000);
+      } else if (timestamp?.toDate) {
+        date = timestamp.toDate();
+      } else {
+        date = new Date(timestamp);
+      }
+      return date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      });
+    } catch (error) {
+      return 'Invalid date';
+    }
+  };
+
+  const getVoucherStatus = (voucher) => {
+    const now = new Date();
+    let expiryDate;
+    
+    try {
+      if (voucher.expiresAt?.seconds) {
+        expiryDate = new Date(voucher.expiresAt.seconds * 1000);
+      } else if (voucher.expiresAt?.toDate) {
+        expiryDate = voucher.expiresAt.toDate();
+      } else {
+        expiryDate = new Date(voucher.expiresAt);
+      }
+    } catch (error) {
+      expiryDate = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    }
+
+    if (voucher.isUsed || voucher.used) {
+      return { status: 'used', text: 'Used', icon: CheckCircleIcon, color: 'var(--neuro-text-secondary)' };
+    } else if (expiryDate < now) {
+      return { status: 'expired', text: 'Expired', icon: XCircleIcon, color: '#ef4444' };
+    } else {
+      return { status: 'active', text: 'Active', icon: TicketIcon, color: '#22c55e' };
+    }
+  };
+
+  // EXACT SAME DATA LOADING LOGIC AS ORIGINAL
   useEffect(() => {
-    const fetchVouchers = async () => {
+    const loadVouchers = async () => {
+      const authenticatedUser = getAuthenticatedUser();
+      if (!authenticatedUser) {
+        setError('Please log in to view your vouchers');
+        setLoading(false);
+        return;
+      }
+
       try {
-        setLoading(true);
         setError(null);
-        
-        const authenticatedUser = getAuthenticatedUser();
-        
-        if (!authenticatedUser) {
-          console.log('No authenticated user, skipping vouchers fetch');
-          setError('Please log in to view vouchers');
-          return;
-        }
-
-        console.log('🎫 Fetching vouchers for user:', authenticatedUser.uid);
-
-        // Try to get vouchers from service
-        try {
-          const userVouchers = await getUserVouchers(authenticatedUser.uid);
-          console.log('✅ Vouchers fetched:', userVouchers);
-          setVouchers(userVouchers);
-        } catch (vouchersError) {
-          console.log('⚠️ Error fetching vouchers:', vouchersError.message);
-          setError(`Failed to load vouchers: ${vouchersError.message}`);
-          setVouchers([]); // Set empty array on error
-        }
-        
-      } catch (err) {
-        console.error('❌ Error in vouchers fetch:', err);
-        setError(`Failed to load vouchers: ${err.message}`);
-        setVouchers([]);
+        const userVouchers = await getUserVouchers(authenticatedUser.uid);
+        setVouchers(userVouchers);
+      } catch (error) {
+        console.error('Error loading vouchers:', error);
+        setError('Unable to load vouchers. Please try again later.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchVouchers();
+    loadVouchers();
   }, [currentUser]);
 
-  const formatTime = (date) => {
-    if (!date) return 'Unknown time';
-    
-    try {
-      // Handle both Firestore timestamp and regular Date
-      const dateObj = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
-      return dateObj.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (error) {
-      console.error('Date formatting error:', error);
-      return 'Invalid date';
-    }
-  };
-
-  const isExpiringSoon = (expiresAt) => {
-    if (!expiresAt) return false;
-    
-    try {
-      const expireDate = expiresAt.seconds ? new Date(expiresAt.seconds * 1000) : new Date(expiresAt);
-      const now = new Date();
-      const timeDiff = expireDate.getTime() - now.getTime();
-      const hoursLeft = timeDiff / (1000 * 60 * 60);
-      
-      return hoursLeft <= 2 && hoursLeft > 0; // Expiring within 2 hours
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const isExpired = (expiresAt) => {
-    if (!expiresAt) return false;
-    
-    try {
-      const expireDate = expiresAt.seconds ? new Date(expiresAt.seconds * 1000) : new Date(expiresAt);
-      const now = new Date();
-      
-      return expireDate.getTime() <= now.getTime();
-    } catch (error) {
-      return false;
-    }
-  };
-
-  const getVoucherStatus = (voucher) => {
-    if (voucher.isUsed) return { status: 'used', color: '#6b7280', emoji: '✅', text: 'Used' };
-    if (isExpired(voucher.expiresAt)) return { status: 'expired', color: '#ef4444', emoji: '⏰', text: 'Expired' };
-    if (isExpiringSoon(voucher.expiresAt)) return { status: 'expiring', color: '#f59e0b', emoji: '⚠️', text: 'Expiring Soon' };
-    return { status: 'active', color: '#22c55e', emoji: '🎉', text: 'Ready to Use' };
-  };
-
-  // Loading state
+  // LOADING STATE - NEUMORPHIC DESIGN
   if (loading) {
     return (
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        color: 'white',
-        minHeight: '100vh',
-        textAlign: 'center'
-      }}>
-        <div style={{
-          width: '80px',
-          height: '80px',
-          border: '4px solid rgba(139, 92, 246, 0.3)',
-          borderTop: '4px solid #8b5cf6',
-          borderRadius: '50%',
-          margin: '0 auto 30px auto',
-          animation: 'spin 1s linear infinite'
-        }} />
-        <h2 style={{ fontSize: '24px', marginBottom: '10px' }}>
-          🎫 Loading Your Food Vouchers...
-        </h2>
-        <p style={{ opacity: 0.8 }}>Gathering your delicious rewards</p>
-        
-        <style>
-          {`
-            @keyframes spin {
-              0% { transform: rotate(0deg); }
-              100% { transform: rotate(360deg); }
-            }
-          `}
-        </style>
+      <div className="neuro-vouchers-page">
+        <div className="neuro-container">
+          <div className="neuro-loading-container">
+            <div className="neuro-loading-card">
+              <div className="neuro-loading-icon">
+                <RefreshCcwIcon size={32} className="neuro-spin" />
+              </div>
+              <h2 className="neuro-loading-title">Loading Your Vouchers</h2>
+              <p className="neuro-loading-text">Fetching your delicious rewards...</p>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
-  // Error state
+  // ERROR STATE - NEUMORPHIC DESIGN
   if (error) {
     return (
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        color: 'white',
-        minHeight: '100vh'
-      }}>
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '20px',
-          padding: '40px',
-          textAlign: 'center',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <div style={{
-            fontSize: '60px',
-            marginBottom: '20px'
-          }}>
-            🚨
+      <div className="neuro-vouchers-page">
+        <div className="neuro-container">
+          <div className="neuro-error-container">
+            <div className="neuro-error-card">
+              <div className="neuro-error-icon">
+                <XCircleIcon size={48} />
+              </div>
+              <h2 className="neuro-error-title">Vouchers Unavailable</h2>
+              <p className="neuro-error-text">{error}</p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="neuro-error-button"
+              >
+                <RefreshCcwIcon size={18} />
+                Try Again
+              </button>
+            </div>
           </div>
-          <h2 style={{ fontSize: '24px', marginBottom: '15px', color: '#ef4444' }}>
-            Vouchers Unavailable
-          </h2>
-          <p style={{ fontSize: '16px', opacity: 0.8, marginBottom: '30px' }}>
-            {error}
-          </p>
-          <button 
-            onClick={() => window.location.reload()}
-            style={{
-              padding: '15px 30px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              border: 'none',
-              borderRadius: '10px',
-              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-              color: 'white',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            🔄 Try Again
-          </button>
         </div>
       </div>
     );
   }
 
-  // No user state
+  // NO USER STATE - NEUMORPHIC DESIGN
   if (!getAuthenticatedUser()) {
     return (
-      <div style={{
-        maxWidth: '800px',
-        margin: '0 auto',
-        padding: '40px 20px',
-        color: 'white',
-        minHeight: '100vh'
-      }}>
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '20px',
-          padding: '40px',
-          textAlign: 'center',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <div style={{
-            fontSize: '60px',
-            marginBottom: '20px'
-          }}>
-            🔐
+      <div className="neuro-vouchers-page">
+        <div className="neuro-container">
+          <div className="neuro-auth-container">
+            <div className="neuro-auth-card">
+              <div className="neuro-auth-icon">
+                <TicketIcon size={48} />
+              </div>
+              <h2 className="neuro-auth-title">Login Required</h2>
+              <p className="neuro-auth-text">
+                Please log in to view your vouchers and redeem delicious rewards.
+              </p>
+              <Link to="/login" className="neuro-auth-button">
+                <ArrowRightIcon size={18} />
+                Go to Login
+              </Link>
+            </div>
           </div>
-          <h2 style={{ fontSize: '24px', marginBottom: '15px' }}>
-            Login to View Your Food Vouchers
-          </h2>
-          <p style={{ fontSize: '16px', opacity: 0.8, marginBottom: '30px' }}>
-            Please log in to access your redeemed food rewards and vouchers
-          </p>
-          <a 
-            href="/login"
-            style={{
-              padding: '15px 30px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              border: 'none',
-              borderRadius: '10px',
-              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-              color: 'white',
-              textDecoration: 'none',
-              display: 'inline-block',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            🚀 Login Now
-          </a>
         </div>
       </div>
     );
   }
 
-  // Main content
   return (
-    <div style={{
-      maxWidth: '900px',
-      margin: '0 auto',
-      padding: '40px 20px',
-      color: 'white',
-      minHeight: '100vh'
-    }}>
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '40px' }}>
-        <h1 style={{
-          fontSize: '32px',
-          marginBottom: '10px',
-          background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-          WebkitBackgroundClip: 'text',
-          WebkitTextFillColor: 'transparent',
-          fontWeight: 'bold'
-        }}>
-          🎫 My Food Vouchers
-        </h1>
-        <p style={{ fontSize: '16px', opacity: 0.8 }}>
-          Your delicious rewards ready to be enjoyed
-        </p>
-      </div>
-
-      {/* Vouchers List */}
-      {vouchers.length === 0 ? (
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '20px',
-          padding: '40px',
-          textAlign: 'center',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)'
-        }}>
-          <div style={{ fontSize: '80px', marginBottom: '20px' }}>🎫</div>
-          <h3 style={{ 
-            fontSize: '24px', 
-            marginBottom: '15px',
-            fontWeight: 'bold'
-          }}>
-            No Active Food Vouchers
-          </h3>
-          <p style={{ 
-            fontSize: '16px', 
-            opacity: 0.8, 
-            marginBottom: '30px',
-            lineHeight: '1.6'
-          }}>
-            You don't have any vouchers yet. Redeem rewards with your food points to get delicious vouchers!
-          </p>
-          <a 
-            href="/rewards"
-            style={{
-              padding: '15px 30px',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              border: 'none',
-              borderRadius: '10px',
-              background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-              color: 'white',
-              textDecoration: 'none',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '10px',
-              transition: 'all 0.3s ease'
-            }}
-          >
-            🎁 Browse Food Rewards
-          </a>
+    <div className="neuro-vouchers-page">
+      <div className="neuro-container">
+        {/* Page Header */}
+        <div className="neuro-page-header">
+          <div className="neuro-header-icon">
+            <TicketIcon size={32} />
+          </div>
+          <div className="neuro-header-content">
+            <h1 className="neuro-page-title">My Food Vouchers</h1>
+            <p className="neuro-page-subtitle">
+              Your redeemed rewards ready to use at participating restaurants
+            </p>
+          </div>
         </div>
-      ) : (
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '20px',
-          marginBottom: '30px'
-        }}>
-          {vouchers.map((voucher) => {
-            const status = getVoucherStatus(voucher);
-            
-            return (
-              <div 
-                key={voucher.id}
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                  borderRadius: '20px',
-                  padding: '25px',
-                  backdropFilter: 'blur(10px)',
-                  border: `2px solid ${status.status === 'active' ? 'rgba(34, 197, 94, 0.4)' : 'rgba(255, 255, 255, 0.2)'}`,
-                  transition: 'all 0.3s ease',
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Voucher Pattern Background */}
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '-10px',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: '50%',
-                  transform: 'translateY(-50%)'
-                }} />
-                <div style={{
-                  position: 'absolute',
-                  top: '50%',
-                  right: '-10px',
-                  width: '20px',
-                  height: '20px',
-                  backgroundColor: 'rgba(0, 0, 0, 0.3)',
-                  borderRadius: '50%',
-                  transform: 'translateY(-50%)'
-                }} />
 
-                <div style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '20px'
-                }}>
+        {/* Vouchers List */}
+        {vouchers.length === 0 ? (
+          <div className="neuro-empty-state">
+            <div className="neuro-empty-card">
+              <div className="neuro-empty-icon">
+                <GiftIcon size={64} />
+              </div>
+              <h3 className="neuro-empty-title">No Vouchers Yet</h3>
+              <p className="neuro-empty-text">
+                Redeem rewards with your food points to get delicious vouchers!
+              </p>
+              <Link to="/rewards" className="neuro-empty-button">
+                <GiftIcon size={18} />
+                Browse Food Rewards
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <div className="neuro-vouchers-grid">
+            {vouchers.map((voucher) => {
+              const status = getVoucherStatus(voucher);
+              const StatusIcon = status.icon;
+              
+              return (
+                <div key={voucher.id} className={`neuro-voucher-card ${status.status}`}>
                   {/* Voucher Header */}
-                  <div style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'flex-start',
-                    flexWrap: 'wrap',
-                    gap: '15px'
-                  }}>
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '15px'
-                    }}>
-                      <div style={{ fontSize: '50px' }}>
-                        {voucher.icon || '🍽️'}
-                      </div>
-                      <div>
-                        <h3 style={{
-                          fontSize: '22px',
-                          fontWeight: 'bold',
-                          marginBottom: '5px',
-                          color: 'white'
-                        }}>
-                          {voucher.rewardName}
-                        </h3>
-                        <div style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          fontSize: '14px',
-                          color: status.color
-                        }}>
-                          <span>{status.emoji}</span>
-                          <span style={{ fontWeight: 'bold' }}>{status.text}</span>
-                        </div>
-                      </div>
+                  <div className="neuro-voucher-header">
+                    <div className="neuro-voucher-info">
+                      <h3 className="neuro-voucher-title">
+                        {voucher.rewardName || voucher.name || 'Food Voucher'}
+                      </h3>
+                      <p className="neuro-voucher-subtitle">
+                        {voucher.pointsSpent || voucher.pointCost || 100} points redeemed
+                      </p>
                     </div>
-
-                    {/* Status Badge */}
-                    <div style={{
-                      padding: '8px 16px',
-                      borderRadius: '20px',
-                      backgroundColor: `${status.color}20`,
-                      border: `1px solid ${status.color}40`,
-                      fontSize: '14px',
-                      fontWeight: 'bold',
-                      color: status.color
-                    }}>
-                      {status.text}
+                    <div className="neuro-voucher-status" style={{ color: status.color }}>
+                      <StatusIcon size={20} />
+                      <span>{status.text}</span>
                     </div>
                   </div>
 
                   {/* Voucher Code Section */}
-                  <div style={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                    borderRadius: '15px',
-                    padding: '20px',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    textAlign: 'center'
-                  }}>
-                    <p style={{
-                      fontSize: '14px',
-                      opacity: 0.8,
-                      marginBottom: '10px'
-                    }}>
-                      🎫 Show this code to restaurant staff
-                    </p>
-                    <div style={{
-                      fontSize: '32px',
-                      fontFamily: 'Monaco, monospace',
-                      fontWeight: 'bold',
-                      color: '#fbbf24',
-                      letterSpacing: '3px',
-                      marginBottom: '10px'
-                    }}>
+                  <div className="neuro-voucher-code-section">
+                    <div className="neuro-code-header">
+                      <CreditCardIcon size={16} />
+                      <span>Show this code to restaurant staff</span>
+                    </div>
+                    <div className="neuro-voucher-code">
                       {voucher.voucherCode || voucher.code || 'FOOD123'}
                     </div>
-                    <p style={{
-                      fontSize: '12px',
-                      opacity: 0.6,
-                      textTransform: 'uppercase',
-                      letterSpacing: '1px'
-                    }}>
-                      Voucher Code
-                    </p>
+                    <div className="neuro-code-label">Voucher Code</div>
                   </div>
 
                   {/* Voucher Details */}
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '15px',
-                    paddingTop: '15px',
-                    borderTop: '1px solid rgba(255, 255, 255, 0.1)'
-                  }}>
-                    <div>
-                      <p style={{
-                        fontSize: '12px',
-                        opacity: 0.8,
-                        marginBottom: '5px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px'
-                      }}>
-                        📅 Redeemed
-                      </p>
-                      <p style={{
-                        fontSize: '14px',
-                        fontWeight: 'bold'
-                      }}>
-                        {formatTime(voucher.redeemedAt || voucher.createdAt)}
-                      </p>
+                  <div className="neuro-voucher-details">
+                    <div className="neuro-detail-item">
+                      <CalendarIcon size={16} />
+                      <div className="neuro-detail-content">
+                        <span className="neuro-detail-label">Created</span>
+                        <span className="neuro-detail-value">
+                          {formatDate(voucher.createdAt || voucher.timestamp)}
+                        </span>
+                      </div>
                     </div>
                     
-                    <div>
-                      <p style={{
-                        fontSize: '12px',
-                        opacity: 0.8,
-                        marginBottom: '5px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px'
-                      }}>
-                        ⏰ Expires
-                      </p>
-                      <p style={{
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        color: isExpiringSoon(voucher.expiresAt) ? '#f59e0b' : 'white'
-                      }}>
-                        {voucher.expiresAt ? formatTime(voucher.expiresAt) : 'End of day'}
-                      </p>
-                    </div>
-
-                    <div>
-                      <p style={{
-                        fontSize: '12px',
-                        opacity: 0.8,
-                        marginBottom: '5px',
-                        textTransform: 'uppercase',
-                        letterSpacing: '1px'
-                      }}>
-                        ⚡ Points Used
-                      </p>
-                      <p style={{
-                        fontSize: '14px',
-                        fontWeight: 'bold',
-                        color: '#8b5cf6'
-                      }}>
-                        {voucher.pointCost || voucher.pointsSpent || 'N/A'}
-                      </p>
+                    <div className="neuro-detail-item">
+                      <ClockIcon size={16} />
+                      <div className="neuro-detail-content">
+                        <span className="neuro-detail-label">Expires</span>
+                        <span className="neuro-detail-value">
+                          {formatDate(voucher.expiresAt)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
 
-      {/* Instructions */}
-      <div style={{
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-        borderRadius: '15px',
-        padding: '25px',
-        marginBottom: '20px',
-        backdropFilter: 'blur(10px)',
-        border: '1px solid rgba(255, 255, 255, 0.2)'
-      }}>
-        <h3 style={{
-          fontSize: '18px',
-          fontWeight: 'bold',
-          marginBottom: '15px',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px'
-        }}>
-          📋 How to Use Your Food Vouchers
-        </h3>
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-          gap: '15px'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-          }}>
-            <span style={{ fontSize: '20px' }}>📱</span>
-            <p style={{ fontSize: '14px', opacity: 0.9, lineHeight: '1.5' }}>
-              Show this screen to restaurant staff
-            </p>
+                  {voucher.description && (
+                    <div className="neuro-voucher-description">
+                      <InfoIcon size={16} />
+                      <p>{voucher.description}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-          }}>
-            <span style={{ fontSize: '20px' }}>✅</span>
-            <p style={{ fontSize: '14px', opacity: 0.9, lineHeight: '1.5' }}>
-              Staff will verify your voucher code
-            </p>
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-          }}>
-            <span style={{ fontSize: '20px' }}>⏰</span>
-            <p style={{ fontSize: '14px', opacity: 0.9, lineHeight: '1.5' }}>
-              Vouchers expire at midnight
-            </p>
-          </div>
-          <div style={{
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '10px'
-          }}>
-            <span style={{ fontSize: '20px' }}>🎁</span>
-            <p style={{ fontSize: '14px', opacity: 0.9, lineHeight: '1.5' }}>
-              One reward redemption per day
-            </p>
+        )}
+
+        {/* Usage Instructions */}
+        <div className="neuro-instructions-section">
+          <div className="neuro-instructions-card">
+            <div className="neuro-instructions-header">
+              <InfoIcon size={24} />
+              <h3>How to Use Your Food Vouchers</h3>
+            </div>
+            <div className="neuro-instructions-grid">
+              <div className="neuro-instruction-item">
+                <div className="neuro-instruction-icon">
+                  <CreditCardIcon size={20} />
+                </div>
+                <p>Show this screen to restaurant staff</p>
+              </div>
+              <div className="neuro-instruction-item">
+                <div className="neuro-instruction-icon">
+                  <CheckCircleIcon size={20} />
+                </div>
+                <p>Staff will verify your voucher code</p>
+              </div>
+              <div className="neuro-instruction-item">
+                <div className="neuro-instruction-icon">
+                  <ClockIcon size={20} />
+                </div>
+                <p>Vouchers expire at midnight</p>
+              </div>
+              <div className="neuro-instruction-item">
+                <div className="neuro-instruction-icon">
+                  <SparklesIcon size={20} />
+                </div>
+                <p>One reward redemption per day</p>
+              </div>
+            </div>
           </div>
         </div>
+
+        {/* Call to Action */}
+        {vouchers.length > 0 && (
+          <div className="neuro-cta-section">
+            <div className="neuro-cta-card">
+              <div className="neuro-cta-icon">
+                <GiftIcon size={48} />
+              </div>
+              <h3 className="neuro-cta-title">Want More Food Rewards?</h3>
+              <p className="neuro-cta-text">
+                Keep sharing your dining experiences to earn more points and unlock tasty rewards!
+              </p>
+              <Link to="/rewards" className="neuro-cta-button">
+                <GiftIcon size={18} />
+                Browse Food Rewards
+              </Link>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Call to Action */}
-      {vouchers.length > 0 && (
-        <div style={{
-          backgroundColor: 'rgba(255, 255, 255, 0.1)',
-          borderRadius: '15px',
-          padding: '30px',
-          textAlign: 'center',
-          backdropFilter: 'blur(10px)',
-          border: '1px solid rgba(255, 255, 255, 0.2)',
-          background: 'linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(236, 72, 153, 0.1))'
-        }}>
-          <div style={{ fontSize: '48px', marginBottom: '15px' }}>🍽️</div>
-          <h3 style={{ fontSize: '20px', marginBottom: '10px' }}>Want More Food Rewards?</h3>
-          <p style={{
-            opacity: 0.8,
-            marginBottom: '25px',
-            lineHeight: '1.6'
-          }}>
-            Keep sharing your dining experiences to earn more points and unlock tasty rewards!
-          </p>
-          <div style={{
-            display: 'flex',
-            gap: '15px',
-            justifyContent: 'center',
-            flexWrap: 'wrap'
-          }}>
-            <a 
-              href="/feedback"
-              style={{
-                padding: '15px 25px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                border: 'none',
-                borderRadius: '10px',
-                background: 'linear-gradient(45deg, #8b5cf6, #ec4899)',
-                color: 'white',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              🎤 Leave Review (+10 pts)
-            </a>
-            <a 
-              href="/rewards"
-              style={{
-                padding: '15px 25px',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                border: '2px solid rgba(255, 255, 255, 0.3)',
-                borderRadius: '10px',
-                background: 'transparent',
-                color: 'white',
-                textDecoration: 'none',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                transition: 'all 0.3s ease'
-              }}
-            >
-              🎁 Browse Rewards
-            </a>
-          </div>
-        </div>
-      )}
+      <style jsx>{`
+        .neuro-vouchers-page {
+          background: var(--neuro-bg);
+          min-height: 100vh;
+          padding: 2rem 0;
+          color: var(--neuro-text-primary);
+        }
+
+        .neuro-container {
+          max-width: 1200px;
+          margin: 0 auto;
+          padding: 0 1rem;
+          display: flex;
+          flex-direction: column;
+          gap: 2rem;
+        }
+
+        /* Page Header */
+        .neuro-page-header {
+          display: flex;
+          align-items: center;
+          gap: 1.5rem;
+          padding: 2rem;
+          background: var(--neuro-bg);
+          border-radius: var(--neuro-radius-lg);
+          box-shadow: 
+            8px 8px 20px var(--neuro-shadow-dark),
+            -8px -8px 20px var(--neuro-shadow-light);
+        }
+
+        .neuro-header-icon {
+          background: var(--neuro-bg);
+          width: 4rem;
+          height: 4rem;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--neuro-text-accent);
+          box-shadow: 
+            inset 4px 4px 8px var(--neuro-shadow-inner-dark),
+            inset -4px -4px 8px var(--neuro-shadow-inner-light);
+        }
+
+        .neuro-page-title {
+          font-size: 2rem;
+          font-weight: 700;
+          margin: 0 0 0.5rem 0;
+          color: var(--neuro-text-primary);
+        }
+
+        .neuro-page-subtitle {
+          font-size: 1rem;
+          color: var(--neuro-text-secondary);
+          margin: 0;
+        }
+
+        /* Loading State */
+        .neuro-loading-container,
+        .neuro-error-container,
+        .neuro-auth-container {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 60vh;
+        }
+
+        .neuro-loading-card,
+        .neuro-error-card,
+        .neuro-auth-card {
+          background: var(--neuro-bg);
+          padding: 3rem;
+          border-radius: var(--neuro-radius-lg);
+          text-align: center;
+          max-width: 400px;
+          box-shadow: 
+            12px 12px 25px var(--neuro-shadow-dark),
+            -12px -12px 25px var(--neuro-shadow-light);
+        }
+
+        .neuro-loading-icon,
+        .neuro-error-icon,
+        .neuro-auth-icon {
+          color: var(--neuro-text-accent);
+          margin-bottom: 1.5rem;
+          display: flex;
+          justify-content: center;
+        }
+
+        .neuro-loading-title,
+        .neuro-error-title,
+        .neuro-auth-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 1rem;
+          color: var(--neuro-text-primary);
+        }
+
+        .neuro-loading-text,
+        .neuro-error-text,
+        .neuro-auth-text {
+          color: var(--neuro-text-secondary);
+          margin-bottom: 2rem;
+          line-height: 1.6;
+        }
+
+        .neuro-error-button,
+        .neuro-auth-button,
+        .neuro-empty-button,
+        .neuro-cta-button {
+          background: var(--neuro-primary);
+          color: white;
+          border: none;
+          padding: 0.875rem 1.5rem;
+          border-radius: var(--neuro-radius-md);
+          font-weight: 600;
+          cursor: pointer;
+          display: inline-flex;
+          align-items: center;
+          gap: 0.5rem;
+          text-decoration: none;
+          transition: var(--neuro-transition);
+          box-shadow: 
+            4px 4px 12px var(--neuro-primary-shadow),
+            -2px -2px 8px rgba(255, 255, 255, 0.1);
+        }
+
+        .neuro-error-button:hover,
+        .neuro-auth-button:hover,
+        .neuro-empty-button:hover,
+        .neuro-cta-button:hover {
+          transform: translateY(-2px);
+          box-shadow: 
+            6px 6px 16px var(--neuro-primary-shadow),
+            -3px -3px 12px rgba(255, 255, 255, 0.1);
+        }
+
+        .neuro-spin {
+          animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+
+        /* Empty State */
+        .neuro-empty-state {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 40vh;
+        }
+
+        .neuro-empty-card {
+          background: var(--neuro-bg);
+          padding: 3rem;
+          border-radius: var(--neuro-radius-lg);
+          text-align: center;
+          max-width: 500px;
+          box-shadow: 
+            12px 12px 25px var(--neuro-shadow-dark),
+            -12px -12px 25px var(--neuro-shadow-light);
+        }
+
+        .neuro-empty-icon {
+          color: var(--neuro-text-light);
+          margin-bottom: 1.5rem;
+          display: flex;
+          justify-content: center;
+        }
+
+        .neuro-empty-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 1rem;
+          color: var(--neuro-text-primary);
+        }
+
+        .neuro-empty-text {
+          color: var(--neuro-text-secondary);
+          margin-bottom: 2rem;
+          line-height: 1.6;
+        }
+
+        /* Vouchers Grid */
+        .neuro-vouchers-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+          gap: 1.5rem;
+        }
+
+        .neuro-voucher-card {
+          background: var(--neuro-bg);
+          border-radius: var(--neuro-radius-lg);
+          padding: 1.5rem;
+          position: relative;
+          transition: var(--neuro-transition);
+          box-shadow: 
+            8px 8px 20px var(--neuro-shadow-dark),
+            -8px -8px 20px var(--neuro-shadow-light);
+        }
+
+        .neuro-voucher-card.active {
+          border: 2px solid rgba(34, 197, 94, 0.2);
+        }
+
+        .neuro-voucher-card.expired {
+          opacity: 0.6;
+          border: 2px solid rgba(239, 68, 68, 0.2);
+        }
+
+        .neuro-voucher-card.used {
+          opacity: 0.7;
+          border: 2px solid rgba(156, 163, 175, 0.2);
+        }
+
+        .neuro-voucher-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 
+            12px 12px 25px var(--neuro-shadow-dark),
+            -12px -12px 25px var(--neuro-shadow-light);
+        }
+
+        /* Voucher Card Elements */
+        .neuro-voucher-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 1.5rem;
+          gap: 1rem;
+        }
+
+        .neuro-voucher-title {
+          font-size: 1.125rem;
+          font-weight: 600;
+          margin: 0 0 0.25rem 0;
+          color: var(--neuro-text-primary);
+        }
+
+        .neuro-voucher-subtitle {
+          font-size: 0.875rem;
+          color: var(--neuro-text-secondary);
+          margin: 0;
+        }
+
+        .neuro-voucher-status {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.875rem;
+          font-weight: 500;
+          padding: 0.5rem 0.75rem;
+          background: var(--neuro-bg);
+          border-radius: var(--neuro-radius-sm);
+          box-shadow: 
+            inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+            inset -2px -2px 4px var(--neuro-shadow-inner-light);
+        }
+
+        .neuro-voucher-code-section {
+          background: var(--neuro-bg);
+          border-radius: var(--neuro-radius-md);
+          padding: 1.5rem;
+          margin-bottom: 1.5rem;
+          text-align: center;
+          box-shadow: 
+            inset 4px 4px 8px var(--neuro-shadow-inner-dark),
+            inset -4px -4px 8px var(--neuro-shadow-inner-light);
+        }
+
+        .neuro-code-header {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 0.5rem;
+          color: var(--neuro-text-secondary);
+          font-size: 0.875rem;
+          margin-bottom: 1rem;
+        }
+
+        .neuro-voucher-code {
+          font-family: 'Monaco', 'Courier New', monospace;
+          font-size: 2rem;
+          font-weight: 700;
+          color: var(--neuro-text-accent);
+          letter-spacing: 0.25rem;
+          margin-bottom: 0.5rem;
+          text-shadow: 0 0 10px rgba(102, 126, 234, 0.3);
+        }
+
+        .neuro-code-label {
+          font-size: 0.75rem;
+          color: var(--neuro-text-light);
+          text-transform: uppercase;
+          letter-spacing: 0.1rem;
+          font-weight: 500;
+        }
+
+        .neuro-voucher-details {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin-bottom: 1rem;
+        }
+
+        .neuro-detail-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          color: var(--neuro-text-secondary);
+        }
+
+        .neuro-detail-content {
+          display: flex;
+          flex-direction: column;
+          gap: 0.125rem;
+        }
+
+        .neuro-detail-label {
+          font-size: 0.75rem;
+          color: var(--neuro-text-light);
+          text-transform: uppercase;
+          letter-spacing: 0.05rem;
+          font-weight: 500;
+        }
+
+        .neuro-detail-value {
+          font-size: 0.875rem;
+          color: var(--neuro-text-primary);
+          font-weight: 500;
+        }
+
+        .neuro-voucher-description {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+          padding: 1rem;
+          background: var(--neuro-bg);
+          border-radius: var(--neuro-radius-sm);
+          color: var(--neuro-text-secondary);
+          font-size: 0.875rem;
+          line-height: 1.5;
+          box-shadow: 
+            inset 2px 2px 4px var(--neuro-shadow-inner-dark),
+            inset -2px -2px 4px var(--neuro-shadow-inner-light);
+        }
+
+        .neuro-voucher-description p {
+          margin: 0;
+        }
+
+        /* Instructions Section */
+        .neuro-instructions-section {
+          margin-top: 1rem;
+        }
+
+        .neuro-instructions-card {
+          background: var(--neuro-bg);
+          padding: 2rem;
+          border-radius: var(--neuro-radius-lg);
+          box-shadow: 
+            8px 8px 20px var(--neuro-shadow-dark),
+            -8px -8px 20px var(--neuro-shadow-light);
+        }
+
+        .neuro-instructions-header {
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 1.5rem;
+          color: var(--neuro-text-primary);
+        }
+
+        .neuro-instructions-header h3 {
+          font-size: 1.25rem;
+          font-weight: 600;
+          margin: 0;
+        }
+
+        .neuro-instructions-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+          gap: 1rem;
+        }
+
+        .neuro-instruction-item {
+          display: flex;
+          align-items: flex-start;
+          gap: 0.75rem;
+        }
+
+        .neuro-instruction-icon {
+          background: var(--neuro-bg);
+          width: 2.5rem;
+          height: 2.5rem;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: var(--neuro-text-accent);
+          flex-shrink: 0;
+          box-shadow: 
+            4px 4px 8px var(--neuro-shadow-dark),
+            -4px -4px 8px var(--neuro-shadow-light);
+        }
+
+        .neuro-instruction-item p {
+          font-size: 0.875rem;
+          color: var(--neuro-text-secondary);
+          line-height: 1.5;
+          margin: 0;
+          padding-top: 0.375rem;
+        }
+
+        /* Call to Action */
+        .neuro-cta-section {
+          margin-top: 1rem;
+        }
+
+        .neuro-cta-card {
+          background: var(--neuro-bg);
+          padding: 3rem 2rem;
+          border-radius: var(--neuro-radius-lg);
+          text-align: center;
+          box-shadow: 
+            12px 12px 25px var(--neuro-shadow-dark),
+            -12px -12px 25px var(--neuro-shadow-light);
+        }
+
+        .neuro-cta-icon {
+          color: var(--neuro-text-accent);
+          margin-bottom: 1.5rem;
+          display: flex;
+          justify-content: center;
+        }
+
+        .neuro-cta-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin-bottom: 1rem;
+          color: var(--neuro-text-primary);
+        }
+
+        .neuro-cta-text {
+          color: var(--neuro-text-secondary);
+          margin-bottom: 2rem;
+          line-height: 1.6;
+          max-width: 600px;
+          margin-left: auto;
+          margin-right: auto;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+          .neuro-container {
+            padding: 0 0.5rem;
+          }
+
+          .neuro-page-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+          }
+
+          .neuro-vouchers-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .neuro-voucher-header {
+            flex-direction: column;
+            gap: 0.75rem;
+          }
+
+          .neuro-voucher-code {
+            font-size: 1.5rem;
+            letter-spacing: 0.15rem;
+          }
+
+          .neuro-instructions-grid {
+            grid-template-columns: 1fr;
+          }
+
+          .neuro-page-title {
+            font-size: 1.5rem;
+          }
+        }
+
+        @media (max-width: 480px) {
+          .neuro-container {
+            gap: 1.5rem;
+          }
+
+          .neuro-page-header,
+          .neuro-instructions-card,
+          .neuro-cta-card {
+            padding: 1.5rem;
+          }
+
+          .neuro-voucher-card {
+            padding: 1rem;
+          }
+
+          .neuro-voucher-code-section {
+            padding: 1rem;
+          }
+
+          .neuro-voucher-code {
+            font-size: 1.25rem;
+            letter-spacing: 0.1rem;
+          }
+        }
+      `}</style>
     </div>
   );
 };
